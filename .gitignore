@@ -1,0 +1,6 @@
+/build
+/lean_packages/*
+!/lean_packages/manifest.json
+# JavaScript build artefacts.
+/widget/dist
+/widget/node_modules
