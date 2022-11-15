@@ -16,9 +16,9 @@ namespace Lean.Widget
 inductive Html where
   -- TODO(WN): it's nameless for shorter JSON; re-add names when we have deriving strategies for From/ToJson
   -- element (tag : String) (attrs : Array HtmlAttribute) (children : Array Html)
-  | element : String → Array (String × String) → Array Html → Html
+  | element : String → Array (String × Json) → Array Html → Html
   | text : String → Html
-  deriving Repr, BEq, Inhabited, FromJson, ToJson
+  deriving BEq, Inhabited, FromJson, ToJson
 
 instance : Coe String Html :=
   ⟨Html.text⟩
@@ -59,7 +59,7 @@ macro_rules
       | `(jsxAttrVal| $s:str) => s
       | `(jsxAttrVal| { $t:term }) => t
       | _ => unreachable!
-    `(Html.element $(quote <| toString n.getId) #[ $[($ns, $vs)],* ] #[])
+    `(Html.element $(quote <| toString n.getId) #[ $[($ns, toJson $vs)],* ] #[])
   | `(<$n $[$ns = $vs]* >$cs*</$m>) =>
     if n.getId == m.getId then do
       let ns := ns.map (quote <| toString ·.getId)
@@ -74,7 +74,7 @@ macro_rules
         | `(jsxChild|$e:jsxElement) => `($e:jsxElement)
         | _                         => unreachable!
       let tag := toString n.getId
-      `(Html.element $(quote tag) #[ $[($ns, $vs)],* ] #[ $[$cs],* ])
+      `(Html.element $(quote tag) #[ $[($ns, toJson $vs)],* ] #[ $[$cs],* ])
     else Macro.throwError ("expected </" ++ toString n.getId ++ ">")
 
 end Jsx

@@ -2,6 +2,20 @@
 
 Authors: Wojciech Nawrocki, E.W.Ayers
 
+# Usage
+
+## Building the demos:
+
+```
+cd widget
+npm i
+cd ..
+lake build widgets
+lake build
+```
+
+Now go to the demo folder in VSCode.
+Putting your cursor on any `#widget` or `#html` will show you a widget in the infoview. Top tip: use the pushpin icon to keep the widget in view. You can then live code your widgets.
 
 # Features
 

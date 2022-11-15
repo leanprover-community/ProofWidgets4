@@ -1,7 +1,9 @@
 import WidgetKit.HtmlWidget
 open Lean.Widget.Jsx -- ⟵ remember this!
 
-#html <b>You can use HTML in lean!</b>
+def x := <b>You can use HTML in lean! {toString $ 4 + 5} <hr/> </b>
+
+#html x
 
 open scoped Lean.Widget.Jsx in
 theorem ghjk : True := by
