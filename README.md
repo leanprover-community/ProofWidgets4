@@ -7,10 +7,6 @@ Authors: Wojciech Nawrocki, E.W.Ayers
 ## Building the demos:
 
 ```
-cd widget
-npm i
-cd ..
-lake build widgets
 lake build
 ```
 
@@ -50,3 +46,17 @@ We also support all elements that are exposed by the [Recharts library](https://
 
 As a hidden feature, you can also make animated widgets by passing an array of `Widget.Html` objects to the `staticHtml` widget. This works particularly well with the rechart plotting library, which eases between different plots.
 You can see an example of how to do this in `src/Demo/Plot.lean`
+
+# Development
+
+WidgetKit has the built, bundled JavaScript files checked in to the git repository (under widget/dist/*.js), so you do not need to build these yourself.
+If you want to rebuild the javascript, you need to do
+
+```
+cd widget
+npm install
+cd ..
+lake build widgets
+```
+
+This should overwrite the files in `widget/dist`.
