@@ -19,11 +19,15 @@ def Plot (fn : Float → Float) (steps := 100)  : Widget.Html :=
     </LineChart>
 
 
+#html Plot (fn 0)
+
+/-!
+# Bonus demo: animated plots!
+-/
+
 def mkFrames (fn : Float → Float → Float) (steps := 100) : Array Widget.Html:=
   List.range (steps + 1) |>.toArray |>.map (fun t => Plot (fn (t.toFloat / steps.toFloat)))
 
 -- put your cursor over the below line to see an animated widget
 #widget staticHtmlWidget json% {frames : $(toJson (mkFrames fn)), framesPerSecond : 50}
-
-#html Plot (fn 0)
 
