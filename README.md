@@ -34,16 +34,19 @@ JSON-like syntax. Invoke with `json%`, escape with `$( _ )`
 }
 ```
 
-## html syntax
+## JSX-like syntax
 
 ```lean
 import WidgetKit.HtmlWidget
 open Lean.Widget.Jsx
 
-#html <b>You can use HTML in lean!</b>
+-- click on the line below to see it in your infoview!
+#html <b>You can use HTML in lean! {toString <| 1 + 2>}</b>
 ```
 
-# Development
+We also support all elements that are exposed by the [Recharts library](https://recharts.org/en-US/api), so you can make your own plots. See `src/Demo/Plot.lean` for an example.
 
-- `lake build widgets`
-- `lake build`
+## Animated html
+
+As a hidden feature, you can also make animated widgets by passing an array of `Widget.Html` objects to the `staticHtml` widget. This works particularly well with the rechart plotting library, which eases between different plots.
+You can see an example of how to do this in `src/Demo/Plot.lean`

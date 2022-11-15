@@ -13,7 +13,7 @@ def Plot (fn : Float → Float) (steps := 100)  : Widget.Html :=
       |> Array.map (fun (x,y) => json% {x: $(toJson x) , y: $(toJson y)}) |> toJson;
     -- we use the recharts library which you can get the api for here: https://recharts.org/en-US/api
     <LineChart width={400} height={400} data={jsonData}>
-        <XAxis dataKey="x"/>
+        <XAxis domain={[0,1]} dataKey="x"/>
         <YAxis domain={[-1, 1]} allowDataOverflow={ Bool.true }/>
         <Line type="monotone" dataKey="y" stroke="#8884d8" dot={ Bool.false }/>
     </LineChart>
