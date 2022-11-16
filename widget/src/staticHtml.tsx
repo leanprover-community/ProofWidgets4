@@ -33,7 +33,11 @@ export function StaticHtml({html, ...props} : {html: Html}) : React.ReactNode {
             return <InteractiveCode fmt={fmt}/>
         }
         if (htmlTags.includes(tag) || svgTags.includes(tag)) {
-            return React.createElement(tag, attrs, children)
+            if (children.length === 0) {
+                return React.createElement(tag, attrs)
+            } else {
+                return React.createElement(tag, attrs, children)
+            }
         } else if (tag in Recharts) {
             const component = (Recharts as any)[tag]
             return React.createElement(component as any, attrs, children)

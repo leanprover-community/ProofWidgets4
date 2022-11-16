@@ -3,6 +3,7 @@ const global = window;
 import * as React from 'react';
 import React__default, { isValidElement, PureComponent, cloneElement, createRef, forwardRef, useState, useRef, useImperativeHandle, useEffect, Component, Children, createElement } from 'react';
 import require$$2, { findDOMNode } from 'react-dom';
+import { InteractiveCode } from '@leanprover/infoview';
 
 var commonjsGlobal$1 = typeof globalThis !== 'undefined' ? globalThis : "object" !== 'undefined' ? window : typeof global !== 'undefined' ? global : typeof self !== 'undefined' ? self : {};
 
@@ -23606,8 +23607,6 @@ millisecond.every = function(k) {
     return (end - start) / k;
   });
 };
-
-var millisecond$1 = millisecond;
 var milliseconds = millisecond.range;
 
 const durationSecond = 1000;
@@ -23627,8 +23626,6 @@ var second = newInterval(function(date) {
 }, function(date) {
   return date.getUTCSeconds();
 });
-
-var utcSecond = second;
 var seconds = second.range;
 
 var minute = newInterval(function(date) {
@@ -23640,8 +23637,6 @@ var minute = newInterval(function(date) {
 }, function(date) {
   return date.getMinutes();
 });
-
-var timeMinute = minute;
 var minutes = minute.range;
 
 var hour = newInterval(function(date) {
@@ -23653,8 +23648,6 @@ var hour = newInterval(function(date) {
 }, function(date) {
   return date.getHours();
 });
-
-var timeHour = hour;
 var hours = hour.range;
 
 var day = newInterval(
@@ -23663,8 +23656,6 @@ var day = newInterval(
   (start, end) => (end - start - (end.getTimezoneOffset() - start.getTimezoneOffset()) * durationMinute) / durationDay,
   date => date.getDate() - 1
 );
-
-var timeDay = day;
 var days = day.range;
 
 function weekday(i) {
@@ -23704,8 +23695,6 @@ var month = newInterval(function(date) {
 }, function(date) {
   return date.getMonth();
 });
-
-var timeMonth = month;
 var months = month.range;
 
 var year = newInterval(function(date) {
@@ -23729,8 +23718,6 @@ year.every = function(k) {
     date.setFullYear(date.getFullYear() + step * k);
   });
 };
-
-var timeYear = year;
 var years = year.range;
 
 var utcMinute = newInterval(function(date) {
@@ -23742,8 +23729,6 @@ var utcMinute = newInterval(function(date) {
 }, function(date) {
   return date.getUTCMinutes();
 });
-
-var utcMinute$1 = utcMinute;
 var utcMinutes = utcMinute.range;
 
 var utcHour = newInterval(function(date) {
@@ -23755,8 +23740,6 @@ var utcHour = newInterval(function(date) {
 }, function(date) {
   return date.getUTCHours();
 });
-
-var utcHour$1 = utcHour;
 var utcHours = utcHour.range;
 
 var utcDay = newInterval(function(date) {
@@ -23768,8 +23751,6 @@ var utcDay = newInterval(function(date) {
 }, function(date) {
   return date.getUTCDate() - 1;
 });
-
-var utcDay$1 = utcDay;
 var utcDays = utcDay.range;
 
 function utcWeekday(i) {
@@ -23809,8 +23790,6 @@ var utcMonth = newInterval(function(date) {
 }, function(date) {
   return date.getUTCMonth();
 });
-
-var utcMonth$1 = utcMonth;
 var utcMonths = utcMonth.range;
 
 var utcYear = newInterval(function(date) {
@@ -23834,17 +23813,15 @@ utcYear.every = function(k) {
     date.setUTCFullYear(date.getUTCFullYear() + step * k);
   });
 };
-
-var utcYear$1 = utcYear;
 var utcYears = utcYear.range;
 
 function ticker(year, month, week, day, hour, minute) {
 
   const tickIntervals = [
-    [utcSecond,  1,      durationSecond],
-    [utcSecond,  5,  5 * durationSecond],
-    [utcSecond, 15, 15 * durationSecond],
-    [utcSecond, 30, 30 * durationSecond],
+    [second,  1,      durationSecond],
+    [second,  5,  5 * durationSecond],
+    [second, 15, 15 * durationSecond],
+    [second, 30, 30 * durationSecond],
     [minute,  1,      durationMinute],
     [minute,  5,  5 * durationMinute],
     [minute, 15, 15 * durationMinute],
@@ -23873,7 +23850,7 @@ function ticker(year, month, week, day, hour, minute) {
     const target = Math.abs(stop - start) / count;
     const i = d3Array.exports.bisector(([,, step]) => step).right(tickIntervals, target);
     if (i === tickIntervals.length) return year.every(d3Array.exports.tickStep(start / durationYear, stop / durationYear, count));
-    if (i === 0) return millisecond$1.every(Math.max(d3Array.exports.tickStep(start, stop, count), 1));
+    if (i === 0) return millisecond.every(Math.max(d3Array.exports.tickStep(start, stop, count), 1));
     const [t, step] = tickIntervals[target / tickIntervals[i - 1][2] < tickIntervals[i][2] / target ? i - 1 : i];
     return t.every(step);
   }
@@ -23881,25 +23858,25 @@ function ticker(year, month, week, day, hour, minute) {
   return [ticks, tickInterval];
 }
 
-const [utcTicks, utcTickInterval] = ticker(utcYear$1, utcMonth$1, utcSunday, utcDay$1, utcHour$1, utcMinute$1);
-const [timeTicks, timeTickInterval] = ticker(timeYear, timeMonth, sunday, timeDay, timeHour, timeMinute);
+const [utcTicks, utcTickInterval] = ticker(utcYear, utcMonth, utcSunday, utcDay, utcHour, utcMinute);
+const [timeTicks, timeTickInterval] = ticker(year, month, sunday, day, hour, minute);
 
 var src = /*#__PURE__*/Object.freeze({
 	__proto__: null,
 	timeInterval: newInterval,
-	timeMillisecond: millisecond$1,
+	timeMillisecond: millisecond,
 	timeMilliseconds: milliseconds,
-	utcMillisecond: millisecond$1,
+	utcMillisecond: millisecond,
 	utcMilliseconds: milliseconds,
-	timeSecond: utcSecond,
+	timeSecond: second,
 	timeSeconds: seconds,
-	utcSecond: utcSecond,
+	utcSecond: second,
 	utcSeconds: seconds,
-	timeMinute: timeMinute,
+	timeMinute: minute,
 	timeMinutes: minutes,
-	timeHour: timeHour,
+	timeHour: hour,
 	timeHours: hours,
-	timeDay: timeDay,
+	timeDay: day,
 	timeDays: days,
 	timeWeek: sunday,
 	timeWeeks: sundays,
@@ -23917,15 +23894,15 @@ var src = /*#__PURE__*/Object.freeze({
 	timeFridays: fridays,
 	timeSaturday: saturday,
 	timeSaturdays: saturdays,
-	timeMonth: timeMonth,
+	timeMonth: month,
 	timeMonths: months,
-	timeYear: timeYear,
+	timeYear: year,
 	timeYears: years,
-	utcMinute: utcMinute$1,
+	utcMinute: utcMinute,
 	utcMinutes: utcMinutes,
-	utcHour: utcHour$1,
+	utcHour: utcHour,
 	utcHours: utcHours,
-	utcDay: utcDay$1,
+	utcDay: utcDay,
 	utcDays: utcDays,
 	utcWeek: utcSunday,
 	utcWeeks: utcSundays,
@@ -23943,9 +23920,9 @@ var src = /*#__PURE__*/Object.freeze({
 	utcFridays: utcFridays,
 	utcSaturday: utcSaturday,
 	utcSaturdays: utcSaturdays,
-	utcMonth: utcMonth$1,
+	utcMonth: utcMonth,
 	utcMonths: utcMonths,
-	utcYear: utcYear$1,
+	utcYear: utcYear,
 	utcYears: utcYears,
 	utcTicks: utcTicks,
 	utcTickInterval: utcTickInterval,
@@ -24761,11 +24738,11 @@ function calendar(ticks, tickInterval, year, month, week, day, hour, minute, sec
 }
 
 function time() {
-  return initRange.apply(calendar(timeTicks, timeTickInterval, timeYear, timeMonth, sunday, timeDay, timeHour, timeMinute, utcSecond, d3TimeFormat.exports.timeFormat).domain([new Date(2000, 0, 1), new Date(2000, 0, 2)]), arguments);
+  return initRange.apply(calendar(timeTicks, timeTickInterval, year, month, sunday, day, hour, minute, second, d3TimeFormat.exports.timeFormat).domain([new Date(2000, 0, 1), new Date(2000, 0, 2)]), arguments);
 }
 
 function utcTime() {
-  return initRange.apply(calendar(utcTicks, utcTickInterval, utcYear$1, utcMonth$1, utcSunday, utcDay$1, utcHour$1, utcMinute$1, utcSecond, d3TimeFormat.exports.utcFormat).domain([Date.UTC(2000, 0, 1), Date.UTC(2000, 0, 2)]), arguments);
+  return initRange.apply(calendar(utcTicks, utcTickInterval, utcYear, utcMonth, utcSunday, utcDay, utcHour, utcMinute, second, d3TimeFormat.exports.utcFormat).domain([Date.UTC(2000, 0, 1), Date.UTC(2000, 0, 2)]), arguments);
 }
 
 function transformer$1() {
@@ -41370,8 +41347,23 @@ function StaticHtml({ html, ...props }) {
             // React is greatly concerned by <hr/>s having children.
             return React.createElement("hr", null);
         }
+        if (tag === "InteractiveCode") {
+            if (!("fmt" in attrs)) {
+                return React.createElement("span", { className: "red" },
+                    "Give ",
+                    tag,
+                    " a fmt attr.");
+            }
+            const fmt = attrs.fmt;
+            return React.createElement(InteractiveCode, { fmt: fmt });
+        }
         if (htmlTags.includes(tag) || svgTags.includes(tag)) {
-            return React.createElement(tag, attrs, children);
+            if (children.length === 0) {
+                return React.createElement(tag, attrs);
+            }
+            else {
+                return React.createElement(tag, attrs, children);
+            }
         }
         else if (tag in Recharts) {
             const component = Recharts[tag];
