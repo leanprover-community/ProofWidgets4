@@ -41347,7 +41347,7 @@ function StaticHtml({ html, ...props }) {
             attrs[k] = v;
         }
         ({ tag, attrs, children: cs } = visitor({ tag, attrs, children: cs }));
-        const children = cs.map(html => StaticHtml({ html }));
+        const children = cs.map(html => StaticHtml({ html, visitor }));
         if (tag === "hr") {
             // React is greatly concerned by <hr/>s having children.
             return React.createElement("hr", null);
