@@ -11,7 +11,10 @@ export type Html =
     | {element: [string, HtmlAttribute[], Html[]]}
     | {text : string}
 
-export function StaticHtml({html, ...props} : {html: Html}) : React.ReactNode {
+export function StaticHtml({html, ...props} : {html: Html}) : any{
+    if (!html) {
+        return <span>html was undefined</span>
+    }
     if ('text' in html) {
         return html.text
     } else if ('element' in html) {
