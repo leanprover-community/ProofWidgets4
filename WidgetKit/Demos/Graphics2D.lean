@@ -87,6 +87,13 @@ structure GeometryData where
   circles   : Array Circle
   -- triangles : Array Triangle
 
+def GeometryData.rotate (θ : Float) (data : GeometryData) : GeometryData :=
+  let c := Float.cos θ
+  let s := Float.sin θ 
+  let rotate (p : Point) : Point := ⟨c*p.x-s*p.y, s*p.x+c*p.y⟩ 
+  { edges := data.edges.map λ e => {e with src := rotate e.src, trg := rotate e.trg},
+    circles := data.circles.map λ c => {c with center := rotate c.center}}
+
 def GeometryData.toSvgHtml (data : GeometryData) (frame : Frame) : Html := Id.run do
   let mut items : Array Html := #[]
 
@@ -132,6 +139,6 @@ private def data : GeometryData where
                { center := ⟨0,1⟩, radius := .pixels 5, color := ⟨0,1,1⟩ }]
   
 -- #eval toJson (data.toSvgHtml frame)
-#html data.toSvgHtml frame
+#html (data.rotate 0.4).toSvgHtml frame
 
 end Example
