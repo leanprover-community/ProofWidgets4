@@ -8,10 +8,11 @@ structure Color where
   (r := 0.0)
   (g := 0.0)
   (b := 0.0)
-  (a := 1.0)
 
 /-- Turns color into hex  e.g. white is '#ffffff' or red is '#ff0000' -/
 def Color.toHex (c : Color) : String := "#000000"
+
+def Color.toRGB (c : Color) : String := s!"rgb({255*c.r}, {255*c.g}, {255*c.b})"
 
 
 structure Point where
@@ -60,7 +61,7 @@ def Edge.toSvgHtml (edge : Edge) (frame : Frame) : Html :=
   let (x1,y1) := edge.src.toPixels frame
   let (x2,y2) := edge.trg.toPixels frame
   let strokeWidth := edge.width.toPixels frame;
-  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={edge.color.toHex} strokeWidth={strokeWidth} /> 
+  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={edge.color.toRGB} strokeWidth={strokeWidth} /> 
 
 
 structure Circle where
@@ -71,7 +72,7 @@ structure Circle where
 def Circle.toSvgHtml (circle : Circle) (frame : Frame) : Html :=
   let (cx,cy) := circle.center.toPixels frame
   let r := circle.radius.toPixels frame;
-  <circle cx={cx} cy={cy} r={r} fill={circle.color.toHex} />
+  <circle cx={cx} cy={cy} r={r} fill={circle.color.toRGB} />
 
 
 -- structure Polygon where
@@ -126,11 +127,11 @@ private def data : GeometryData where
   edges   := #[{ src := ⟨0, 0⟩, trg := ⟨0, 1⟩, width := .pixels 2, color := { r := 1, g := 0, b := 0 }},
                { src := ⟨0, 1⟩, trg := ⟨1, 0⟩, width := .pixels 2, color := { r := 0, g := 1, b := 0 }},
                { src := ⟨1, 0⟩, trg := ⟨0, 0⟩, width := .pixels 2, color := { r := 0, g := 0, b := 1 }}]
-  circles := #[{ center := ⟨0,0⟩, radius := .pixels 5, color := ⟨1,1,0,1⟩ },
-               { center := ⟨1,0⟩, radius := .pixels 5, color := ⟨1,0,1,1⟩ },
-               { center := ⟨0,1⟩, radius := .pixels 5, color := ⟨0,1,1,1⟩ }]
+  circles := #[{ center := ⟨0,0⟩, radius := .pixels 5, color := ⟨1,1,0⟩ },
+               { center := ⟨1,0⟩, radius := .pixels 5, color := ⟨1,0,1⟩ },
+               { center := ⟨0,1⟩, radius := .pixels 5, color := ⟨0,1,1⟩ }]
   
 -- #eval toJson (data.toSvgHtml frame)
-
+#html data.toSvgHtml frame
 
 end Example
