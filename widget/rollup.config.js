@@ -2,6 +2,7 @@ import { nodeResolve} from '@rollup/plugin-node-resolve'
 import typescript from '@rollup/plugin-typescript';
 import commonjs from '@rollup/plugin-commonjs';
 import replace from '@rollup/plugin-replace';
+import alias from '@rollup/plugin-alias';
 import { string } from 'rollup-plugin-string';
 export default cliArgs => {
     const tsxName = cliArgs.tsxName;
@@ -24,6 +25,7 @@ export default cliArgs => {
         'react',
         'react-dom',
         '@leanprover/infoview',
+        /^https:\/\/cdn.jsdelivr.net\/.*/
     ],
     plugins: [
         string({
@@ -59,5 +61,11 @@ export default cliArgs => {
                 'cluster', 'module', 'net', 'readline', 'repl', 'tls', 'fs', 'crypto', 'perf_hooks',
             ],
         }),
+        alias({
+            entries: [
+                // { find: 'recharts', replacement: 'https://cdn.jsdelivr.net/npm/recharts/+esm' },
+                { find: 'pad-left', replacement: 'https://cdn.jsdelivr.net/npm/pad-left/+esm' },
+            ]
+        })
     ],
 }}
