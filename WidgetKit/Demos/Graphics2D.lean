@@ -8,6 +8,7 @@ structure Color where
   (r := 0.0)
   (g := 0.0)
   (b := 0.0)
+  deriving ToJson, FromJson
 
 /-- Turns color into hex  e.g. white is '#ffffff' or red is '#ff0000' -/
 def Color.toHex (c : Color) : String := "#000000"
@@ -17,12 +18,14 @@ def Color.toRGB (c : Color) : String := s!"rgb({255*c.r}, {255*c.g}, {255*c.b})"
 
 structure Point where
   (x y : Float)
+  deriving ToJson, FromJson
 
 
 structure Frame where
   (min : Point)
   (xSize : Float)
   (width height : Nat)
+  deriving ToJson, FromJson
 
 def Frame.ySize (frame : Frame) : Float := frame.height.toFloat * (frame.xSize / frame.width.toFloat)
 
@@ -39,12 +42,13 @@ def Point.toPixels (p : Point) (frame : Frame) : Nat × Nat :=
   (px.toUInt64.toNat, py.toUInt64.toNat)
 
 
-def lengthToPixels (length : Float) (width : Nat) (xmin xmax : Float) : Nat := 
+def lengthToPixels (length : Float) (width : Nat) (xmin xmax : Float) : Nat :=
   width.toFloat * (length / (xmax - xmin)) |>.toUInt64.toNat
 
 inductive Size where
 | pixels   (size : Nat)   : Size
 | absolute (size : Float) : Size
+deriving ToJson, FromJson
 
 def Size.toPixels (s : Size) (frame : Frame) : Nat :=
   match s with
@@ -56,18 +60,20 @@ structure Edge where
   (src trg : Point)
   (width : Size)
   (color : Color)
+  deriving ToJson, FromJson
 
-def Edge.toSvgHtml (edge : Edge) (frame : Frame) : Html := 
+def Edge.toSvgHtml (edge : Edge) (frame : Frame) : Html :=
   let (x1,y1) := edge.src.toPixels frame
   let (x2,y2) := edge.trg.toPixels frame
   let strokeWidth := edge.width.toPixels frame;
-  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={edge.color.toRGB} strokeWidth={strokeWidth} /> 
+  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke={edge.color.toRGB} strokeWidth={strokeWidth} />
 
 
 structure Circle where
   (center : Point)
   (radius : Size)
   (color : Color)
+  deriving ToJson, FromJson
 
 def Circle.toSvgHtml (circle : Circle) (frame : Frame) : Html :=
   let (cx,cy) := circle.center.toPixels frame
@@ -85,12 +91,13 @@ def Circle.toSvgHtml (circle : Circle) (frame : Frame) : Html :=
 structure GeometryData where
   edges     : Array Edge
   circles   : Array Circle
+  deriving ToJson, FromJson
   -- triangles : Array Triangle
 
 def GeometryData.rotate (θ : Float) (data : GeometryData) : GeometryData :=
   let c := Float.cos θ
-  let s := Float.sin θ 
-  let rotate (p : Point) : Point := ⟨c*p.x-s*p.y, s*p.x+c*p.y⟩ 
+  let s := Float.sin θ
+  let rotate (p : Point) : Point := ⟨c*p.x-s*p.y, s*p.x+c*p.y⟩
   { edges := data.edges.map λ e => {e with src := rotate e.src, trg := rotate e.trg},
     circles := data.circles.map λ c => {c with center := rotate c.center}}
 
@@ -123,22 +130,22 @@ def GeometryData.toSvgHtml (data : GeometryData) (frame : Frame) : Html := Id.ru
 
 section Example
 
-private def frame : Frame where
+def frame : Frame where
   min    := ⟨-1,-1⟩
   xSize  := 2
   width  := 400
   height := 400
 
 
-private def data : GeometryData where
+def initialData : GeometryData where
   edges   := #[{ src := ⟨0, 0⟩, trg := ⟨0, 1⟩, width := .pixels 2, color := { r := 1, g := 0, b := 0 }},
                { src := ⟨0, 1⟩, trg := ⟨1, 0⟩, width := .pixels 2, color := { r := 0, g := 1, b := 0 }},
                { src := ⟨1, 0⟩, trg := ⟨0, 0⟩, width := .pixels 2, color := { r := 0, g := 0, b := 1 }}]
   circles := #[{ center := ⟨0,0⟩, radius := .pixels 5, color := ⟨1,1,0⟩ },
                { center := ⟨1,0⟩, radius := .pixels 5, color := ⟨1,0,1⟩ },
                { center := ⟨0,1⟩, radius := .pixels 5, color := ⟨0,1,1⟩ }]
-  
+
 -- #eval toJson (data.toSvgHtml frame)
-#html (data.rotate 0.4).toSvgHtml frame
+#html (initialData.rotate 0.4).toSvgHtml frame
 
 end Example

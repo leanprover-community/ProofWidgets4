@@ -1,39 +1,25 @@
 import Lean
 import WidgetKit.Html
 import WidgetKit.HtmlWidget
+import WidgetKit.Demos.Graphics2D
 open Lean Widget Jsx
-
-structure Point where
-  x1 : Float
-  x2 : Float
-  p1 : Float
-  p2 : Float
-  deriving ToJson, FromJson
-
-def updatePoint (dt : Float) (p : Point) : Point :=
-  let p2 := {
-    x1 := p.x1 + dt * p.p1,
-    x2 := p.x2 + dt * p.p2,
-    p1 := p.p1
-    p2 := p.p2
-    }
-  p2
 
 
 structure GeometryState where
-  points : Array Point
+  geom : GeometryData
   t : Float := 0
+  v := 0.0002
   deriving ToJson, FromJson
 
 def GeometryState.init : GeometryState := {
-  points := #[{x1 := 20, x2 := 20, p1 := 1, p2 := 1}],
+  geom := initialData,
   t := 0
 }
 
 inductive ActionKind where
   | timeout
   | click
-  deriving ToJson, FromJson
+  deriving ToJson, FromJson, DecidableEq
 
 structure Action where
   -- can be 'timeout' or '
@@ -58,12 +44,23 @@ open Server RequestM in
 @[server_rpc_method]
 def updatePhysics (params : UpdatePhysicsParams ) : RequestM (RequestTask UpdatePhysicsResult) := do
   let δt := (params.elapsed - params.state.t)
-  let s2 := params.state.points.map (updatePoint δt)
-  let newState : GeometryState := {points := s2, t := params.elapsed}
+  let mut v := params.state.v
+  for action in params.actions do
+    if action.kind == ActionKind.click then
+      v := v * 2
+  let s2 := params.state.geom.rotate (δt * v)
+
+
+  let newState : GeometryState := {geom := s2, t := params.elapsed, v := v}
+  let svg := GeometryData.toSvgHtml newState.geom frame
   return RequestTask.pure $ {
-    html := <div>Hello world {toString params.elapsed} {toString <| toJson <| params.actions}</div>,
+    html := <div>
+      <div>
+        {svg}
+      </div>
+      {toString params.elapsed} {toString <| toJson <| params.actions}</div>,
     state := newState,
-    callbackTime := some 1000,
+    callbackTime := some 16,
   }
 
 @[widget]
