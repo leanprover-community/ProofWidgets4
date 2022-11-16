@@ -1,10 +1,11 @@
 import WidgetKit.HtmlWidget
 import WidgetKit.Json
-open Lean.Widget.Jsx -- ⟵ remember this!
+open Lean.Widget.Jsx
 open Lean Widget
 
 def fn (t : Float) (x : Float): Float :=
-   50 * (x - 0.25) * (x - 0.5) * (x - 0.7) + 0.1 * (x * 40 + t * 2 * 3.141).sin
+   50 * (x - 0.25) * (x - 0.5) * (x - 0.7) + 0.1 * (x * 40 - t * 2 * 3.141).sin
+
 
 def Plot (fn : Float → Float) (steps := 100)  : Widget.Html :=
     let jsonData : Json := List.range (steps + 1)
@@ -20,6 +21,9 @@ def Plot (fn : Float → Float) (steps := 100)  : Widget.Html :=
 
 
 #html Plot (fn 0)
+#html Plot (fn 0.2)
+#html Plot (fn 0.4)
+#html Plot (fn 0.6)
 
 /-!
 # Bonus demo: animated plots!
@@ -28,6 +32,6 @@ def Plot (fn : Float → Float) (steps := 100)  : Widget.Html :=
 def mkFrames (fn : Float → Float → Float) (steps := 100) : Array Widget.Html:=
   List.range (steps + 1) |>.toArray |>.map (fun t => Plot (fn (t.toFloat / steps.toFloat)))
 
--- put your cursor over the below line to see an animated widget
-#widget staticHtmlWidget json% {frames : $(toJson (mkFrames fn)), framesPerSecond : 50}
+-- put your cursor on the below line to see an animated widget
+#widget staticHtmlWidget json% {frames : $(toJson (mkFrames fn)), framesPerSecond : 60}
 
