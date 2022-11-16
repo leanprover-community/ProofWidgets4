@@ -24,6 +24,7 @@ inductive ActionKind where
 structure Action where
   -- can be 'timeout' or '
   kind : ActionKind
+  value : Json
   deriving ToJson, FromJson
 
 structure UpdatePhysicsParams where
@@ -60,13 +61,13 @@ def updatePhysics (params : UpdatePhysicsParams ) : RequestM (RequestTask Update
       </div>
       {toString params.elapsed} {toString <| toJson <| params.actions}</div>,
     state := newState,
-    callbackTime := some 16,
+    callbackTime := some 10,
   }
 
 @[widget]
 def physics : UserWidgetDefinition where
   name := "Magic physics demo"
-  javascript := include_str  ".." / "widget" / "dist" / "physics.js"
+  javascript := include_str ".." / "widget" / "dist" / "physics.js"
 
 def init : UpdatePhysicsResult := {
   html := <div>Init!!!</div>,

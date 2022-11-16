@@ -7,22 +7,32 @@ const svgTags = "circle clipPath defs ellipse g line linearGradient mask path pa
 
 type HtmlAttribute = [string, any]
 
+export interface Elt {
+    tag : string
+    attrs : {[key : string] : any}
+    children : Html[]
+}
+
 export type Html =
     | {element: [string, HtmlAttribute[], Html[]]}
     | {text : string}
 
-export function StaticHtml({html, ...props} : {html: Html}) : any{
+export type ElementVisitor = (element : Elt) => Elt
+
+export function StaticHtml({html, ...props} : {html: Html, visitor? : ElementVisitor}) : any{
+    const visitor : ElementVisitor = props.visitor ?? (x => x)
     if (!html) {
         return <span>html was undefined</span>
     }
     if ('text' in html) {
         return html.text
     } else if ('element' in html) {
-        const [tag, attrsList, cs] = html.element
-        const attrs : any = {}
+        let [tag, attrsList, cs] = html.element
+        let attrs : any = {}
         for (const [k,v] of attrsList) {
             attrs[k] = v
         }
+        ({tag, attrs, children: cs} = visitor({tag, attrs, children : cs}))
         const children = cs.map(html => StaticHtml({html}))
         if (tag === "hr") {
             // React is greatly concerned by <hr/>s having children.

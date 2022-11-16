@@ -1,4 +1,4 @@
-import {Html, StaticHtml} from './staticHtml';
+import {Html, StaticHtml, Elt} from './staticHtml';
 import * as React from 'react';
 import { RpcContext, mapRpcError } from '@leanprover/infoview';
 
@@ -6,7 +6,7 @@ type State = any
 
 type Action =
   ( {kind : 'timeout'}
-  | {kind : 'click'}
+  | {kind : 'click', value : any}
   )
 
 interface UpdateParams {
@@ -59,10 +59,19 @@ export function Physics(props : UpdateResult) {
             dispatch()
         }
     }
+
+    function visitor(e : Elt) : Elt {
+        if ('click' in e.attrs) {
+            let {click, ...attrs} = e.attrs
+            attrs.onClick = () => increment({'kind' : 'click', 'value' : click})
+            return {...e, attrs}
+        }
+        return e
+    }
+
     return <div>
-        <StaticHtml html={state.html}/>
+        <StaticHtml html={state.html} visitor={visitor}/>
         <div>frame: {frameNo.current}. state: {asyncState.current}</div>
-        <button onClick={() => increment({'kind' : 'click'})}>update</button>
     </div>
 }
 
