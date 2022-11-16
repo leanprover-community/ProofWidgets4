@@ -1,5 +1,6 @@
 import * as React from 'react';
-import * as Recharts from 'recharts'
+import * as Recharts from 'recharts';
+import { InteractiveCode,  CodeWithInfos } from '@leanprover/infoview';
 
 const htmlTags = "a abbr address area article aside audio b base bdi bdo big blockquote body br button canvas caption cite code col colgroup data datalist dd del details dfn dialog div dl dt em embed fieldset figcaption figure footer form h1 h2 h3 h4 h5 h6 head header hr html i iframe img input ins kbd keygen label legend li link main map mark menu menuitem meta meter nav noscript object ol optgroup option output p param picture pre progress q rp rt ruby s samp script section select small source span strong style sub summary sup table tbody td textarea tfoot th thead time title tr track u ul var video wbr".split(' ')
 const svgTags = "circle clipPath defs ellipse g line linearGradient mask path pattern polygon polyline radialGradient rect stop svg text tspan".split(' ')
@@ -23,6 +24,13 @@ export function StaticHtml({html, ...props} : {html: Html}) : React.ReactNode {
         if (tag === "hr") {
             // React is greatly concerned by <hr/>s having children.
             return <hr/>
+        }
+        if (tag === "InteractiveCode") {
+            if (!("fmt" in attrs)) {
+                return <span className="red">Give {tag} a fmt attr.</span>
+            }
+            const fmt = attrs.fmt
+            return <InteractiveCode fmt={fmt}/>
         }
         if (htmlTags.includes(tag) || svgTags.includes(tag)) {
             return React.createElement(tag, attrs, children)
