@@ -9,15 +9,13 @@ structure Color where
   (g := 0.0)
   (b := 0.0)
 
-/-- Turns color into hex  e.g. white is '#ffffff' or red is '#ff0000' -/
-def Color.toHex (c : Color) : String := "#000000"
 
 def Color.toRGB (c : Color) : String := s!"rgb({255*c.r}, {255*c.g}, {255*c.b})"
 
 
 structure Point where
   (x y : Float)
-
+deriving Inhabited
 
 structure Frame where
   (min : Point)
@@ -39,17 +37,16 @@ def Point.toPixels (p : Point) (frame : Frame) : Nat × Nat :=
   (px.toUInt64.toNat, py.toUInt64.toNat)
 
 
-def lengthToPixels (length : Float) (width : Nat) (xmin xmax : Float) : Nat := 
-  width.toFloat * (length / (xmax - xmin)) |>.toUInt64.toNat
-
 inductive Size where
+| zero : Size
 | pixels   (size : Nat)   : Size
 | absolute (size : Float) : Size
 
 def Size.toPixels (s : Size) (frame : Frame) : Nat :=
   match s with
+  | .zero => 0
   | .pixels   x => x
-  | .absolute x => x * ((frame.max.x - frame.min.x) / frame.width.toFloat) |>.toUInt64.toNat
+  | .absolute x => x * (frame.width.toFloat / frame.xSize) |>.toUInt64.toNat
 
 
 structure Edge where
@@ -75,41 +72,53 @@ def Circle.toSvgHtml (circle : Circle) (frame : Frame) : Html :=
   <circle cx={cx} cy={cy} r={r} fill={circle.color.toRGB} />
 
 
--- structure Polygon where
---   (points : Array Point)
---   (color : Color)
+structure Polygon where
+  (points : Array Point)
+  (color : Color)
+
+def Polygon.toSvgHtml (polygon : Polygon) (frame : Frame) : Html :=
+  let pixelPoint (p : Point) : String := 
+    let (x,y) := p.toPixels frame
+    s!"{x},{y}"
+  let points : String := polygon.points[1:].foldl (init := pixelPoint polygon.points[0]!) 
+    (λ s p => s ++ " " ++ pixelPoint p);
+
+  <polygon fillRule="nonzero" fill={polygon.color.toRGB} points={points} />
+
+inductive SvgShape where
+| line     (src trg : Point)
+| circle   (center : Point) (radius : Size)
+| polyline (points : Array Point)
+| polygon  (points : Array Point)
+
+/- def SvgShape.to : SvgShape → String × Array (String)
+| .line src trg width => sorry
+| .circle center radius => sorry
+| .polyline points width 
+ -/
+ 
+structure SvgElement where
+  shape : SvgShape
+  strokeColor : Color
+  strokeWidth : Size
+  id : String
+  
+
 -- structure Triangle where
 --   (a b c : Point)
 --   (color : Color)
 
 structure GeometryData where
-  edges     : Array Edge
-  circles   : Array Circle
+  edges     := (#[] : Array Edge)
+  circles   := (#[] : Array Circle)
+  polygons  := (#[] : Array Polygon)
   -- triangles : Array Triangle
 
 def GeometryData.toSvgHtml (data : GeometryData) (frame : Frame) : Html := Id.run do
-  let mut items : Array Html := #[]
 
-  for h : i in [0 : data.edges.size] do
-    have _ := h.2
-    let edge := data.edges[i]
-    items := items.push (edge.toSvgHtml frame)
+  let items := (data.edges.map   λ x => x.toSvgHtml frame) |>.append
+               (data.circles.map λ x => x.toSvgHtml frame)
 
-
-  for h : i in [0 : data.circles.size] do
-    have _ := h.2
-    let circle := data.circles[i]
-    items := items.push (circle.toSvgHtml frame)
-
-  -- for h : i in [0 : data.triangles.size] do
-  --   have _ := h.2
-  --   let triangle := data.triangles[i]
-  --   let (x1,y1) := triangle.a.toPixels width bbox
-  --   let r := circle.radius.toPixels width bbox
-  --   -- stroke-width causing troung
-  --   let html : Widget.Html := <circle cx={cx} cy={cy} r={r} fill={circle.color.toHex} />
-
-  -- xmlns="http://www.w3.org/2000/svg" version="1.1" width="300px" height="200px"
   return .element "svg" #[("xmlns", "http://www.w3.org/2000/svg"), ("version", "1.1"), ("width", frame.width), ("height", frame.height)] items
 
 
@@ -128,7 +137,7 @@ private def data : GeometryData where
                { src := ⟨0, 1⟩, trg := ⟨1, 0⟩, width := .pixels 2, color := { r := 0, g := 1, b := 0 }},
                { src := ⟨1, 0⟩, trg := ⟨0, 0⟩, width := .pixels 2, color := { r := 0, g := 0, b := 1 }}]
   circles := #[{ center := ⟨0,0⟩, radius := .pixels 5, color := ⟨1,1,0⟩ },
-               { center := ⟨1,0⟩, radius := .pixels 5, color := ⟨1,0,1⟩ },
+               { center := ⟨1,0⟩, radius := .absolute 0.1, color := ⟨1,0,1⟩ },
                { center := ⟨0,1⟩, radius := .pixels 5, color := ⟨0,1,1⟩ }]
   
 -- #eval toJson (data.toSvgHtml frame)
