@@ -56,11 +56,12 @@ def Size.toPixels (s : Size) (frame : Frame) : Nat :=
   | .pixels   x => x
   | .absolute x => x * (frame.width.toFloat / frame.xSize) |>.toUInt64.toNat
 
+-- inductive PolylineType
 
 inductive Shape where
 | line     (src trg : Point)
 | circle   (center : Point) (radius : Size)
-| polyline (points : Array Point)
+| polyline (points : Array Point) -- (type : PolylineType)
 | polygon  (points : Array Point)
 deriving ToJson, FromJson
 
@@ -77,7 +78,7 @@ def Shape.toHtmlData (frame : Frame) : Shape → String × Array (String × Json
   let pts := points 
       |>.map (λ p => let (x,y) := p.toPixels frame; s!"{x},{y}")
       |>.foldl (init := "") (λ s p => s ++ " " ++ p)
-  ("path", #[("points", pts)])
+  ("polyline", #[("points", pts)])
 | .polygon points => 
   let pts := points 
       |>.map (λ p => let (x,y) := p.toPixels frame; s!"{x},{y}")
