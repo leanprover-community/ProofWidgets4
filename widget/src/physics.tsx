@@ -24,18 +24,19 @@ interface UpdateResult {
 
 export function Physics(props : UpdateResult) {
     const rs = React.useContext(RpcContext)
-    const [state, setState] = React.useState<UpdateResult>(props)
+    const state = React.useRef(props)
     const frameNo = React.useRef(0)
     const startTime = React.useRef(new Date())
     const pending = React.useRef<Action[]>([])
     const asyncState = React.useRef('init')
+    const [frame, setFrame] = React.useState(frameNo.current)
 
     React.useEffect(() => {
-        if (state.callbackTime) {
-            const t = setTimeout(() => increment({kind : 'timeout'}), state.callbackTime)
+        if (state.current.callbackTime) {
+            const t = setTimeout(() => increment({kind : 'timeout'}), state.current.callbackTime)
             return () => clearTimeout(t)
         }
-    }, [state.callbackTime, frameNo.current])
+    }, [state.current.callbackTime, frameNo.current])
 
     function increment(action : Action) {
         pending.current.push(action)
@@ -51,10 +52,11 @@ export function Physics(props : UpdateResult) {
         const elapsed = (new Date() as any) - (startTime.current as any)
         const result = await rs.call<UpdateParams, UpdateResult>(
             'updatePhysics',
-            { elapsed, actions, state : state.state })
+            { elapsed, actions, state : state.current.state })
         asyncState.current = 'resolved'
         frameNo.current = (frameNo.current + 1)
-        setState(result)
+        setFrame(frameNo.current) // [hack] this is just to get the component to refresh.
+        state.current = result
         if (pending.current.length > 0) {
             dispatch()
         }
@@ -70,8 +72,8 @@ export function Physics(props : UpdateResult) {
     }
 
     return <div>
-        <StaticHtml html={state.html} visitor={visitor}/>
-        <div>frame: {frameNo.current}. state: {asyncState.current}</div>
+        <StaticHtml html={state.current.html} visitor={visitor}/>
+        <div>frame: {frame}. state: {asyncState.current}</div>
     </div>
 }
 
