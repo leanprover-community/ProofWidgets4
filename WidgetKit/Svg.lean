@@ -91,7 +91,8 @@ structure Element where
   strokeColor := (none : Option Color)
   strokeWidth := (none : Option Size)
   fillColor   := (none : Option Color)
-  clickData   := (none : Option Json)
+  id          := (none : Option String)
+  data        := (none : Option Json)
 deriving ToJson, FromJson
 
 
@@ -104,26 +105,30 @@ def Element.toHtml (frame : Frame) (e : Element) : Html := Id.run do
     args := args.push ("strokeWidth", width.toPixels frame)
   if let .some color ← e.fillColor then
     args := args.push ("fill", color.toRGB)
-  if let .some clickData ← e.clickData then
-    args := args.push ("onClick", clickData)
+  else
+    args := args.push ("fill", "none")
+  if let .some id ← e.id then
+    args := args.push ("id", id)
+  if let .some data ← e.data then
+    args := args.push ("data", data)
 
   return .element tag args #[]
 
 
 end Svg
 
--- def mkIdToIdx (elements : Array Svg.Element) : HashMap String (Fin elements.size) := 
---   let idToIdx := (elements
---     |>.mapIdx (λ idx el => (idx,el))) -- zip with index
---     |>.filterMap (λ (idx,el) => el.id.map (λ id => (id,idx))) -- keep only elements with specified id
---     |>.toList 
---     |> HashMap.ofList
---   idToIdx
+def mkIdToIdx (elements : Array Svg.Element) : HashMap String (Fin elements.size) := 
+  let idToIdx := (elements
+    |>.mapIdx (λ idx el => (idx,el))) -- zip with index
+    |>.filterMap (λ (idx,el) => el.id.map (λ id => (id,idx))) -- keep only elements with specified id
+    |>.toList 
+    |> HashMap.ofList
+  idToIdx
 
 structure Svg where
   elements : Array Svg.Element
   frame    : Svg.Frame
-  -- idToIdx := mkIdToIdx elements 
+  idToIdx := mkIdToIdx elements 
 
 def Svg.toHtml (svg : Svg) : Html := 
   .element "svg" 
@@ -136,7 +141,8 @@ def Svg.toHtml (svg : Svg) : Html :=
 instance : GetElem Svg Nat Svg.Element (λ svg idx => idx < svg.elements.size) where
   getElem svg i h := svg.elements[i]
 
-
+instance : GetElem Svg String (Option Svg.Element) (λ _ _ => True) where
+  getElem svg id _ := svg.idToIdx[id].map (λ idx => svg.elements[idx])
 
 section Example
 
@@ -148,15 +154,14 @@ section Example
     width  := 400
     height := 400
 
-
   private def svg : Svg := 
     { elements := 
         #[{ shape := .line ⟨0,0⟩ ⟨1,0⟩, strokeWidth := some (.pixels 2), strokeColor := some ⟨1,0,0⟩},
           { shape := .line ⟨1,0⟩ ⟨0,1⟩, strokeWidth := some (.pixels 2), strokeColor := some ⟨0,1,0⟩},
           { shape := .line ⟨0,1⟩ ⟨0,0⟩, strokeWidth := some (.pixels 2), strokeColor := some ⟨0,0,1⟩},
-          { shape := .circle ⟨0,0⟩ (.absolute 0.1) , strokeWidth := some (.pixels 2), strokeColor := some ⟨0,0,0⟩, fillColor := some ⟨0,1,1⟩},
-          { shape := .circle ⟨1,0⟩ (.absolute 0.1) , strokeWidth := some (.pixels 2), strokeColor := some ⟨0,0,0⟩, fillColor := some ⟨1,0,1⟩},
-          { shape := .circle ⟨0,1⟩ (.absolute 0.1) , strokeWidth := some (.pixels 2), strokeColor := some ⟨0,0,0⟩, fillColor := some ⟨1,1,0⟩}
+          { shape := .circle ⟨0,0⟩ (.absolute 0.1) , strokeWidth := some (.pixels 2), strokeColor := some ⟨0,0,0⟩, fillColor := some ⟨0,1,1⟩, id := some "point1"},
+          { shape := .circle ⟨1,0⟩ (.absolute 0.1) , strokeWidth := some (.pixels 2), strokeColor := some ⟨0,0,0⟩, fillColor := some ⟨1,0,1⟩, id := some "point2"},
+          { shape := .circle ⟨0,1⟩ (.absolute 0.1) , strokeWidth := some (.pixels 2), strokeColor := some ⟨0,0,0⟩, fillColor := some ⟨1,1,0⟩, id := some "point3"}
                ],
       frame := frame }
 
