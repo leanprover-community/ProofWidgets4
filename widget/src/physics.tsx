@@ -99,7 +99,7 @@ export function Physics(props : UpdateResult) {
     function handleMouseEvent(e : MouseEvent) {
         console.log(e)
         if (e.type === "mouseup" || e.type === "mousedown") {
-            const id = e.target.id ?? undefined
+            const id = e.target.id || undefined
             increment({kind : e.type, id})
         }
 
