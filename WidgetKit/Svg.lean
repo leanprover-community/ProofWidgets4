@@ -11,6 +11,12 @@ private def Float.toInt (x : Float) : Int :=
   else
     -((-x).toUInt64.toNat)
 
+private def Int.toFloat (i : Int) : Float :=
+  if i >= 0 then
+    i.toNat.toFloat
+  else
+    -((-i).toNat.toFloat)
+
 namespace Svg
 
 structure Color where
@@ -36,15 +42,20 @@ def Frame.ySize (frame : Frame) : Float := frame.height.toFloat * (frame.xSize /
 
 def Frame.max (frame : Frame) : Point := ⟨frame.min.x + frame.xSize, frame.min.y + frame.ySize⟩
 
-def Point.toPixels (p : Point) (frame : Frame) : Int × Int :=
+def Frame.toPixels (frame : Frame) (x y : Float) : Int × Int := 
   let xmin := frame.min.x
-  let xmax := frame.max.x
-  let ymin := frame.min.y
   let ymax := frame.max.y
-  let px := frame.width.toFloat  * (p.x - xmin) / (xmax - xmin)
-  let py := frame.height.toFloat * (p.y - ymax) / (ymin - ymax)
+  let px := frame.width.toFloat  * (x - xmin) / frame.xSize
+  let py := frame.height.toFloat * (ymax - y) / frame.ySize
   (px.toInt, py.toInt)
 
+def Frame.fromPixels (frame : Frame) (i j : Int) : Float × Float := 
+  let x := frame.xSize * i.toFloat / frame.width.toFloat  + frame.min.x
+  let y := frame.ySize * (frame.height - j).toFloat / frame.height.toFloat + frame.min.y
+  (x,y)
+
+def Point.toPixels (p : Point) (frame : Frame) : Int × Int :=
+  frame.toPixels p.x p.y
 
 inductive Size where
 | pixels   (size : Nat)   : Size
@@ -153,7 +164,7 @@ section Example
     xSize  := 4
     width  := 400
     height := 400
-
+  
   private def svg : Svg := 
     { elements := 
         #[{ shape := .line ⟨0,0⟩ ⟨1,0⟩, strokeWidth := some (.pixels 2), strokeColor := some ⟨1,0,0⟩},
