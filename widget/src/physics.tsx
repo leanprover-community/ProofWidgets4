@@ -98,14 +98,17 @@ export function Physics(props : UpdateResult) {
 
     function handleMouseEvent(e : MouseEvent) {
         console.log(e)
+        const id = e.target.id || undefined
         if (e.type === "mouseup" || e.type === "mousedown") {
-            const id = e.target.id || undefined
+            increment({kind : e.type, id})
+        }
+        if (e.type === "mousemove" && e.button !== 0) {
             increment({kind : e.type, id})
         }
 
     }
 
-    return <div onMouseDown={handleMouseEvent} onMouseUp={handleMouseEvent}>
+    return <div onMouseDown={handleMouseEvent} onMouseUp={handleMouseEvent} onMouseMove={handleMouseEvent}>
         <StaticHtml html={html} visitor={visitor}/>
         <div>frame: {frame}. state: {asyncState.current}, mousePos: {mousePos ? mousePos.join(", ") : "none"}, mouseButtonState: {mouseButtonState}</div>
     </div>

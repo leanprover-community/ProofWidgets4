@@ -44,6 +44,7 @@ inductive ActionKind where
   | timeout
   | mousedown
   | mouseup
+  | mousemove -- [note] mouse moves only happen when mouse button is down.
   deriving ToJson, FromJson, DecidableEq
 
 structure Action where
