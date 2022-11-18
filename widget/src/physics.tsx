@@ -6,8 +6,10 @@ type State = any
 
 type Action =
   ( {kind : 'timeout'}
-  | {kind : 'onClick' | 'onMouseDown' | 'onMouseUp', value : any}
+  | {kind : 'mousedown' | 'mouseup', id : string, }
   )
+
+type MouseButtonState = "pressed" | "released"
 
 interface UpdateParams {
     /** Number of milliseconds of elapsed time since component was created. */
@@ -15,6 +17,7 @@ interface UpdateParams {
     actions : Action[];
     state : State;
     mousePos? : [number, number];
+    mouseButtonState : MouseButtonState;
 }
 
 interface UpdateResult {
@@ -26,14 +29,17 @@ interface UpdateResult {
 
 function useMousePos() {
     const [mousePos, setMousePos] = React.useState<[number, number] | undefined>(undefined)
+    const [mouseButtonState, setMBS] = React.useState<MouseButtonState>("released")
     React.useEffect(() => {
+        const types : any[] = ['mousemove', 'mouseup', 'mousedown']
         function handler(event : MouseEvent) {
             setMousePos([event.clientX, event.clientY])
+            setMBS(event.buttons ? 'pressed' : 'released')
         }
-        window.addEventListener('mousemove', handler)
-        return () => window.removeEventListener('mousemove', handler)
+        types.forEach(t => window.addEventListener(t, handler))
+        return () => types.forEach(t => window.removeEventListener(t, handler))
     }, [])
-    return mousePos
+    return [mousePos, mouseButtonState]
 }
 
 export function Physics(props : UpdateResult) {
@@ -44,7 +50,7 @@ export function Physics(props : UpdateResult) {
     const asyncState = React.useRef('init')
     const [html, setHtml] = React.useState<Html>(props.html)
     const [frame, setFrame] = React.useState<number>(0)
-    const mousePos = useMousePos()
+    const [mousePos, mouseButtonState] = useMousePos()
 
 
     React.useEffect(() => {
@@ -68,7 +74,7 @@ export function Physics(props : UpdateResult) {
         const elapsed = (new Date() as any) - (startTime.current as any)
         const result = await rs.call<UpdateParams, UpdateResult>(
             'updatePhysics',
-            { elapsed, actions, state : state.current.state, mousePos })
+            { elapsed, actions, state : state.current.state, mousePos, mouseButtonState })
         asyncState.current = 'resolved'
         setFrame((x : number) => x + 1)
         state.current = result
@@ -80,7 +86,7 @@ export function Physics(props : UpdateResult) {
 
     function visitor(e : Elt) : Elt {
         let attrs = {...e.attrs}
-        const mouseEvents : Action['kind'][] = ['onClick', 'onMouseDown', 'onMouseUp']
+        const mouseEvents : Action['kind'][] = []
         for (const me of mouseEvents) {
             if (me in attrs) {
                 const value = attrs[me]
@@ -90,9 +96,20 @@ export function Physics(props : UpdateResult) {
         return {...e, attrs}
     }
 
-    return <div>
+    function handleMouseEvent(e : MouseEvent) {
+        console.log(e)
+        if (e.type === "mouseup" || e.type === "mousedown") {
+            const id = e.target.id
+            if (id) {
+                increment({kind : e.type, id})
+            }
+        }
+
+    }
+
+    return <div onMouseDown={handleMouseEvent} onMouseUp={handleMouseEvent}>
         <StaticHtml html={html} visitor={visitor}/>
-        <div>frame: {frame}. state: {asyncState.current}, mousePos: {mousePos ? mousePos.join(", ") : "none"}</div>
+        <div>frame: {frame}. state: {asyncState.current}, mousePos: {mousePos ? mousePos.join(", ") : "none"}, mouseButtonState: {mouseButtonState}</div>
     </div>
 }
 

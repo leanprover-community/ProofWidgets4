@@ -35,17 +35,20 @@ def GeometryState.init : State := {
   points := #[((-0.5,0.0),(0,0), (-0.5,0)),((0.5,0),(0,0), (0.5,0))],
 }
 
+inductive ButtonState where
+  | pressed
+  | released
+  deriving ToJson, FromJson, DecidableEq
+
 inductive ActionKind where
   | timeout
-  | onClick
-  | onMouseDown
-  | onMouseUp
+  | mousedown
+  | mouseup
   deriving ToJson, FromJson, DecidableEq
 
 structure Action where
-  -- can be 'timeout' or '
   kind : ActionKind
-  value : Json
+  id : Option String
   deriving ToJson, FromJson
 
 structure UpdatePhysicsParams where
@@ -73,10 +76,8 @@ def updatePhysics (params : UpdatePhysicsParams ) : RequestM (RequestTask Update
   let svg := params.state.toSvg
 
   for action in params.actions do
-    if action.kind == ActionKind.onMouseDown then
-      match fromJson? (α := String) action.value with
-      | .error _ => continue
-      | .ok id =>
+    if action.kind == ActionKind.mousedown then
+      if let some id := action.id then
         if let .some idx := svg.idToIdx[id] then
           points := points.modify idx.1
             -- λ ((x,y),(vx,vy),(rx,ry)) => ((x,y), (vx+(Float.cos (1000*params.state.t)) * 0.01, vy + (Float.sin (1000*params.state.t)) * 0.01), (rx,ry))
@@ -107,7 +108,7 @@ def updatePhysics (params : UpdatePhysicsParams ) : RequestM (RequestTask Update
 @[widget]
 def physics : UserWidgetDefinition where
   name := "Magic physics demo"
-  javascript := include_str   ".." / "widget" / "dist" / "physics.js"
+  javascript := include_str  ".." / "widget" / "dist" / "physics.js"
 
 def init : UpdatePhysicsResult := {
   html := <div>Init!!!</div>,
