@@ -6,7 +6,7 @@ type State = any
 
 type Action =
   ( {kind : 'timeout'}
-  | {kind : 'mousedown' | 'mouseup', id : string, }
+  | {kind : 'mousedown' | 'mouseup' | 'mousemove', id?: string, }
   )
 
 type MouseButtonState = "pressed" | "released"
@@ -102,7 +102,7 @@ export function Physics(props : UpdateResult) {
         if (e.type === "mouseup" || e.type === "mousedown") {
             increment({kind : e.type, id})
         }
-        if (e.type === "mousemove" && e.button !== 0) {
+        if (e.type === "mousemove" && e.buttons !== 0) {
             increment({kind : e.type, id})
         }
 

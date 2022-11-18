@@ -77,7 +77,7 @@ def updatePhysics (params : UpdatePhysicsParams ) : RequestM (RequestTask Update
   let svg := params.state.toSvg
 
   for action in params.actions do
-    if action.kind == ActionKind.mousedown then
+    if action.kind == ActionKind.mousemove then
       if let some id := action.id then
         if let .some idx := svg.idToIdx[id] then
           points := points.modify idx.1
@@ -109,7 +109,7 @@ def updatePhysics (params : UpdatePhysicsParams ) : RequestM (RequestTask Update
 @[widget]
 def physics : UserWidgetDefinition where
   name := "Magic physics demo"
-  javascript := include_str  ".." / "widget" / "dist" / "physics.js"
+  javascript := include_str   ".." / "widget" / "dist" / "physics.js"
 
 def init : UpdatePhysicsResult := {
   html := <div>Init!!!</div>,
