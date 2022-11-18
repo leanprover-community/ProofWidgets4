@@ -13,19 +13,19 @@ structure State where
 
 
 def State.toSvg (s : State) : Svg :=
-  let elements : Array Svg.Element := 
-    #[] 
+  let elements : Array Svg.Element :=
+    #[]
       -- |>.append <| s.points.mapIdx
-      --   (λ idx ((x,y),(vx,vy),(rx,ry)) => 
-      --     { shape := .line ⟨x,y⟩ ⟨rx,ry⟩, 
-      --       strokeWidth := some (.pixels 2), 
-      --       strokeColor := some ⟨1,1,1⟩, 
+      --   (λ idx ((x,y),(vx,vy),(rx,ry)) =>
+      --     { shape := .line ⟨x,y⟩ ⟨rx,ry⟩,
+      --       strokeWidth := some (.pixels 2),
+      --       strokeColor := some ⟨1,1,1⟩,
       --       id := some s!"line{idx}"} )
 
       |>.append <| s.points.mapIdx
-        (λ idx ((x,y),(vx,vy),(rx,ry)) => 
-          { shape := .circle ⟨x,y⟩ (.absolute 0.1), 
-            fillColor := let speed := 100*Float.sqrt (vx*vx + vy*vy); some ⟨1-speed, speed, 0⟩, 
+        (λ idx ((x,y),(vx,vy),(rx,ry)) =>
+          { shape := .circle ⟨x,y⟩ (.absolute 0.1),
+            fillColor := let speed := 100*Float.sqrt (vx*vx + vy*vy); some ⟨1-speed, speed, 0⟩,
             id := some s!"circle{idx}"} )
 
   { elements := elements,
@@ -37,7 +37,9 @@ def GeometryState.init : State := {
 
 inductive ActionKind where
   | timeout
-  | click
+  | onClick
+  | onMouseDown
+  | onMouseUp
   deriving ToJson, FromJson, DecidableEq
 
 structure Action where
@@ -50,6 +52,7 @@ structure UpdatePhysicsParams where
   elapsed : Float
   actions : Array Action
   state : State
+  mousePos : Option (Float × Float)
   deriving ToJson, FromJson
 
 structure UpdatePhysicsResult where
@@ -70,20 +73,21 @@ def updatePhysics (params : UpdatePhysicsParams ) : RequestM (RequestTask Update
   let svg := params.state.toSvg
 
   for action in params.actions do
-    match fromJson? (α := String) action.value with
-    | .error _ => continue
-    | .ok id => 
-      if let .some idx := svg.idToIdx[id] then
-        points := points.modify idx.1
-          -- λ ((x,y),(vx,vy),(rx,ry)) => ((x,y), (vx+(Float.cos (1000*params.state.t)) * 0.01, vy + (Float.sin (1000*params.state.t)) * 0.01), (rx,ry)) 
-          λ ((x,y),(vx,vy),(rx,ry)) => ((x + 0.1*(Float.cos (1000*params.state.t)),y + 0.1 * (Float.sin (1000*params.state.t))), (vx, vy), (rx,ry)) 
+    if action.kind == ActionKind.onClick then
+      match fromJson? (α := String) action.value with
+      | .error _ => continue
+      | .ok id =>
+        if let .some idx := svg.idToIdx[id] then
+          points := points.modify idx.1
+            -- λ ((x,y),(vx,vy),(rx,ry)) => ((x,y), (vx+(Float.cos (1000*params.state.t)) * 0.01, vy + (Float.sin (1000*params.state.t)) * 0.01), (rx,ry))
+            λ ((x,y),(vx,vy),(rx,ry)) => ((x + 0.1*(Float.cos (1000*params.state.t)),y + 0.1 * (Float.sin (1000*params.state.t))), (vx, vy), (rx,ry))
 
 
   -- update point position
 /-   points :=
     let k := 0.0001
     let β := Float.exp (-0.001*δt)
-    points.map λ ((x,y),(vx,vy), (rx,ry)) => 
+    points.map λ ((x,y),(vx,vy), (rx,ry)) =>
       let vx := β*(vx-k*δt*(x-rx))
       let vy := β*(vy-k*δt*(y-ry))
       ((x+δt*vx,y+δt*vy), (vx,vy), (rx,ry))

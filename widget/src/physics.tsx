@@ -6,7 +6,7 @@ type State = any
 
 type Action =
   ( {kind : 'timeout'}
-  | {kind : 'click', value : any}
+  | {kind : 'onClick' | 'onMouseDown' | 'onMouseUp', value : any}
   )
 
 interface UpdateParams {
@@ -14,12 +14,26 @@ interface UpdateParams {
     elapsed : number;
     actions : Action[];
     state : State;
+    mousePos? : [number, number];
 }
 
 interface UpdateResult {
     html : Html;
     state : State
     callbackTime? : number
+
+}
+
+function useMousePos() {
+    const [mousePos, setMousePos] = React.useState<[number, number] | undefined>(undefined)
+    React.useEffect(() => {
+        function handler(event : MouseEvent) {
+            setMousePos([event.clientX, event.clientY])
+        }
+        window.addEventListener('mousemove', handler)
+        return () => window.removeEventListener('mousemove', handler)
+    }, [])
+    return mousePos
 }
 
 export function Physics(props : UpdateResult) {
@@ -30,6 +44,8 @@ export function Physics(props : UpdateResult) {
     const pending = React.useRef<Action[]>([])
     const asyncState = React.useRef('init')
     const [frame, setFrame] = React.useState(frameNo.current)
+    const mousePos = useMousePos()
+
 
     React.useEffect(() => {
         if (state.current.callbackTime) {
@@ -52,7 +68,7 @@ export function Physics(props : UpdateResult) {
         const elapsed = (new Date() as any) - (startTime.current as any)
         const result = await rs.call<UpdateParams, UpdateResult>(
             'updatePhysics',
-            { elapsed, actions, state : state.current.state })
+            { elapsed, actions, state : state.current.state, mousePos })
         asyncState.current = 'resolved'
         frameNo.current = (frameNo.current + 1)
         setFrame(frameNo.current) // [hack] this is just to get the component to refresh.
@@ -63,12 +79,15 @@ export function Physics(props : UpdateResult) {
     }
 
     function visitor(e : Elt) : Elt {
-        if ('click' in e.attrs) {
-            let {click, ...attrs} = e.attrs
-            attrs.onClick = () => increment({'kind' : 'click', 'value' : click})
-            return {...e, attrs}
+        let attrs = {...e.attrs}
+        const mouseEvents : Action['kind'][] = ['onClick', 'onMouseDown', 'onMouseUp']
+        for (const me of mouseEvents) {
+            if (me in attrs) {
+                const value = attrs[me]
+                attrs[me] = () => increment({kind: me, value})
+            }
         }
-        return e
+        return {...e, attrs}
     }
 
     return <div>

@@ -105,7 +105,7 @@ def Element.toHtml (frame : Frame) (e : Element) : Html := Id.run do
   if let .some color ← e.fillColor then
     args := args.push ("fill", color.toRGB)
   if let .some clickData ← e.clickData then
-    args := args.push ("click", clickData)
+    args := args.push ("onClick", clickData)
 
   return .element tag args #[]
 
