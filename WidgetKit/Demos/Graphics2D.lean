@@ -98,7 +98,7 @@ def Element.toHtml (frame : Frame) (e : Element) : Html := Id.run do
   if let .some color ← e.fillColor then
     args := args.push ("fill", color.toRGB)
   if let .some id ← e.id then
-    args := args.push ("id", id)
+    args := args.push ("id", id) |>.push ("className", "pointer dim")
 
   return .element tag args #[]
 
