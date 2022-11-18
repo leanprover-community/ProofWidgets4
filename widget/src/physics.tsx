@@ -39,11 +39,11 @@ function useMousePos() {
 export function Physics(props : UpdateResult) {
     const rs = React.useContext(RpcContext)
     const state = React.useRef(props)
-    const frameNo = React.useRef(0)
     const startTime = React.useRef(new Date())
     const pending = React.useRef<Action[]>([])
     const asyncState = React.useRef('init')
-    const [frame, setFrame] = React.useState(frameNo.current)
+    const [html, setHtml] = React.useState<Html>(props.html)
+    const [frame, setFrame] = React.useState<number>(0)
     const mousePos = useMousePos()
 
 
@@ -52,7 +52,7 @@ export function Physics(props : UpdateResult) {
             const t = setTimeout(() => increment({kind : 'timeout'}), state.current.callbackTime)
             return () => clearTimeout(t)
         }
-    }, [state.current.callbackTime, frameNo.current])
+    }, [state.current.callbackTime, frame])
 
     function increment(action : Action) {
         pending.current.push(action)
@@ -70,9 +70,9 @@ export function Physics(props : UpdateResult) {
             'updatePhysics',
             { elapsed, actions, state : state.current.state, mousePos })
         asyncState.current = 'resolved'
-        frameNo.current = (frameNo.current + 1)
-        setFrame(frameNo.current) // [hack] this is just to get the component to refresh.
+        setFrame((x : number) => x + 1)
         state.current = result
+        setHtml(result.html)
         if (pending.current.length > 0) {
             dispatch()
         }
@@ -91,8 +91,8 @@ export function Physics(props : UpdateResult) {
     }
 
     return <div>
-        <StaticHtml html={state.current.html} visitor={visitor}/>
-        <div>frame: {frame}. state: {asyncState.current}</div>
+        <StaticHtml html={html} visitor={visitor}/>
+        <div>frame: {frame}. state: {asyncState.current}, mousePos: {mousePos ? mousePos.join(", ") : "none"}</div>
     </div>
 }
 

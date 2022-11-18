@@ -73,7 +73,7 @@ def updatePhysics (params : UpdatePhysicsParams ) : RequestM (RequestTask Update
   let svg := params.state.toSvg
 
   for action in params.actions do
-    if action.kind == ActionKind.onClick then
+    if action.kind == ActionKind.onMouseDown then
       match fromJson? (α := String) action.value with
       | .error _ => continue
       | .ok id =>
@@ -101,13 +101,13 @@ def updatePhysics (params : UpdatePhysicsParams ) : RequestM (RequestTask Update
 
       {toString params.elapsed} {toString <| toJson <| params.actions}</div>,
     state := newState,
-    callbackTime := some 10,
+    callbackTime := some 1000,
   }
 
 @[widget]
 def physics : UserWidgetDefinition where
   name := "Magic physics demo"
-  javascript := include_str ".." / "widget" / "dist" / "physics.js"
+  javascript := include_str   ".." / "widget" / "dist" / "physics.js"
 
 def init : UpdatePhysicsResult := {
   html := <div>Init!!!</div>,
