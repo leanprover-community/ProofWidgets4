@@ -27,13 +27,18 @@ interface UpdateResult {
 
 }
 
-function useMousePos() {
+function useMousePos(ref : React.MutableRefObject<Element | null>) {
     const [mousePos, setMousePos] = React.useState<[number, number] | undefined>(undefined)
     const [mouseButtonState, setMBS] = React.useState<MouseButtonState>("released")
     React.useEffect(() => {
         const types : any[] = ['mousemove', 'mouseup', 'mousedown']
         function handler(event : MouseEvent) {
-            setMousePos([event.clientX, event.clientY])
+            const elt = ref.current
+            if (!elt) {
+                return
+            }
+            const rec = elt.getBoundingClientRect()
+            setMousePos([event.clientX - rec.x, event.clientY - rec.y])
             setMBS(event.buttons ? 'pressed' : 'released')
         }
         types.forEach(t => window.addEventListener(t, handler))
@@ -48,9 +53,10 @@ export function Physics(props : UpdateResult) {
     const startTime = React.useRef(new Date())
     const pending = React.useRef<Action[]>([])
     const asyncState = React.useRef('init')
+    const rootDiv = React.useRef(null)
     const [html, setHtml] = React.useState<Html>(props.html)
     const [frame, setFrame] = React.useState<number>(0)
-    const [mousePos, mouseButtonState] = useMousePos()
+    const [mousePos, mouseButtonState] = useMousePos(rootDiv)
 
 
     React.useEffect(() => {
@@ -108,7 +114,7 @@ export function Physics(props : UpdateResult) {
 
     }
 
-    return <div onMouseDown={handleMouseEvent} onMouseUp={handleMouseEvent} onMouseMove={handleMouseEvent}>
+    return <div onMouseDown={handleMouseEvent} onMouseUp={handleMouseEvent} onMouseMove={handleMouseEvent} ref={rootDiv}>
         <StaticHtml html={html} visitor={visitor}/>
         <div>frame: {frame}. state: {asyncState.current}, mousePos: {mousePos ? mousePos.join(", ") : "none"}, mouseButtonState: {mouseButtonState}</div>
     </div>
