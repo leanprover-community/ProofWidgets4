@@ -146,8 +146,8 @@ def Element.toHtml {f : Frame} (e : Element f) : Html := Id.run do
   if let .some id ← e.id then
     args := args.push ("id", id)
 
-  -- if let .some data ← e.data then
-  --   args := args.push ("data", data)
+  if let .some data ← e.data then
+    args := args.push ("data", data)
 
   return .element tag args #[]
 

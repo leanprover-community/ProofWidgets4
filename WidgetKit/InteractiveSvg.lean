@@ -30,6 +30,7 @@ inductive ActionKind where
 structure Action where
   kind : ActionKind
   id : Option String
+  data : Option Json
   deriving ToJson, FromJson
 
 /-- The input type `State` is any state a user wants to use and update 
@@ -66,10 +67,10 @@ structure InteractiveSvg (State : Type) where
          : State → State
   render (mouseStart mouseEnd : Option (Svg.Point frame)) : State → Svg frame
 
-abbrev State := Nat
+abbrev State := Array (Float × Float)
 
 def isvg : InteractiveSvg State where
-  init := 0
+  init := #[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]
   frame := 
     { xmin := -1
       ymin := -1
@@ -77,6 +78,7 @@ def isvg : InteractiveSvg State where
       width := 400
       height := 400 }
   update time Δt action mouseStart mouseEnd selected state := state
+    -- state.map λ (x,y) => (x + Δt/10000 * Float.sin (time/1000), y)
   render mouseStart mouseEnd state := 
     { 
       elements := 
@@ -84,13 +86,10 @@ def isvg : InteractiveSvg State where
         | some s, some e => 
           #[ 
             Svg.circle e (.px 5) |>.setFill (1.,1.,1.),
-            Svg.line s e |>.setStroke (1.,1.,1.) (.px 2),
-
-            Svg.circle (-0.5,-0.5) (.abs 0.2) |>.setFill (0.7,0.7,0.7) |>.setId "circle1",
-            Svg.circle ( 0.5,-0.5) (.abs 0.2) |>.setFill (0.7,0.7,0.7) |>.setId "circle2",
-            Svg.circle ( 0.5, 0.5) (.abs 0.2) |>.setFill (0.7,0.7,0.7) |>.setId "circle3",
-            Svg.circle (-0.5, 0.5) (.abs 0.2) |>.setFill (0.7,0.7,0.7) |>.setId "circle4"
-          ]
+            Svg.line s e |>.setStroke (1.,1.,1.) (.px 2)
+          ].append (state.mapIdx fun idx (p : Float × Float) => 
+            Svg.circle p (.abs 0.2) |>.setFill (0.7,0.7,0.7) |>.setId s!"circle{idx}" |>.setData idx.1
+            )
         | _, _ => #[]
     }
 
