@@ -47,7 +47,7 @@ function useMousePos(ref : React.MutableRefObject<Element | null>) {
     return [mousePos, mouseButtonState]
 }
 
-export function Physics(props : UpdateResult) {
+export function Svg(props : UpdateResult) {
     const rs = React.useContext(RpcContext)
     const state = React.useRef(props)
     const startTime = React.useRef(new Date())
@@ -79,7 +79,7 @@ export function Physics(props : UpdateResult) {
         asyncState.current = 'loading'
         const elapsed = (new Date() as any) - (startTime.current as any)
         const result = await rs.call<UpdateParams, UpdateResult>(
-            'updatePhysics',
+            'updateSvg',
             { elapsed, actions, state : state.current.state, mousePos, mouseButtonState })
         asyncState.current = 'resolved'
         setFrame((x : number) => x + 1)
@@ -105,7 +105,9 @@ export function Physics(props : UpdateResult) {
     function handleMouseEvent(e : MouseEvent) {
         console.log(e)
         const id = e.target.id || undefined
-	const data = e.target.data || undefined
+	const data = e.target.data || undefined	
+	console.log(id)
+	console.log(data)
         if (e.type === "mouseup" || e.type === "mousedown") {
             increment({kind : e.type, id, data})
         }
@@ -121,4 +123,4 @@ export function Physics(props : UpdateResult) {
     </div>
 }
 
-export default Physics
+export default Svg

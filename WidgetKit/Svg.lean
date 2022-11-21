@@ -177,6 +177,15 @@ def Svg.toHtml {f : Frame} (svg : Svg f) : Html :=
              ("width", f.width), 
              ("height", f.height)] 
            (svg.elements.map λ e => e.toHtml)
+
+def Svg.idToDataList {f} (svg : Svg f) : List (String × Json) :=
+  svg.elements.foldr (init := []) (λ e l => 
+    match e.id, e.data with
+    | some id, some data => (id,data)::l
+    | _, _ => l)
+
+def Svg.idToData {f} (svg : Svg f) : HashMap String Json :=
+  HashMap.ofList svg.idToDataList
   
 instance {f} : GetElem (Svg f) Nat (Svg.Element f) (λ svg idx => idx < svg.elements.size) where
   getElem svg i h := svg.elements[i]

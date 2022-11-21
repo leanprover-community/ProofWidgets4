@@ -12,13 +12,7 @@ private def Float.toInt (x : Float) : Int :=
   else
     -((-x).toUInt64.toNat)
 
-private def Int.toFloat (i : Int) : Float :=
-  if i >= 0 then
-    i.toNat.toFloat
-  else
-    -((-i).toNat.toFloat)
-
--- namespace Svg
+namespace Svg
 
 inductive ActionKind where
   | timeout
@@ -33,14 +27,15 @@ structure Action where
   data : Option Json
   deriving ToJson, FromJson
 
-/-- The input type `State` is any state a user wants to use and update 
+/-- The input type `State` is any state the user wants to use and update 
 
-SvgState in addition automatically handles tracking of time and selection -/
+SvgState in addition automatically handles tracking of time, selection and custom data -/
 structure SvgState (State : Type) where
   state : State
   time : Float /-- time in milliseconds -/
   selected : Option String
   mousePos : Option (Int × Int)
+  idToData : List (String × Json)
 deriving ToJson, FromJson
 
 structure UpdateParams (State : Type) where
@@ -50,7 +45,6 @@ structure UpdateParams (State : Type) where
   mousePos : Option (Float × Float) -- TODO: change to Option (Int × Int) or do we want to support subpixel precision?
   deriving ToJson, FromJson
 
-
 structure UpdateResult (State : Type) where
   html : Widget.Html
   state : SvgState State
@@ -58,53 +52,37 @@ structure UpdateResult (State : Type) where
   callbackTime : Option Float := some 33
   deriving ToJson, FromJson
 
-
+-- maybe add title, refresh rate, initial time?, custom selection rendering
 structure InteractiveSvg (State : Type) where
   init : State
   frame : Svg.Frame
-  update (time Δt : Float) (action : Action) 
-         (mouseStart mouseEnd : Option (Svg.Point frame)) (selected : Option String)
+  update (time_ms Δt_ms : Float) (action : Action) 
+         (mouseStart mouseEnd : Option (Svg.Point frame)) 
+         (selectedId : Option String) (getSelectedData : (α : Type) → [FromJson α] → Option α)
          : State → State
   render (mouseStart mouseEnd : Option (Svg.Point frame)) : State → Svg frame
 
-abbrev State := Array (Float × Float)
-
-def isvg : InteractiveSvg State where
-  init := #[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]
-  frame := 
-    { xmin := -1
-      ymin := -1
-      xSize := 2
-      width := 400
-      height := 400 }
-  update time Δt action mouseStart mouseEnd selected state := state
-    -- state.map λ (x,y) => (x + Δt/10000 * Float.sin (time/1000), y)
-  render mouseStart mouseEnd state := 
-    { 
-      elements := 
-        match mouseStart, mouseEnd with
-        | some s, some e => 
-          #[ 
-            Svg.circle e (.px 5) |>.setFill (1.,1.,1.),
-            Svg.line s e |>.setStroke (1.,1.,1.) (.px 2)
-          ].append (state.mapIdx fun idx (p : Float × Float) => 
-            Svg.circle p (.abs 0.2) |>.setFill (0.7,0.7,0.7) |>.setId s!"circle{idx}" |>.setData idx.1
-            )
-        | _, _ => #[]
-    }
-
-
 open Server RequestM in
-@[server_rpc_method]
-def updatePhysics (params : UpdateParams State) : RequestM (RequestTask (UpdateResult State)) := do
+def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) (params : UpdateParams State) 
+  : RequestM (RequestTask (UpdateResult State)) := do
 
   -- Ideally, each action should have time and mouse position attached
-  -- so right now we just assume that all actions are 
+  -- right now we just assume that all actions are uqually spaced within the frame
   let Δt := (params.elapsed - params.state.time) / params.actions.size.toFloat
+
+  let idToData : HashMap String Json := HashMap.ofList params.state.idToData
 
   let mut time := params.state.time
   let mut state := params.state.state
   let mut selected := params.state.selected
+
+  let getData := λ (α : Type) [FromJson α] => do 
+    let id ← selected; 
+    let data ← idToData[id]
+    match fromJson? (α:=α) data with
+    | .error _ => none
+    | .ok val => some val
+
   
   let mouseStart := params.state.mousePos.map λ (i,j) => (i, j)
   let mouseEnd := params.mousePos.map λ (x,y) => (x.toInt, y.toInt)
@@ -112,28 +90,32 @@ def updatePhysics (params : UpdateParams State) : RequestM (RequestTask (UpdateR
   for action in params.actions do
     -- todo: interpolate mouse movenment!
 
-    state := isvg.update time Δt action mouseStart mouseEnd selected state
+    -- update state
+    state := isvg.update time Δt action mouseStart mouseEnd selected getData state
 
+    -- update selection
     if action.kind == ActionKind.mousedown then
       selected := action.id
     if action.kind == ActionKind.mouseup then
       selected := none
 
+    -- update time
     time := time + Δt
+
+  let mut svg := isvg.render mouseStart mouseEnd state
   
   let svgState : SvgState State := 
     { state := state 
       time := params.elapsed
       selected := selected
-      mousePos := mouseEnd.map λ p => p.toPixels }
+      mousePos := mouseEnd.map λ p => p.toPixels
+      idToData := svg.idToDataList }
 
-  let mut svg := isvg.render mouseStart mouseEnd state
 
   -- highlight selection
   if let some id := selected then
     if let some idx := svg.idToIdx[id] then
-      let el := svg.elements[idx].setStroke (1.,1.,0.) (.px 5)
-      svg := { elements := svg.elements.set idx el }
+      svg := { elements := svg.elements.modify idx λ e => e.setStroke (1.,1.,0.) (.px 5) }
 
 
   return RequestTask.pure {
@@ -150,8 +132,48 @@ def updatePhysics (params : UpdateParams State) : RequestM (RequestTask (UpdateR
     state := svgState,
     callbackTime := some 33,
   }
- 
 
+end Svg
+ 
+open Svg
+
+abbrev State := Array (Float × Float)
+
+def isvg : InteractiveSvg State where
+  init := #[(-0.5, -0.5), (0.5, -0.5), (0.5, 0.5), (-0.5, 0.5)]
+  frame := 
+    { xmin := -1
+      ymin := -1
+      xSize := 2
+      width := 400
+      height := 400 }
+  update time Δt action mouseStart mouseEnd selected getData state :=
+    match getData Nat, mouseEnd with 
+    | some id, some p => state.set! id p.toAbsolute
+    | _, _ => state
+
+    -- state.map λ (x,y) => (x + Δt/10000 * Float.sin (time/1000), y)
+  render mouseStart mouseEnd state := 
+    { 
+      elements := 
+        let mousePointer := 
+          match mouseStart, mouseEnd with
+          | some s, some e => 
+            #[ 
+              Svg.circle e (.px 5) |>.setFill (1.,1.,1.),
+              Svg.line s e |>.setStroke (1.,1.,1.) (.px 2)
+            ]
+          | _, _ => #[]
+        let circles := (state.mapIdx fun idx (p : Float × Float) => 
+              Svg.circle p (.abs 0.2) |>.setFill (0.7,0.7,0.7) |>.setId s!"circle{idx}" |>.setData idx.1
+            )
+        mousePointer.append circles
+    }
+
+
+open Server RequestM in
+@[server_rpc_method]
+def updateSvg (params : UpdateParams State) : RequestM (RequestTask (UpdateResult State)) := isvg.serverRpcMethod params
 
 @[widget]
 def svgWidget : UserWidgetDefinition where
@@ -164,7 +186,8 @@ def init : UpdateResult State := {
   state := { state := isvg.init
              time := 0
              selected := none
-             mousePos := none }
+             mousePos := none
+             idToData := isvg.render none none isvg.init |>.idToDataList}
 }
 
 #widget svgWidget (toJson init)
