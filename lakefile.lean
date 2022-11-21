@@ -50,7 +50,7 @@ def widgetTsxTarget (pkg : Package) (tsxName : String) (deps : Array (BuildJob F
 target widgets (pkg : Package) : Array FilePath := do
   let dependencies : Array FilePath := #[] -- ← add extra deps here
   let dependencies ← dependencies.mapM fun f => inputFile (widgetDir / "src" / f)
-  let items := #["staticHtml", "physics", "interactiveSvg"]
+  let items := #["staticHtml", "interactiveSvg"]
   let xs ← items.mapM (fun item => widgetTsxTarget pkg item dependencies)
   BuildJob.collectArray xs
 
