@@ -119,16 +119,10 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
 
 
   return RequestTask.pure {
-    html := <div>
+    html :=
       <div>
         {svg.toHtml}
-      </div>
-
-      {toString params.elapsed}
-      {toString <| toJson <| params.actions}
-      {toString <| toJson <| mouseStart}
-      {toString <| toJson <| mouseEnd}
-      {toString <| toJson <| selected}</div>,
+      </div>,
     state := svgState,
     callbackTime := some 33,
   }
