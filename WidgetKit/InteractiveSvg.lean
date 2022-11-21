@@ -60,7 +60,7 @@ structure InteractiveSvg (State : Type) where
          (mouseStart mouseEnd : Option (Svg.Point frame)) 
          (selectedId : Option String) (getSelectedData : (α : Type) → [FromJson α] → Option α)
          : State → State
-  render (mouseStart mouseEnd : Option (Svg.Point frame)) : State → Svg frame
+  render (time_ms : Float) (mouseStart mouseEnd : Option (Svg.Point frame)) : State → Svg frame
 
 open Server RequestM in
 def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) (params : UpdateParams State) 
@@ -102,7 +102,7 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
     -- update time
     time := time + Δt
 
-  let mut svg := isvg.render mouseStart mouseEnd state
+  let mut svg := isvg.render time mouseStart mouseEnd state
   
   let svgState : SvgState State := 
     { state := state 

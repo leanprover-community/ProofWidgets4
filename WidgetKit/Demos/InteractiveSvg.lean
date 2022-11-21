@@ -22,7 +22,7 @@ def isvg : InteractiveSvg State where
     | some id, some p => state.set! id p.toAbsolute
     | _, _ => state
 
-  render mouseStart mouseEnd state := 
+  render time mouseStart mouseEnd state := 
     { 
       elements := 
         let mousePointer := 
@@ -56,7 +56,7 @@ def init : UpdateResult State := {
              time := 0
              selected := none
              mousePos := none
-             idToData := isvg.render none none isvg.init |>.idToDataList}
+             idToData := isvg.render 0 none none isvg.init |>.idToDataList}
 }
 
 #widget svgWidget (toJson init)
