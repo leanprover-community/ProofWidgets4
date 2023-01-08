@@ -21,14 +21,6 @@ instance : RpcEncodable (StateM RpcObjectStore Json) where
   rpcEncode fn := fn
   rpcDecode j := return return j
 
--- "goal widget"/"at cursor widget"/"panel widget"/"info block widget"
-structure PanelWidgetInfo where
-  id : Name
-  props : StateM RpcObjectStore Json
-  -- Compatibility hack. Remove if in core.
-  infoId : Name
-  deriving TypeName
-
 def widgetDefPostfix : Name := `userWidgetDef
 
 -- This could maybe be a macro but good luck actually writing it.
@@ -45,6 +37,7 @@ initialize
       if !const.type.isConstOf ``String then
         throwError m!"type mismatch, expected{Expr.const ``String []}\nbut got{const.type}"
       let proc : CommandElabM Unit := do
+        -- Creates a fake widget only in order to register with widgetSourceRegistry
         elabCommand <| ← `(command|
           @[widget]
           def $(mkIdent <| nm ++ widgetDefPostfix) : Lean.Widget.UserWidgetDefinition where
@@ -57,8 +50,18 @@ initialize
       set { st' with : Core.State }
   : AttributeImpl }
 
+-- "goal widget"/"at cursor widget"/"panel widget"/"info block widget"
+structure PanelWidgetInfo where
+  /-- Name of the `widget_module` to show. -/
+  id : Name
+  props : StateM RpcObjectStore Json
+  -- Compatibility hack. Remove if in core.
+  infoId : Name
+  deriving TypeName
+
 /-- A widget component with a resolved source hash and its props. -/
 structure WidgetInstance where
+  /-- Name of the `widget_module`. -/
   id : Name
   srcHash : UInt64
   props : StateM RpcObjectStore Json
@@ -131,7 +134,7 @@ def metaWidget : Lean.Widget.UserWidgetDefinition where
         const ret = []
         for (const w of ws.widgets) {
           if (w.infoId === infoId) {
-            ret.append(w)
+            ret.push(w)
           }
         }
         return ret.map(w => e(DynamicComponent, {
@@ -146,7 +149,7 @@ def metaWidget : Lean.Widget.UserWidgetDefinition where
 
 open scoped Json in
 def savePanelWidgetInfo [Monad m] [MonadInfoTree m] [MonadNameGenerator m]
-    (id : Name) (props : StateM RpcObjectStore Json) (stx : Syntax) : m Unit := do
+    (stx : Syntax) (id : Name) (props : StateM RpcObjectStore Json)  : m Unit := do
   let infoId := `panelWidget ++ (← mkFreshId)
   pushInfoLeaf <| .ofUserWidgetInfo {
     stx

@@ -6,21 +6,23 @@
 import Lean.Data.Json.FromToJson
 import Lean.Parser
 import Lean.PrettyPrinter.Delaborator.Basic
+import Lean.Server.Rpc.Basic
 
-/-! We define a representation of HTML trees together with a JSX-like DSL for writing them. -/
+import WidgetKit.Component.Basic
+
+/-! We define a representation of HTML trees which may contain widget components together with
+a JSX-like DSL for writing them. -/
 
 namespace WidgetKit
 open Lean
 
 inductive Html where
-  /-- An `element tag attrs children` represents `<tag {...attrs}>{...children}</tag>`. -/
+  /-- An `element "tag" attrs children` represents `<tag {...attrs}>{...children}</tag>`. -/
   | element : String → Array (String × Json) → Array Html → Html
   /-- Raw HTML text.-/
   | text : String → Html
-  deriving BEq, Inhabited, FromJson, ToJson
-
-instance : Coe String Html :=
-  ⟨Html.text⟩
+  /-- A `component Foo props children` represents `<Foo {...props}>{...children}</>`. -/
+  | component {Props} [Server.RpcEncodable Props] : Component Props → Props → Array Html → Html
 
 namespace Jsx
 open Parser PrettyPrinter
@@ -67,7 +69,7 @@ macro_rules
       | `(jsxAttrVal| $s:str) => s
       | `(jsxAttrVal| { $t:term }) => t
       | _ => unreachable!
-    `(Html.element $(quote <| toString n.getId) #[ $[($ns, toJson $vs)],* ] #[])
+    `(Html.element $(quote <| n.getId.toString) #[ $[($ns, toJson $vs)],* ] #[])
   | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* >$cs*</$m>) =>
     if n.getId == m.getId then do
       let ns := ns.map (quote <| toString ·.getId)
