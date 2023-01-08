@@ -4,8 +4,6 @@
  Authors: E.W.Ayers
 -/
 import Lean.Data.Json
-import Lean.Meta.Basic
-import Lean.Elab.Term
 import Lean.Elab.Eval
 
 /-!
@@ -14,6 +12,8 @@ import Lean.Elab.Eval
 Now you can write
 
 ```lean
+open scoped WidgetKit.Json
+
 #eval json% {
   hello : "world",
   cheese : ["edam", "cheddar", {kind : "spicy", rank : 100.2}],
@@ -23,9 +23,11 @@ Now you can write
   lookACalc: $(23 + 54 * 2)
 }
 ```
- -/
+-/
 
-open Lean Parser
+namespace WidgetKit.Json
+open Lean
+
 declare_syntax_cat jso
 declare_syntax_cat jso_field
 declare_syntax_cat jso_ident
@@ -56,20 +58,20 @@ instance : ToJson Float where
       let j := if x < 0.0 then -j else j
       Json.num j
 
-syntax "[" jso,* "]" : jso
-syntax "-"? scientific : jso
-syntax "-"? num : jso
-syntax str : jso
-syntax "true" : jso
-syntax "false" : jso
-syntax "null" : jso
-syntax ident : jso_ident
-syntax "$(" term ")" : jso_ident
-syntax str : jso_ident
-syntax jso_ident ": " jso : jso_field
-syntax "{" jso_field,* "}" : jso
-syntax "$(" term ")" : jso
-syntax "json% " jso  : term
+scoped syntax "[" jso,* "]" : jso
+scoped syntax "-"? scientific : jso
+scoped syntax "-"? num : jso
+scoped syntax str : jso
+scoped syntax "true" : jso
+scoped syntax "false" : jso
+scoped syntax "null" : jso
+scoped syntax ident : jso_ident
+scoped syntax "$(" term ")" : jso_ident
+scoped syntax str : jso_ident
+scoped syntax jso_ident ": " jso : jso_field
+scoped syntax "{" jso_field,* "}" : jso
+scoped syntax "$(" term ")" : jso
+scoped syntax "json% " jso  : term
 
 macro_rules
   | `(json% $($t))          => `(Lean.toJson $t)
@@ -90,12 +92,14 @@ macro_rules
       | stx                      => panic! s!"unrecognized ident syntax {stx}"
     `(Lean.Json.mkObj [$[($ks, json% $vs)],*])
 
-open Lean Elab Meta Term in
-unsafe def Lean.evalJsonUnsafe (stx : Syntax) : TermElabM Json := do
-  let JsonT := mkConst ``Json
+open Elab Term in
+unsafe def evalJsonUnsafe (stx : Syntax) : TermElabM Json := do
+  let JsonT ← mkConst ``Json
   let jsonStx : TSyntax `jso := TSyntax.mk stx
-  Elab.Term.evalTerm Json JsonT (← `(json% $jsonStx))
+  evalTerm Json JsonT (← `(json% $jsonStx))
 
-open Lean Elab in
+open Elab Term in
 @[implemented_by evalJsonUnsafe]
-opaque Lean.evalJson : Syntax → TermElabM Json
+opaque evalJson : Syntax → TermElabM Json
+
+end WidgetKit.Json

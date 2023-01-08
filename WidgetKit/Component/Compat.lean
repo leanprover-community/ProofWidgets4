@@ -45,14 +45,11 @@ initialize
       if !const.type.isConstOf ``String then
         throwError m!"type mismatch, expected{Expr.const ``String []}\nbut got{const.type}"
       let proc : CommandElabM Unit := do
-        let id := mkIdent nm
-        let srcId := mkIdent (nm ++ widgetDefPostfix)
-        let nameStr: StrLit := quote nm.toString
         elabCommand <| ← `(command|
           @[widget]
-          def $srcId : Lean.Widget.UserWidgetDefinition where
-            name := $nameStr
-            javascript := $id)
+          def $(mkIdent <| nm ++ widgetDefPostfix) : Lean.Widget.UserWidgetDefinition where
+            name := $(quote nm.toString)
+            javascript := $(mkIdent nm))
       let ctx ← read
       let st ← get
       -- Cursed manual CommandElabM => CoreM lift punning all fields
@@ -147,6 +144,7 @@ def metaWidget : Lean.Widget.UserWidgetDefinition where
     }
   "
 
+open scoped Json in
 def savePanelWidgetInfo [Monad m] [MonadInfoTree m] [MonadNameGenerator m]
     (id : Name) (props : StateM RpcObjectStore Json) (stx : Syntax) : m Unit := do
   let infoId := `panelWidget ++ (← mkFreshId)
