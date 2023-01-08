@@ -14,7 +14,7 @@ import WidgetKit.Component.Basic
 a JSX-like DSL for writing them. -/
 
 namespace WidgetKit
-open Lean
+open Lean Server
 
 inductive Html where
   /-- An `element "tag" attrs children` represents `<tag {...attrs}>{...children}</tag>`. -/
@@ -22,7 +22,20 @@ inductive Html where
   /-- Raw HTML text.-/
   | text : String → Html
   /-- A `component Foo props children` represents `<Foo {...props}>{...children}</>`. -/
-  | component {Props} [Server.RpcEncodable Props] : Component Props → Props → Array Html → Html
+  | component {Props} [RpcEncodable Props] : Component Props → Props → Array Html → Html
+
+/-- Unfortunately we cannot build `RpcEncodable Html` because `Html : Type 1` and `RpcEncodable`
+is not universe-polymorphic. We can, however, do it for this intermediate type. -/
+inductive EncodableHtml where
+  | element : String → Array (String × Json) → Array EncodableHtml → EncodableHtml
+  | text : String → EncodableHtml
+  | component : UInt64 → LazyEncodable Json → Array EncodableHtml → EncodableHtml
+  deriving Inhabited, RpcEncodable
+
+partial def EncodableHtml.ofHtml : Html → EncodableHtml
+  | .element t as cs => element t as (cs.map ofHtml)
+  | .text s => text s
+  | @Html.component _ _ c ps cs => component (hash c.javascript) (rpcEncode ps) (cs.map ofHtml)
 
 namespace Jsx
 open Parser PrettyPrinter
@@ -46,6 +59,9 @@ def jsxText : Parser :=
       let s := takeWhile1Fn (not ∘ "{<>}$".contains) "expected JSX text" c s
       mkNodeToken `jsxText startPos c s }
 
+def getJsxText : TSyntax `jsxText → String
+  | stx => stx.raw[0].getAtomVal
+
 @[combinator_formatter WidgetKit.Jsx.jsxText]
 def jsxText.formatter : Formatter :=
   Formatter.visitAtom `jsxText
@@ -57,35 +73,37 @@ scoped syntax "<" ident jsxAttr* "/>" : jsxElement
 scoped syntax "<" ident jsxAttr* ">" jsxChild* "</" ident ">" : jsxElement
 
 scoped syntax jsxText      : jsxChild
+-- TODO(WN): expand `{... $t}` as list of children
 scoped syntax "{" term "}" : jsxChild
 scoped syntax jsxElement   : jsxChild
 
 scoped syntax:max jsxElement : term
 
-macro_rules
-  | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* />) =>
+def transformTag (n m : Ident) (ns : Array Ident) (vs : Array (TSyntax `jsxAttrVal))
+    (cs : Array (TSyntax `jsxChild)) : MacroM Term := do
+  if n.getId != m.getId then
+    Macro.throwErrorAt m s!"expected </{n.getId}>"
+  let cs ← cs.mapM fun
+    | `(jsxChild| $t:jsxText)    => `(Html.text $(quote <| getJsxText t))
+    | `(jsxChild| { $t })        => return t
+    | `(jsxChild| $e:jsxElement) => `(term| $e:jsxElement)
+    | _                          => unreachable!
+  let vs : Array (TSyntax `term) := vs.map fun
+    | `(jsxAttrVal| $s:str) => s
+    | `(jsxAttrVal| { $t:term }) => t
+    | _ => unreachable!
+  let tag := toString n.getId
+  -- Uppercase tags are parsed as components
+  if tag.get? 0 |>.filter (·.isUpper) |>.isSome then
+    `(Html.component $n { $[$ns:ident := $vs],* } #[ $[$cs],* ])
+  -- Lowercase tags are parsed as standard HTML
+  else
     let ns := ns.map (quote <| toString ·.getId)
-    let vs : Array (TSyntax `term) := vs.map fun
-      | `(jsxAttrVal| $s:str) => s
-      | `(jsxAttrVal| { $t:term }) => t
-      | _ => unreachable!
-    `(Html.element $(quote <| n.getId.toString) #[ $[($ns, toJson $vs)],* ] #[])
-  | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* >$cs*</$m>) =>
-    if n.getId == m.getId then do
-      let ns := ns.map (quote <| toString ·.getId)
-      let vs : Array (TSyntax `term) := vs.map fun
-        | `(jsxAttrVal| $s:str) => s
-        | `(jsxAttrVal| { $t:term }) => t
-        | _ => unreachable!
-      let cs ← cs.mapM fun
-        | `(jsxChild|$t:jsxText)    => `(Html.text $(quote t.raw[0].getAtomVal))
-        -- TODO(WN): elab as list of children if type is `t Html` where `Foldable t`
-        | `(jsxChild|{$t})          => return t
-        | `(jsxChild|$e:jsxElement) => `(term| $e:jsxElement)
-        | _                         => unreachable!
-      let tag := toString n.getId
-      `(Html.element $(quote tag) #[ $[($ns, toJson $vs)],* ] #[ $[$cs],* ])
-    else Macro.throwErrorAt m ("expected </" ++ toString n.getId ++ ">")
+    `(Html.element $(quote tag) #[ $[($ns, $vs)],* ] #[ $[$cs],* ])
+
+macro_rules
+  | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* />) => transformTag n n ns vs #[]
+  | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* >$cs*</$m>) => transformTag n m ns vs cs
 
 open Lean Delaborator SubExpr
 

@@ -1,11 +1,12 @@
 import Lean.Attributes
 import Lean.Widget.UserWidget
-import WidgetKit.Json
+
+import WidgetKit.Data.Json
 
 /-!
 A compatibility layer aimed at redefining the user widget API in terms of components.
 New features:
-- component props are typed in Lean
+- component props have Lean types
 - props can be RpcEncodable
 - we distinguish between an arbitrary 'widget module' (any ES module) and a 'widget component',
   that is a module which can be rendered
@@ -17,7 +18,9 @@ It could eventually replace the current Lean core definitions.
 namespace WidgetKit
 open Lean Server Elab
 
-instance : RpcEncodable (StateM RpcObjectStore Json) where
+abbrev LazyEncodable α := StateM RpcObjectStore α
+
+instance : RpcEncodable (LazyEncodable Json) where
   rpcEncode fn := fn
   rpcDecode j := return return j
 
@@ -54,7 +57,7 @@ initialize
 structure PanelWidgetInfo where
   /-- Name of the `widget_module` to show. -/
   id : Name
-  props : StateM RpcObjectStore Json
+  props : LazyEncodable Json
   -- Compatibility hack. Remove if in core.
   infoId : Name
   deriving TypeName
@@ -64,7 +67,7 @@ structure WidgetInstance where
   /-- Name of the `widget_module`. -/
   id : Name
   srcHash : UInt64
-  props : StateM RpcObjectStore Json
+  props : LazyEncodable Json
   -- Compatibility hack. Remove if in core.
   infoId : Name
   deriving Server.RpcEncodable
@@ -122,8 +125,6 @@ def metaWidget : Lean.Widget.UserWidgetDefinition where
     import { DynamicComponent, RpcContext, useAsync } from '@leanprover/infoview'
     const e = React.createElement
 
-    // TODO add importWidgetModule to @leanprover/infoview
-
     export default function(props_) {
       const {pos, infoId, ...props} = props_
       const rs = React.useContext(RpcContext)
@@ -149,7 +150,7 @@ def metaWidget : Lean.Widget.UserWidgetDefinition where
 
 open scoped Json in
 def savePanelWidgetInfo [Monad m] [MonadInfoTree m] [MonadNameGenerator m]
-    (stx : Syntax) (id : Name) (props : StateM RpcObjectStore Json)  : m Unit := do
+    (stx : Syntax) (id : Name) (props : LazyEncodable Json)  : m Unit := do
   let infoId := `panelWidget ++ (← mkFreshId)
   pushInfoLeaf <| .ofUserWidgetInfo {
     stx

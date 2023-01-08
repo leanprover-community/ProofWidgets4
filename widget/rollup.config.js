@@ -1,8 +1,8 @@
-import { nodeResolve} from '@rollup/plugin-node-resolve'
+import { nodeResolve } from '@rollup/plugin-node-resolve'
 import typescript from '@rollup/plugin-typescript';
 import commonjs from '@rollup/plugin-commonjs';
 import replace from '@rollup/plugin-replace';
-import { string } from 'rollup-plugin-string';
+import terser from '@rollup/plugin-terser';
 export default cliArgs => {
     const tsxName = cliArgs.tsxName;
     if (tsxName === undefined)
@@ -26,13 +26,6 @@ export default cliArgs => {
         '@leanprover/infoview',
     ],
     plugins: [
-        string({
-            include: [
-                '**/*.dsl',
-                '**/*.sty',
-                '**/*.sub'
-            ]
-        }),
         typescript({
             tsconfig: "./tsconfig.json",
             outputToFilesystem: false,
@@ -59,5 +52,6 @@ export default cliArgs => {
                 'cluster', 'module', 'net', 'readline', 'repl', 'tls', 'fs', 'crypto', 'perf_hooks',
             ],
         }),
+        terser(),
     ],
 }}

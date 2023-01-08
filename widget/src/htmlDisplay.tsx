@@ -14,9 +14,9 @@ export type Html =
     | { text: string }
     | { component: [string, any, Html[]] }
 
-export default function HtmlDisplay({pos, html} : {pos: DocumentPosition, html: Html}): React.ReactNode {
+export default function HtmlDisplay({pos, html} : {pos: DocumentPosition, html: Html}): JSX.Element {
     if ('text' in html) {
-        return html.text
+        return <>{html.text}</>
     } else if ('element' in html) {
         const [tag, attrsList, cs] = html.element
         const attrs: any = {}
