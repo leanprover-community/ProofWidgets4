@@ -1,17 +1,16 @@
-import WidgetKit.HtmlWidget
-import WidgetKit.Json
+import WidgetKit.Data.Json
+import WidgetKit.Component.HtmlDisplay
 
-open Lean.Widget.Jsx
-open Lean Widget
+namespace WidgetKit
+open Lean
 
-
-private def Float.toInt (x : Float) : Int :=
+private def _root_.Float.toInt (x : Float) : Int :=
   if x >= 0 then
     x.toUInt64.toNat
   else
     -((-x).toUInt64.toNat)
 
-private def Int.toFloat (i : Int) : Float :=
+private def _root_.Int.toFloat (i : Int) : Float :=
   if i >= 0 then
     i.toNat.toFloat
   else
@@ -50,7 +49,7 @@ deriving Inhabited, ToJson, FromJson
 instance (f) : Coe (Float×Float) (Point f) := ⟨λ (x,y) => .abs x y⟩
 instance (f) : Coe (Int×Int) (Point f) := ⟨λ (i,j) => .px i j⟩
 
-def Point.toPixels {f : Frame} (p : Point f) : Int × Int := 
+def Point.toPixels {f : Frame} (p : Point f) : Int × Int :=
   match p with
   | .px x y => (x,y)
   | .abs x y =>
@@ -59,12 +58,12 @@ def Point.toPixels {f : Frame} (p : Point f) : Int × Int :=
     let j := ((f.ymax - y) / Δx).floor.toInt
     (i, j)
 
-def Point.toAbsolute {f : Frame} (p : Point f) : Float × Float := 
+def Point.toAbsolute {f : Frame} (p : Point f) : Float × Float :=
   match p with
   | .abs x y => (x,y)
   | .px  i j =>
     let Δx := f.pixelSize
-    let x := f.xmin + (i.toFloat + 0.5) * Δx 
+    let x := f.xmin + (i.toFloat + 0.5) * Δx
     let y := f.ymax - (j.toFloat + 0.5) * Δx
     (x,y)
 
@@ -88,26 +87,26 @@ inductive Shape (f : Frame) where
 deriving ToJson, FromJson
 
 def Shape.toHtmlData {f : Frame} : Shape f → String × Array (String × Json)
-| .line src trg => 
+| .line src trg =>
   let (x1,y1) := src.toPixels
   let (x2,y2) := trg.toPixels
   ("line", #[("x1", x1), ("y1", y1), ("x2", x2), ("y2", y2)])
-| .circle center radius => 
+| .circle center radius =>
   let (cx,cy) := center.toPixels
   let r := radius.toPixels
   ("circle", #[("cx", cx), ("cy", cy), ("r", r)])
-| .polyline points => 
-  let pts := points 
+| .polyline points =>
+  let pts := points
       |>.map (λ p => let (x,y) := p.toPixels; s!"{x},{y}")
       |>.foldl (init := "") (λ s p => s ++ " " ++ p)
   ("polyline", #[("points", pts)])
-| .polygon points => 
-  let pts := points 
+| .polygon points =>
+  let pts := points
       |>.map (λ p => let (x,y) := p.toPixels; s!"{x},{y}")
       |>.foldl (init := "") (λ s p => s ++ " " ++ p)
   ("polygon", #[("fillRule", "nonzero"), ("points", pts)])
 
- 
+
 structure Element (f : Frame) where
   shape : Shape f
   strokeColor := (none : Option Color)
@@ -132,21 +131,21 @@ def Element.setData {α : Type} {f} (elem : Element f) (a : α) [ToJson α] :=
 def Element.toHtml {f : Frame} (e : Element f) : Html := Id.run do
   let mut (tag, args) := e.shape.toHtmlData
 
-  if let .some color ← e.strokeColor then
+  if let .some color := e.strokeColor then
     args := args.push ("stroke", color.toStringRGB)
 
-  if let .some width ← e.strokeWidth then
+  if let .some width := e.strokeWidth then
     args := args.push ("strokeWidth", width.toPixels)
 
-  if let .some color ← e.fillColor then
+  if let .some color := e.fillColor then
     args := args.push ("fill", color.toStringRGB)
   else
     args := args.push ("fill", "none")
 
-  if let .some id ← e.id then
+  if let .some id := e.id then
     args := args.push ("id", id)
 
-  if let .some data ← e.data then
+  if let .some data := e.data then
     args := args.push ("data", data)
 
   return .element tag args #[]
@@ -158,69 +157,47 @@ def Element.toHtml {f : Frame} (e : Element f) : Html := Id.run do
 
 end Svg
 
-def mkIdToIdx {f} (elements : Array (Svg.Element f)) : HashMap String (Fin elements.size) := 
+def mkIdToIdx {f} (elements : Array (Svg.Element f)) : HashMap String (Fin elements.size) :=
   let idToIdx := (elements
     |>.mapIdx (λ idx el => (idx,el))) -- zip with index
     |>.filterMap (λ (idx,el) => el.id.map (λ id => (id,idx))) -- keep only elements with specified id
-    |>.toList 
+    |>.toList
     |> HashMap.ofList
   idToIdx
 
 structure Svg (f : Svg.Frame) where
   elements : Array (Svg.Element f)
-  idToIdx := mkIdToIdx elements 
+  idToIdx := mkIdToIdx elements
 
-def Svg.toHtml {f : Frame} (svg : Svg f) : Html := 
-  .element "svg" 
-           #[("xmlns", "http://www.w3.org/2000/svg"), 
-             ("version", "1.1"), 
-             ("width", f.width), 
-             ("height", f.height)] 
+namespace Svg
+
+def toHtml {f : Frame} (svg : Svg f) : Html :=
+  .element "svg"
+           #[("xmlns", "http://www.w3.org/2000/svg"),
+             ("version", "1.1"),
+             ("width", f.width),
+             ("height", f.height)]
            (svg.elements.map λ e => e.toHtml)
 
-def Svg.idToDataList {f} (svg : Svg f) : List (String × Json) :=
-  svg.elements.foldr (init := []) (λ e l => 
+def idToDataList {f} (svg : Svg f) : List (String × Json) :=
+  svg.elements.foldr (init := []) (λ e l =>
     match e.id, e.data with
     | some id, some data => (id,data)::l
     | _, _ => l)
 
-def Svg.idToData {f} (svg : Svg f) : HashMap String Json :=
+def idToData {f} (svg : Svg f) : HashMap String Json :=
   HashMap.ofList svg.idToDataList
-  
+
 instance {f} : GetElem (Svg f) Nat (Svg.Element f) (λ svg idx => idx < svg.elements.size) where
   getElem svg i h := svg.elements[i]
 
 instance {f} : GetElem (Svg f) String (Option (Svg.Element f)) (λ _ _ => True) where
   getElem svg id _ := svg.idToIdx[id].map (λ idx => svg.elements[idx])
 
-def Svg.getData {f} (svg : Svg f) (id : String) : Option Json :=
+def getData {f} (svg : Svg f) (id : String) : Option Json :=
   match svg[id] with
   | none => none
   | some elem => elem.data
 
-
-section Example
-
-  open Svg
-
-  private def frame : Frame where
-    xmin   := -2
-    ymin   := -2
-    xSize  := 4
-    width  := 400
-    height := 400
-  
-  private def svg : Svg frame := 
-    { elements := 
-        #[line (0.,0.) (1.,0.) |>.setStroke (1.,0.,0.) (.px 2),
-          line (1.,0.) (0.,1.) |>.setStroke (0.,1.,0.) (.px 2),
-          line (0.,1.) (0.,0.) |>.setStroke (0.,0.,1.) (.px 2),
-          circle (0.,0.) (.abs 0.1) |>.setStroke (0.,0.,0.) (.px 2) |>.setFill (0.,1.,1.) |>.setId "point1",
-          circle (1.,0.) (.abs 0.1) |>.setStroke (0.,0.,0.) (.px 2) |>.setFill (1.,0.,1.) |>.setId "point2",
-          circle (0.,1.) (.abs 0.1) |>.setStroke (0.,0.,0.) (.px 2) |>.setFill (1.,1.,0.) |>.setId "point3"] }
-
-  -- #eval toJson svg.toHtml
-
-  #html svg.toHtml
-
-end Example
+end Svg
+end WidgetKit

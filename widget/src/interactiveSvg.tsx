@@ -105,7 +105,7 @@ export function Svg(props : UpdateResult) {
     function handleMouseEvent(e : MouseEvent) {
         console.log(e)
         const id = e.target.id || undefined
-	const data = e.target.data || undefined	
+	const data = e.target.data || undefined
 	console.log(id)
 	console.log(data)
         if (e.type === "mouseup" || e.type === "mousedown") {
