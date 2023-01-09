@@ -1,6 +1,5 @@
 import WidgetKit.Component.Basic
 import WidgetKit.Data.Html
-import WidgetKit.Component.HtmlDisplay
 
 namespace WidgetKit
 open Lean Server

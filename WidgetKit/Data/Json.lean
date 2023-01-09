@@ -4,7 +4,6 @@
  Authors: E.W.Ayers
 -/
 import Lean.Data.Json
-import Lean.Elab.Eval
 
 /-!
 # JSON-like syntax for Lean.
@@ -91,15 +90,5 @@ macro_rules
       | `(jso_ident| $($k:term)) => k
       | stx                      => panic! s!"unrecognized ident syntax {stx}"
     `(Lean.Json.mkObj [$[($ks, json% $vs)],*])
-
-open Elab Term in
-unsafe def evalJsonUnsafe (stx : Syntax) : TermElabM Json := do
-  let JsonT ← mkConst ``Json
-  let jsonStx : TSyntax `jso := TSyntax.mk stx
-  evalTerm Json JsonT (← `(json% $jsonStx))
-
-open Elab Term in
-@[implemented_by evalJsonUnsafe]
-opaque evalJson : Syntax → TermElabM Json
 
 end WidgetKit.Json

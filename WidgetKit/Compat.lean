@@ -4,7 +4,7 @@ import Lean.Widget.UserWidget
 import WidgetKit.Data.Json
 
 /-!
-A compatibility layer aimed at redefining the user widget API in terms of components.
+A compatibility layer aimed at redefining the user widget API in terms of modules and components.
 New features:
 - component props have Lean types
 - props can be RpcEncodable
@@ -139,37 +139,7 @@ def getPanelWidgets (args : GetPanelWidgetsParams) : RequestM (RequestTask GetPa
 @[widget]
 def metaWidget : Lean.Widget.UserWidgetDefinition where
   name := "We should get rid of this header and make panels general block elements"
-  javascript := "
-    import * as React from 'react'
-    import { DynamicComponent, RpcContext, useAsync } from '@leanprover/infoview'
-    const e = React.createElement
-
-    export default function(props_) {
-      const {pos, infoId, ...props} = props_
-      const rs = React.useContext(RpcContext)
-
-      const st = useAsync(async () => {
-        const ws = await rs.call('WidgetKit.getPanelWidgets', { pos })
-        if (ws === undefined) return undefined
-        const ret = []
-        for (const w of ws.widgets) {
-          if (w.infoId === infoId) {
-            ret.push(w)
-          }
-        }
-        return ret
-      }, [rs, infoId, pos])
-
-      const child = st.value ?
-        st.value.map(w => e(DynamicComponent, {
-            pos, hash: w.srcHash, props: { ...w.props, ...props, pos }
-          }, null))
-        : undefined
-
-      return st.state === 'resolved' ? e(React.Fragment, null, child)
-        : e('div', null, JSON.stringify(st))
-    }
-  "
+  javascript := include_str ".." / "widget" / "dist" / "compat.js"
 
 open scoped Json in
 def savePanelWidgetInfo [Monad m] [MonadInfoTree m] [MonadNameGenerator m]

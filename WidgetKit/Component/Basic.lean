@@ -1,5 +1,5 @@
 import Lean.Widget.InteractiveCode
-import WidgetKit.Component.Compat
+import WidgetKit.Compat
 
 namespace WidgetKit
 
@@ -59,7 +59,9 @@ def InteractiveExpr : Component InteractiveExprProps where
         return 'Loading..'
     }"
 
--- TODO: This is in `userWidget.tsx`
+/-- A panel widget is a component which can appear as a top-level panel in the infoview. A goal
+state display is one example. -/
+-- TODO: This is oin `userWidget.tsx`
 structure PanelWidgetProps where
 
 end WidgetKit
