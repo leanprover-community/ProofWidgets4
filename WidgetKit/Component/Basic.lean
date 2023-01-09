@@ -44,20 +44,7 @@ directly, it is preferrable to use that and the `InteractiveCode` component inst
 one extra roundtrip to make the RPC call. -/
 @[widget_module]
 def InteractiveExpr : Component InteractiveExprProps where
-  javascript := "
-    import { mapRpcError, useAsync, InteractiveCode, RpcContext } from '@leanprover/infoview'
-    import * as React from 'react'
-    const e = React.createElement
-    export default function(props) {
-      const rs = React.useContext(RpcContext)
-      const st = useAsync(() => rs.call('WidgetKit.ppExprTagged', props), [props.expr])
-      if (st.state === 'resolved')
-        return e(InteractiveCode, {fmt: st.value})
-      else if (st.state === 'rejected')
-        return `Error: ${mapRpcError(st.error).message}`
-      else
-        return 'Loading..'
-    }"
+  javascript := include_str ".." / ".." / "widget" / "dist" / "interactiveExpr.js"
 
 /-- A panel widget is a component which can appear as a top-level panel in the infoview. A goal
 state display is one example. -/
