@@ -12,11 +12,15 @@ New features:
   that is a module which can be rendered
 - moreover only 'panel widget components' can appear as top-level panels in the infoview
 
-It could eventually replace the current Lean core definitions.
+TODO: If the design works out, it could replace the current Lean core definitions.
 -/
 
 namespace WidgetKit
 open Lean Server Elab
+
+deriving instance TypeName for LocalContext
+deriving instance TypeName for Elab.ContextInfo
+deriving instance TypeName for Expr
 
 abbrev LazyEncodable α := StateM RpcObjectStore α
 
@@ -24,28 +28,43 @@ instance : RpcEncodable (LazyEncodable Json) where
   rpcEncode fn := fn
   rpcDecode j := return return j
 
+-- back from exile
+structure ExprWithCtx where
+  ci : Elab.ContextInfo
+  lctx : LocalContext
+  expr : Expr
+  deriving TypeName
+
+def ExprWithCtx.runMetaM (e : ExprWithCtx) (x : Expr → MetaM α) : IO α :=
+  e.ci.runMetaM e.lctx (x e.expr)
+
 def widgetDefPostfix : Name := `userWidgetDef
+
+-- NOTE: Compared to core, this is almost like UserWidgetDefinition but with a different "attitude":
+-- the module itself need not be a user widget, i.e. it can also be a support library. It doesn't
+-- need a displayable `name`.
+structure Module where
+  /-- An arbitrary JS [module](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)
+  intended for use in user widgets. -/
+  javascript: String
 
 -- This could maybe be a macro but good luck actually writing it.
 open Lean Meta Elab Command in
 initialize
   registerBuiltinAttribute {
     name := `widget_module
-    descr := "Registers a widget module. It must be a String containing an ES Module."
+    descr := "Registers a widget module. Its type must extend WidgetKit.Module."
     applicationTime := AttributeApplicationTime.afterCompilation
     -- The implementation is a hack due to the fact that widgetSource is tied to the storage
-    -- of user widgets. TODO fix in core.
+    -- of user widgets. I think a single widgetModuleRegistry should suffice. TODO fix in core.
     add := fun nm _ _ => do
-      let const ← getConstInfo nm
-      if !const.type.isConstOf ``String then
-        throwError m!"type mismatch, expected{Expr.const ``String []}\nbut got{const.type}"
+      -- The type is not checked; really we just need it to have a `javascript : String` field.
       let proc : CommandElabM Unit := do
-        -- Creates a fake widget only in order to register with widgetSourceRegistry
         elabCommand <| ← `(command|
           @[widget]
           def $(mkIdent <| nm ++ widgetDefPostfix) : Lean.Widget.UserWidgetDefinition where
             name := $(quote nm.toString)
-            javascript := $(mkIdent nm))
+            javascript := $(mkIdent nm).javascript)
       let ctx ← read
       let st ← get
       -- Cursed manual CommandElabM => CoreM lift punning all fields
@@ -138,12 +157,16 @@ def metaWidget : Lean.Widget.UserWidgetDefinition where
             ret.push(w)
           }
         }
-        return ret.map(w => e(DynamicComponent, {
-            pos, hash: w.srcHash, props: { ...w.props, ...props, pos }
-          }, null))
+        return ret
       }, [rs, infoId, pos])
 
-      return st.state === 'resolved' ? e(React.Fragment, null, st.value)
+      const child = st.value ?
+        st.value.map(w => e(DynamicComponent, {
+            pos, hash: w.srcHash, props: { ...w.props, ...props, pos }
+          }, null))
+        : undefined
+
+      return st.state === 'resolved' ? e(React.Fragment, null, child)
         : e('div', null, JSON.stringify(st))
     }
   "

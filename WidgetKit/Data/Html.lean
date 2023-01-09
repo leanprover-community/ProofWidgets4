@@ -10,22 +10,25 @@ import Lean.Server.Rpc.Basic
 
 import WidgetKit.Component.Basic
 
-/-! We define a representation of HTML trees which may contain widget components together with
-a JSX-like DSL for writing them. -/
+/-! We define a representation of HTML trees together with a JSX-like DSL for writing them. -/
 
 namespace WidgetKit
 open Lean Server
 
+/-- A HTML tree which may contain widget components. -/
 inductive Html where
   /-- An `element "tag" attrs children` represents `<tag {...attrs}>{...children}</tag>`. -/
   | element : String → Array (String × Json) → Array Html → Html
   /-- Raw HTML text.-/
   | text : String → Html
   /-- A `component Foo props children` represents `<Foo {...props}>{...children}</>`. -/
+  -- TODO: The universe lift is unfortunate.
   | component {Props} [RpcEncodable Props] : Component Props → Props → Array Html → Html
 
-/-- Unfortunately we cannot build `RpcEncodable Html` because `Html : Type 1` and `RpcEncodable`
-is not universe-polymorphic. We can, however, do it for this intermediate type. -/
+/-- A variant of `Html` which lives in `Type`, at the cost of some type safety.
+
+Unfortunately we cannot build `RpcEncodable Html` because `Html : Type 1` and `RpcEncodable` is not
+universe-polymorphic. We can, however, do it for `EncodableHtml`. -/
 inductive EncodableHtml where
   | element : String → Array (String × Json) → Array EncodableHtml → EncodableHtml
   | text : String → EncodableHtml
@@ -101,6 +104,13 @@ def transformTag (n m : Ident) (ns : Array Ident) (vs : Array (TSyntax `jsxAttrV
     let ns := ns.map (quote <| toString ·.getId)
     `(Html.element $(quote tag) #[ $[($ns, $vs)],* ] #[ $[$cs],* ])
 
+
+/-- Support for writing HTML trees directly, using XML-like angle bracket syntax. It work very
+similarly to [JSX](https://reactjs.org/docs/introducing-jsx.html) in JavaScript. The syntax is
+enabled using `open scoped WidgetKit.Jsx`.
+
+Lowercase tags are interpreted as standard HTML whereas uppercase ones are expected to be
+`WidgetKit.Component`s. -/
 macro_rules
   | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* />) => transformTag n n ns vs #[]
   | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* >$cs*</$m>) => transformTag n m ns vs cs

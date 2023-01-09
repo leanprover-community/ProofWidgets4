@@ -7,7 +7,7 @@ import Lean.Data.Json
 import Lean.Elab.Eval
 
 /-!
-# Json-like syntax for Lean.
+# JSON-like syntax for Lean.
 
 Now you can write
 
