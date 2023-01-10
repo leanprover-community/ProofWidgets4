@@ -65,7 +65,7 @@ def applicableExprPresenters : ApplicableExprPresentersParams →
         if ← expr.runMetaM p.isApplicable then
           presenters := presenters.push ⟨nm, p.userName⟩
       | .error e =>
-        throw <| RequestError.internalError s!"Failed to evaluate raw Expr presenter '{nm}': {e}"
+        throw <| RequestError.internalError s!"Failed to evaluate Expr presenter '{nm}': {e}"
     return { presenters }
 
 structure GetExprPresentationParams extends ApplicableExprPresentersParams where
@@ -88,7 +88,7 @@ def getExprPresentation : GetExprPresentationParams →
           s!"returned true, where e := {expr.expr}"
       return ret
     | .error e =>
-      throw <| RequestError.internalError s!"Failed to evaluate raw Expr presenter '{name}': {e}"
+      throw <| RequestError.internalError s!"Failed to evaluate Expr presenter '{name}': {e}"
 
 structure ExprPresentationProps where
   expr : WithRpcRef ExprWithCtx

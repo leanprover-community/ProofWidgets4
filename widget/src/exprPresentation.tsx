@@ -46,7 +46,8 @@ export default function({pos, expr}: {pos: DocumentPosition, expr: ExprWithCtx})
   if (st.state === 'rejected')
     return <>Error: {mapRpcError(st.error).message}</>
   else if (st.state === 'resolved' && 0 < st.value.length)
-    return <>
+    // For explanation of flow-root see https://stackoverflow.com/a/32301823
+    return <div style={{display: 'flow-root'}}>
         {selection && selection !== 'none' ?
           <ExprPresentationUsing pos={pos} expr={expr} name={selection} /> :
           <InteractiveExpr expr={expr} />}
@@ -54,7 +55,7 @@ export default function({pos, expr}: {pos: DocumentPosition, expr: ExprWithCtx})
           <option key='none' value='none'>Default</option>
           {st.value.map(pid => <option key={pid.name} value={pid.name}>{pid.userName}</option>)}
         </select>
-      </>
+      </div>
   else
     return <InteractiveExpr expr={expr} />
 }

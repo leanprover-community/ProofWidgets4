@@ -38,6 +38,13 @@ structure ExprWithCtx where
 def ExprWithCtx.runMetaM (e : ExprWithCtx) (x : Expr → MetaM α) : IO α :=
   e.ci.runMetaM e.lctx (x e.expr)
 
+def ExprWithCtx.save (e : Expr) : MetaM ExprWithCtx :=
+  return {
+    ci := ← ContextInfo.save
+    lctx := ← getLCtx
+    expr := e
+  }
+
 def widgetDefPostfix : Name := `userWidgetDef
 
 -- NOTE: Compared to core, this is almost like UserWidgetDefinition but with a different "attitude":

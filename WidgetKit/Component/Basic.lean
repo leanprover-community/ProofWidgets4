@@ -48,7 +48,7 @@ def InteractiveExpr : Component InteractiveExprProps where
 
 /-- A panel widget is a component which can appear as a top-level panel in the infoview. A goal
 state display is one example. -/
--- TODO: This is oin `userWidget.tsx`
+-- TODO: This is in `userWidget.tsx`
 structure PanelWidgetProps where
 
 end WidgetKit

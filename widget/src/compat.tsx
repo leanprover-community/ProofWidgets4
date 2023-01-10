@@ -15,7 +15,7 @@ interface PanelWidgetInstance {
   range?: Range
 }
 
-export default function(props_: MetaWidgetProps): React.ReactNode {
+export default function(props_: MetaWidgetProps): JSX.Element {
   const {pos, infoId, ...props} = props_
 
   const rs = React.useContext(RpcContext)
@@ -30,23 +30,23 @@ export default function(props_: MetaWidgetProps): React.ReactNode {
     return ret
   }, [rs, infoId, pos])
 
-  const [st0, setSt0] = React.useState<JSX.Element | undefined>(undefined)
+  const [st0, setSt0] = React.useState<PanelWidgetInstance[] | undefined>(undefined)
   React.useEffect(() => {
     if (st.state === 'resolved')
-      setSt0(<>{
-        st.value.map(w =>
-          <DynamicComponent
-            pos={pos}
-            key={w.infoId}
-            hash={w.srcHash}
-            props={{ ...w.props, ...props, pos }} />)
-      }</>)
+      setSt0(st.value)
   }, [st.state])
 
   if (st0 !== undefined)
-    return st0
+    return <>
+      {st0.map(w =>
+        <DynamicComponent
+          pos={pos}
+          key={w.infoId}
+          hash={w.srcHash}
+          props={{ ...w.props, ...props, pos }} />)}
+    </>
   else if (st.state === 'rejected')
-    return `Error: ${mapRpcError(st.error).message}`
+    return <>Error: {mapRpcError(st.error).message}</>
   else
-    return 'Loading..'
+    return <>Loading..</>
 }
