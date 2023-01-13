@@ -3,6 +3,8 @@ import typescript from '@rollup/plugin-typescript';
 import commonjs from '@rollup/plugin-commonjs';
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
+
+/** @type {(_: any) => import('rollup').RollupOptions} */
 export default cliArgs => {
     const tsxName = cliArgs.tsxName;
     if (tsxName === undefined)
@@ -23,6 +25,7 @@ export default cliArgs => {
     external: [
         'react',
         'react-dom',
+        'react/jsx-runtime',
         '@leanprover/infoview',
     ],
     plugins: [
