@@ -33,7 +33,9 @@ inductive EncodableHtml where
   | element : String → Array (String × Json) → Array EncodableHtml → EncodableHtml
   | text : String → EncodableHtml
   | component : UInt64 → LazyEncodable Json → Array EncodableHtml → EncodableHtml
-  deriving Inhabited, RpcEncodable
+  deriving Inhabited
+
+#mkrpcenc EncodableHtml
 
 partial def EncodableHtml.ofHtml : Html → EncodableHtml
   | .element t as cs => element t as (cs.map ofHtml)

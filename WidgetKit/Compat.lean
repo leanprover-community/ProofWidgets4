@@ -18,8 +18,6 @@ TODO: If the design works out, it could replace the current Lean core definition
 namespace WidgetKit
 open Lean Server Elab
 
-deriving instance TypeName for LocalContext
-deriving instance TypeName for Elab.ContextInfo
 deriving instance TypeName for Expr
 
 abbrev LazyEncodable α := StateM RpcObjectStore α
@@ -44,6 +42,15 @@ def ExprWithCtx.save (e : Expr) : MetaM ExprWithCtx :=
     lctx := ← getLCtx
     expr := e
   }
+
+open Command in
+/-- HACK: around https://leanprover.zulipchat.com/#narrow/stream/341532-lean4-dev/topic/Should.20instance.20names.20inherit.20macro.20scopes.3F -/
+elab "#mkrpcenc" n:ident : command => do
+  elabCommand <| ← `(
+    namespace $n
+    deriving instance Lean.Server.RpcEncodable for $n
+    end $n
+  )
 
 def widgetDefPostfix : Name := `userWidgetDef
 
@@ -100,11 +107,13 @@ structure WidgetInstance where
   props : LazyEncodable Json
   -- Compatibility hack. Remove if in core.
   infoId : Name
-  deriving Server.RpcEncodable
+
+#mkrpcenc WidgetInstance
 
 structure PanelWidgetInstance extends WidgetInstance where
   range? : Option Lsp.Range
-  deriving Server.RpcEncodable
+
+#mkrpcenc PanelWidgetInstance
 
 structure GetPanelWidgetsParams where
   pos : Lsp.Position
@@ -112,7 +121,8 @@ structure GetPanelWidgetsParams where
 
 structure GetPanelWidgetsResponse where
   widgets : Array PanelWidgetInstance
-  deriving Server.RpcEncodable
+
+#mkrpcenc GetPanelWidgetsResponse
 
 def customInfosAt? (text : FileMap) (t : InfoTree) (hoverPos : String.Pos) : List CustomInfo :=
   t.deepestNodes fun

@@ -25,7 +25,8 @@ open Lean
 
 structure InteractiveCodeProps where
   fmt : Widget.CodeWithInfos
-  deriving Server.RpcEncodable
+
+#mkrpcenc InteractiveCodeProps
 
 @[widget_module]
 def InteractiveCode : Component InteractiveCodeProps where
@@ -38,7 +39,8 @@ def InteractiveCode : Component InteractiveCodeProps where
 
 structure InteractiveExprProps where
   expr : Server.WithRpcRef ExprWithCtx
-  deriving Server.RpcEncodable
+
+#mkrpcenc InteractiveExprProps
 
 @[server_rpc_method]
 def ppExprTagged : InteractiveExprProps → Server.RequestM (Server.RequestTask Widget.CodeWithInfos)

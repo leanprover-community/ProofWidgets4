@@ -1,5 +1,5 @@
 import WidgetKit.Data.Json
-import WidgetKit.Component.HtmlDisplay
+import WidgetKit.Data.Html
 
 namespace WidgetKit
 open Lean

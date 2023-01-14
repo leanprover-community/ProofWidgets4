@@ -9,11 +9,13 @@ open Lean Server
 
 structure LocationsToExprParams where
   locations : Array (WithRpcRef Elab.ContextInfo × SubExpr.GoalsLocation)
-  deriving Server.RpcEncodable
+
+#mkrpcenc LocationsToExprParams
 
 structure LocationsToExprResponse where
   exprs : Array (WithRpcRef ExprWithCtx)
-  deriving Server.RpcEncodable
+
+#mkrpcenc LocationsToExprResponse
 
 @[server_rpc_method]
 def locationsToExpr (args : LocationsToExprParams) :

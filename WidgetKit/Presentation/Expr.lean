@@ -42,7 +42,8 @@ opaque evalExprPresenter (env : Environment) (opts : Options) (constName : Name)
 
 structure ApplicableExprPresentersParams where
   expr : WithRpcRef ExprWithCtx
-  deriving RpcEncodable
+
+#mkrpcenc ApplicableExprPresentersParams
 
 structure ExprPresenterId where
   name : Name
@@ -71,7 +72,8 @@ def applicableExprPresenters : ApplicableExprPresentersParams →
 structure GetExprPresentationParams extends ApplicableExprPresentersParams where
   /-- Name of the presenter to use. -/
   name : Name
-  deriving Server.RpcEncodable
+
+#mkrpcenc GetExprPresentationParams
 
 @[server_rpc_method]
 def getExprPresentation : GetExprPresentationParams →
@@ -92,7 +94,8 @@ def getExprPresentation : GetExprPresentationParams →
 
 structure ExprPresentationProps where
   expr : WithRpcRef ExprWithCtx
-  deriving RpcEncodable
+
+#mkrpcenc ExprPresentationProps
 
 /-- This component shows a selection of all known and applicable `WidgetKit.ExprPresenter`s which
 are used to render the expression when selected. By default `WidgetKit.InteractiveExpr` is shown. -/
