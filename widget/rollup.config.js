@@ -1,3 +1,4 @@
+import glob from 'glob';
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 import typescript from '@rollup/plugin-typescript';
 import commonjs from '@rollup/plugin-commonjs';
@@ -7,20 +8,21 @@ import terser from '@rollup/plugin-terser';
 /** @type {(_: any) => import('rollup').RollupOptions} */
 export default cliArgs => {
     const tsxName = cliArgs.tsxName;
-    if (tsxName === undefined)
-        throw new Error("Please specify the .tsx to build with --tsxName <name>.");
-    // We delete the custom argument so that Rollup does not try to process it and complain.
-    delete cliArgs.tsxName;
+    if (tsxName !== undefined)
+        // We delete the custom argument so that Rollup does not try to process it and complain.
+        delete cliArgs.tsxName;
 
-    return {
-    input: [
-        `src/${tsxName}.tsx`
-    ],
+    const inputs = tsxName ?
+        [ `src/${tsxName}.tsx` ] :
+        glob.sync('src/**/*.tsx')
+
+    const configForInput = fname => ({
+    input: fname,
     output: {
-        dir: "dist",
-        format: "es",
+        dir: 'dist',
+        format: 'es',
         // Hax: apparently setting `global` makes some CommonJS modules work ¯\_(ツ)_/¯
-        intro: "const global = window;"
+        intro: 'const global = window;'
     },
     external: [
         'react',
@@ -30,9 +32,8 @@ export default cliArgs => {
     ],
     plugins: [
         typescript({
-            tsconfig: "./tsconfig.json",
+            tsconfig: './tsconfig.json',
             outputToFilesystem: false,
-            sourceMap: false
         }),
         nodeResolve({
             browser: true
@@ -57,4 +58,10 @@ export default cliArgs => {
         }),
         terser(),
     ],
-}}
+    })
+
+    // For why we must return an array of configs rather than use an array in `input`, see
+    // https://github.com/rollup/rollup/issues/2756. This is pretty suboptimal as every build
+    // rechecks all TS files, so the process is quadratic.
+    return inputs.map(configForInput)
+}
