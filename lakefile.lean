@@ -5,13 +5,9 @@ package widgetKit {
   -- add package configuration options here
 }
 
+@[default_target]
 lean_lib WidgetKit {
   -- add library configuration options here
-}
-
-@[default_target]
-lean_exe widgetKit {
-  root := `Main
 }
 
 /-! Widget build -/
@@ -53,4 +49,3 @@ target widgets (pkg : Package) : Array FilePath := do
   let items := #["staticHtml", "interactiveSvg"]
   let xs ← items.mapM (fun item => widgetTsxTarget pkg item dependencies)
   BuildJob.collectArray xs
-

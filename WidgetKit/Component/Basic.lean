@@ -3,9 +3,16 @@ import WidgetKit.Compat
 
 namespace WidgetKit
 
-/-- A widget module whose `default` export is a
-[React component](https://reactjs.org/docs/components-and-props.html). It must be annotated with
-`@[widget_module]` to work.
+/-- A component is a widget module whose `default` export is
+
+a [React component](https://reactjs.org/docs/components-and-props.html). The definition must be
+annotated with `@[widget_module]` to be accessible from the infoview.
+
+## Execution environment
+
+The JS environment in which components execute provides a fixed set of libraries accessible via
+direct `import`, notably `@leanprover/infoview`. All React contexts exported from
+`@leanprover/infoview` should be usable from components.
 
 ## Lean encoding of props
 

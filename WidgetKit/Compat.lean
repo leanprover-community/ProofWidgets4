@@ -52,7 +52,11 @@ def widgetDefPostfix : Name := `userWidgetDef
 -- need a displayable `name`.
 structure Module where
   /-- An arbitrary JS [module](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)
-  intended for use in user widgets. -/
+  intended for use in user widgets.
+
+  To initialize this field from an external JS file, use `include_str "path"/"to"/"file.js"`.
+  However **beware** that this does not register a dependency with Lake and your module will not
+  automatically be rebuilt when the `.js` file changes. -/
   javascript: String
 
 -- This could maybe be a macro but good luck actually writing it.
