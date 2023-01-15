@@ -23,6 +23,6 @@ tree.
 -/
 @[widget_module]
 def PenroseDiagram : Component PenroseDiagramProps where
-  javascript := include_str ".." / ".." / "widget" / "dist" / "penroseDisplay.js"
+  javascript := include_str ".." / ".." / "build" / "js" / "penroseDisplay.js"
 
 end WidgetKit

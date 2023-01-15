@@ -12,7 +12,7 @@ structure HtmlDisplayProps where
 
 @[widget_module]
 def HtmlDisplay : Component HtmlDisplayProps where
-  javascript := include_str ".." / ".." / "widget" / "dist" / "htmlDisplay.js"
+  javascript := include_str ".." / ".." / "build" / "js" / "htmlDisplay.js"
 
 open Elab in
 unsafe def evalEncodableHtmlUnsafe (stx : Term) : TermElabM EncodableHtml := do

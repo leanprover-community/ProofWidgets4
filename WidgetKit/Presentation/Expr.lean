@@ -101,6 +101,6 @@ structure ExprPresentationProps where
 are used to render the expression when selected. By default `WidgetKit.InteractiveExpr` is shown. -/
 @[widget_module]
 def ExprPresentation : Component ExprPresentationProps where
-  javascript := include_str ".." / ".." / "widget" / "dist" / "exprPresentation.js"
+  javascript := include_str ".." / ".." / "build" / "js" / "exprPresentation.js"
 
 end WidgetKit

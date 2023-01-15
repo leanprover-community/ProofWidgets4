@@ -10,8 +10,8 @@
   "license": "Apache-2.0",
   "type": "module",
   "dependencies": {
-    "@leanprover/infoview": "file:../../vscode-lean4/lean4-infoview/dist",
-    "@penrose/core": "~1.3.1-alpha.360",
+    "@leanprover/infoview": "~0.4.2",
+    "@penrose/core": "~1.3.1-alpha.363",
     "@svgdotjs/svg.js": "^3.1.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

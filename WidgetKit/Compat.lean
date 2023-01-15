@@ -160,7 +160,7 @@ def getPanelWidgets (args : GetPanelWidgetsParams) : RequestM (RequestTask GetPa
 @[widget]
 def metaWidget : Lean.Widget.UserWidgetDefinition where
   name := "We should get rid of this header and make panels general block elements"
-  javascript := include_str ".." / "widget" / "dist" / "compat.js"
+  javascript := include_str ".." / "build" / "js" / "compat.js"
 
 open scoped Json in
 def savePanelWidgetInfo [Monad m] [MonadInfoTree m] [MonadNameGenerator m]

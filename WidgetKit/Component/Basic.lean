@@ -53,7 +53,7 @@ directly, it is preferrable to use that and the `InteractiveCode` component inst
 one extra roundtrip to make the RPC call. -/
 @[widget_module]
 def InteractiveExpr : Component InteractiveExprProps where
-  javascript := include_str ".." / ".." / "widget" / "dist" / "interactiveExpr.js"
+  javascript := include_str ".." / ".." / "build" / "js" / "interactiveExpr.js"
 
 /-- A panel widget is a component which can appear as a top-level panel in the infoview. A goal
 state display is one example. -/

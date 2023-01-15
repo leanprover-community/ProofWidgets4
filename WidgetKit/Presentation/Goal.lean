@@ -43,7 +43,7 @@ where
 
 @[widget_module]
 def PresentSelectionPanel : Component PanelWidgetProps where
-  javascript := include_str ".." / ".." / "widget" / "dist" / "presentSelection.js"
+  javascript := include_str ".." / ".." / "build" / "js" / "presentSelection.js"
 
 /-- Displays any expressions selected in the goal state using available `WidgetKit.ExprPresenter`s.
 -/
