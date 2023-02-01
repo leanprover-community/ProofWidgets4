@@ -30,14 +30,29 @@ export default function(props_: MetaWidgetProps): JSX.Element {
     return ret
   }, [rs, infoId, pos])
 
+  // Hide the '▶ Widget Name' element
+  const ref = React.useRef<HTMLDivElement>(null)
+  React.useLayoutEffect(() => {
+    if (ref.current === null) return
+    const parent = ref.current.parentElement
+    if (parent === null) return
+    for (const c of parent.children) {
+      if (c.tagName !== 'SUMMARY') continue
+      if (!(c instanceof HTMLElement)) continue
+      c.style.display = 'none'
+      break
+    }
+  }, [])
+
   const [st0, setSt0] = React.useState<PanelWidgetInstance[] | undefined>(undefined)
   React.useEffect(() => {
     if (st.state === 'resolved')
       setSt0(st.value)
   }, [st.state])
 
+  let inner = <></>
   if (st0 !== undefined)
-    return <>
+    inner = <>
       {st0.map(w =>
         <DynamicComponent
           pos={pos}
@@ -46,7 +61,9 @@ export default function(props_: MetaWidgetProps): JSX.Element {
           props={{ ...w.props, ...props, pos }} />)}
     </>
   else if (st.state === 'rejected')
-    return <>Error: {mapRpcError(st.error).message}</>
+    inner = <>Error: {mapRpcError(st.error).message}</>
   else
-    return <>Loading..</>
+    inner = <>Loading..</>
+
+  return <div ref={ref}>{inner}</div>
 }

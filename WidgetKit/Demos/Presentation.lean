@@ -13,6 +13,6 @@ def presenter : ExprPresenter where
       </span>
 
 example (h : 2 + 2 = 5) : 2 + 2 = 4 := by
-  withDiagramDisplay
+  withSelectionDisplay
   -- Place cursor here and select subexpressions in the goal with shift-click
     rfl

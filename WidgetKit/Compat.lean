@@ -159,7 +159,7 @@ def getPanelWidgets (args : GetPanelWidgetsParams) : RequestM (RequestTask GetPa
 
 @[widget]
 def metaWidget : Lean.Widget.UserWidgetDefinition where
-  name := "We should get rid of this header and make panels general block elements"
+  name := "This header should not be visible as compat.tsx should hide it"
   javascript := include_str ".." / "build" / "js" / "compat.js"
 
 open scoped Json in
