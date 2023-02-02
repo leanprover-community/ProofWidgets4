@@ -28,8 +28,9 @@ interface ExprPresentationUsingProps {
   name: Name
 }
 
-// TODO: a UseAsync component which displays the resolved/loading/error like we always do
+// TODO: a UseAsync component which displays resolved/loading/error like we do in every component
 
+/** Display the given expression using the `ExprPresenter` registered at `name`. */
 function ExprPresentationUsing({pos, expr, name}: ExprPresentationUsingProps): JSX.Element {
   const rs = React.useContext(RpcContext)
   const st = useAsync(() => getExprPresentation(rs, expr, name), [rs, expr, name])
@@ -38,6 +39,9 @@ function ExprPresentationUsing({pos, expr, name}: ExprPresentationUsingProps): J
     : <>Error: {mapRpcError(st.error).message}</>
 }
 
+/** Display the given expression using an `ExprPresenter`. The server is queried for registered
+ * `ExprPresenter`s. A dropdown is shown allowing the user to select which of these should be used
+ * to display the expression. */
 export default function({pos, expr}: {pos: DocumentPosition, expr: ExprWithCtx}): JSX.Element {
   const rs = React.useContext(RpcContext)
   const st = useAsync(() => applicableExprPresenters(rs, expr), [rs, expr])

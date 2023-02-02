@@ -7,19 +7,20 @@ import WidgetKit.Presentation.Expr -- Needed for RPC calls in PresentSelectionPa
 namespace WidgetKit
 open Lean Server
 
-structure LocationsToExprParams where
+structure GoalsLocationsToExprsParams where
   locations : Array (WithRpcRef Elab.ContextInfo × SubExpr.GoalsLocation)
 
-#mkrpcenc LocationsToExprParams
+#mkrpcenc GoalsLocationsToExprsParams
 
-structure LocationsToExprResponse where
+structure GoalsLocationsToExprsResponse where
   exprs : Array (WithRpcRef ExprWithCtx)
 
-#mkrpcenc LocationsToExprResponse
+#mkrpcenc GoalsLocationsToExprsResponse
 
+/-- Compute expressions corresponding to the given `GoalsLocation`s. -/
 @[server_rpc_method]
-def locationsToExpr (args : LocationsToExprParams) :
-    RequestM (RequestTask LocationsToExprResponse) :=
+def goalsLocationsToExprs (args : GoalsLocationsToExprsParams) :
+    RequestM (RequestTask GoalsLocationsToExprsResponse) :=
   RequestM.asTask do
     let mut exprs := #[]
     for ⟨⟨ci⟩, loc⟩ in args.locations do
@@ -45,8 +46,8 @@ where
 def PresentSelectionPanel : Component PanelWidgetProps where
   javascript := include_str ".." / ".." / "build" / "js" / "presentSelection.js"
 
-/-- Displays any expressions selected in the goal state using available `WidgetKit.ExprPresenter`s.
--/
+/-- Displays any expressions selected in the goal state using registered `WidgetKit.ExprPresenter`s.
+Expressions can be selected using shift-click -/
 syntax (name := withSelectionDisplayTacStx) "withSelectionDisplay " tacticSeq : tactic
 
 open Elab Tactic in

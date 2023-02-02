@@ -1,9 +1,9 @@
-import { GoalsLocation, InteractiveGoal, mapRpcError, PanelWidgetProps, RpcContext, RpcPtr, useAsync }
-  from "@leanprover/infoview";
+import { DocumentPosition, GoalsLocation, InteractiveGoal, mapRpcError, PanelWidgetProps,
+  RpcContext, RpcPtr, useAsync } from "@leanprover/infoview";
 import * as  React from "react";
 import ExprPresentation from "./exprPresentation";
 
-function findGoalForLocation(goals: InteractiveGoal[], loc: GoalsLocation) {
+function findGoalForLocation(goals: InteractiveGoal[], loc: GoalsLocation): InteractiveGoal {
   for (const g of goals) {
     if (g.mvarId === loc.mvarId) return g
   }
@@ -12,26 +12,39 @@ function findGoalForLocation(goals: InteractiveGoal[], loc: GoalsLocation) {
 
 type ExprWithCtx = RpcPtr<'WidgetKit.ExprWithCtx'>
 
-interface LocationsToExprResponse {
-  exprs : ExprWithCtx[]
+interface GoalsLocationsToExprsResponse {
+  exprs: ExprWithCtx[]
 }
 
-export default function(props: PanelWidgetProps) {
+/**
+ * Display the expression corresponding to a given `GoalsLocation` using {@link ExprPresentation}.
+ */
+function GoalsLocationPresentation({pos, goals, loc}:
+    {pos: DocumentPosition, goals: InteractiveGoal[], loc: GoalsLocation}) {
   const rs = React.useContext(RpcContext)
-  const st = useAsync<LocationsToExprResponse>(async () => {
-    const locations = []
-    for (const loc of props.selectedLocations) {
-      const g = findGoalForLocation(props.goals, loc)
-      if (g.ctx === undefined) throw new Error(`Lean server 1.1.2 or newer is required.`)
-      locations.push([g.ctx, loc])
-    }
-    return await rs.call('WidgetKit.locationsToExpr', {locations})
-  }, [rs, props.goals, props.selectedLocations])
+  const st = useAsync<ExprWithCtx>(async () => {
+    const g = findGoalForLocation(goals, loc)
+    if (g.ctx === undefined) throw new Error(`Lean server 1.1.2 or newer is required.`)
+    const ret: GoalsLocationsToExprsResponse =
+      await rs.call('WidgetKit.goalsLocationsToExprs', {locations: [[g.ctx, loc]]})
+    return ret.exprs[0]
+  }, [rs, goals, loc])
 
   if (st.state === 'loading')
     return <>Loading..</>
   else if (st.state === 'rejected')
     return <>Error: {mapRpcError(st.error).message}</>
   else
-    return <>{st.value.exprs.map(expr => <ExprPresentation pos={props.pos} expr={expr} />)}</>
+    return <ExprPresentation pos={pos} expr={st.value} />
+}
+
+export default function(props: PanelWidgetProps) {
+  return <details  open>
+    <summary className='mv2 pointer'>Selected expressions</summary>
+      {props.selectedLocations.length > 0 ?
+        props.selectedLocations.map(loc =>
+          <GoalsLocationPresentation
+            key={JSON.stringify(loc)} pos={props.pos} goals={props.goals} loc={loc} />) :
+        <>Nothing selected. You can use shift-click to select expressions in the goal.</>}
+    </details>
 }

@@ -64,7 +64,7 @@ structure Module where
   To initialize this field from an external JS file, use `include_str "path"/"to"/"file.js"`.
   However **beware** that this does not register a dependency with Lake and your module will not
   automatically be rebuilt when the `.js` file changes. -/
-  javascript: String
+  javascript : String
 
 -- This could maybe be a macro but good luck actually writing it.
 open Lean Meta Elab Command in
@@ -145,17 +145,18 @@ def getPanelWidgets (args : GetPanelWidgetsParams) : RequestM (RequestTask GetPa
   let pos := filemap.lspPosToUtf8Pos args.pos
   withWaitFindSnap doc (·.endPos >= pos) (notFoundX := return ⟨∅⟩) fun snap => do
     let ws := customInfosAt? filemap snap.infoTree pos
-    let ws ← ws.toArray.mapM (fun (w : CustomInfo) => do
+    let mut widgets := #[]
+    for w in ws do
       let some wi := w.value.get? PanelWidgetInfo
-        | throw <| RequestError.invalidParams "Oops! Unknown ofCustomInfo found. TODO add kinds"
+        | IO.eprintln "Oops! Unknown ofCustomInfo found. TODO add kinds"
+          return {widgets := #[]}
       let some widgetDef := Widget.userWidgetRegistry.find? snap.env (wi.id ++ widgetDefPostfix)
         | throw <| RequestError.invalidParams s!"No registered widget source with id {wi.id}"
-      return {
-        wi with
+      widgets := widgets.push { wi with
         srcHash := widgetDef.javascriptHash
         range? := String.Range.toLspRange filemap <$> Syntax.getRange? w.stx
-      })
-    return {widgets := ws}
+      }
+    return {widgets}
 
 @[widget]
 def metaWidget : Lean.Widget.UserWidgetDefinition where
