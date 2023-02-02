@@ -1,13 +1,18 @@
-import WidgetKit.HtmlWidget
-import WidgetKit.Json
-open Lean.Widget.Jsx
-open Lean Widget
+import WidgetKit.Data.Json
+import WidgetKit.Component.HtmlDisplay
+
+open scoped WidgetKit.Jsx
+open scoped WidgetKit.Json
+
+open Lean WidgetKit
 
 def fn (t : Float) (x : Float): Float :=
    50 * (x - 0.25) * (x - 0.5) * (x - 0.7) + 0.1 * (x * 40 - t * 2 * 3.141).sin
 
+-- TODO: Currently the demo does not work because we are missing Recharts components
+#exit
 
-def Plot (fn : Float → Float) (steps := 100)  : Widget.Html :=
+def Plot (fn : Float → Float) (steps := 100)  : Html :=
     let jsonData : Json := List.range (steps + 1)
       |>.toArray
       |> Array.map (fun (x : Nat) => let x : Float := x.toFloat / steps.toFloat;  (x, fn x))
@@ -34,4 +39,3 @@ def mkFrames (fn : Float → Float → Float) (steps := 100) : Array Widget.Html
 
 -- put your cursor on the below line to see an animated widget
 #widget staticHtmlWidget json% {frames : $(toJson (mkFrames fn)), framesPerSecond : 60}
-

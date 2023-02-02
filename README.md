@@ -1,17 +1,64 @@
-# Development kit for Lean 4 widgets
+# WidgetKit
 
-Authors: Wojciech Nawrocki, E.W.Ayers
+WidgetKit is a library of user interface components for [Lean 4](https://leanprover.github.io/). It
+supports building:
+- symbolic visualizations of mathematical objects and data structures
+- data visualizations
+- interfaces for tactics and tactic modes
+- custom visual proof modes
+- custom goal state displays
+- interfaces for entering or editing expressions in a domain-specific manner
+- really anything that has to do with the infoview
+
+WidgetKit essentially supersedes [user widgets](https://leanprover.github.io/lean4/doc/examples/widgets.lean.html).
+It is just as general, but more user-friendly.
+
+Authors: Wojciech Nawrocki, E.W.Ayers with contributions from Tomáš Skřivan
 
 # Usage
 
-## Building the demos:
+## Viewing the demos
 
-```
-lake build
+The easiest way to get started is to clone a **release tag** of WidgetKit and run
+`lake build :release`, as follows:
+
+```bash
+# You should replace v0.0.1 with the latest version published under Releases
+git clone https://github.com/EdAyers/WidgetKit --branch v0.0.1
+cd WidgetKit/
+lake build :release
 ```
 
-Now go to the demo folder in VSCode.
-Putting your cursor on any `#widget` or `#html` will show you a widget in the infoview. Top tip: use the pushpin icon to keep the widget in view. You can then live code your widgets.
+After doing this you will hopefully be able to view the demos in `WidgetKit/Demos/`. If the demo
+contains a `#html` command, put your cursors over it to see a widget in the infoview. Top tip: use
+the pushpin icon to keep the widget in view. You can then live code your widgets.
+
+## Using WidgetKit as a dependency
+
+Put this in your `lakefile.lean`:
+```lean
+-- You should replace v0.0.1 with the latest version published under Releases
+require widgetkit from git "https://github.com/EdAyers/WidgetKit"@"v0.0.1"
+```
+
+Note that [developing WidgetKit](#developing-widgetkit) involves building TypeScript code with NPM.
+When depending on `WidgetKit` but not writing any custom TypeScript yourself, you likely want to
+avoid you or your users having to run NPM. To support this, WidgetKit is configured to use Lake's
+[cloud releases](https://github.com/leanprover/lake/#cloud-releases) feature which will
+automatically fetch pre-built files *as long as* you require a release tag rather than our `main`
+branch. This is why the snippet above does that.
+
+## Developing WidgetKit
+
+You must have NPM installed (it is part of Node.js). Run `lake build` to build the TypeScript UI
+code as well as all Lean modules. Run `lake build widgetJsAll` to just build the TypeScript. Outputs
+of `npm` are not shown by default - use `lake build -v [widgetJsAll]` to see them.
+
+⚠️ We use the `include_str` term elaborator to splice the JavaScript produced this way into our Lean
+files. The JS is stored in `build/js/`. Note however that due to Lake issue [#86](https://github.com/leanprover/lake/issues/86),
+rebuilding the `.js` will *not* rebuild the Lean file that includes it. To ensure freshness you may
+have to resort to hacks like adding a random comment in the file that uses `include_str` in order to
+ensure it gets rebuilt. Alternatively, you can run `lake clean` to delete the build directory.
 
 # Features
 
@@ -20,6 +67,8 @@ Putting your cursor on any `#widget` or `#html` will show you a widget in the in
 JSON-like syntax. Invoke with `json%`, escape with `$( _ )`
 
 ```lean
+import WidgetKit.Data.Json
+open scoped WidgetKit.Json
 #eval json% {
   hello : "world",
   cheese : ["edam", "cheddar", {kind : "spicy", rank : 100.2}],
@@ -33,30 +82,27 @@ JSON-like syntax. Invoke with `json%`, escape with `$( _ )`
 ## JSX-like syntax
 
 ```lean
-import WidgetKit.HtmlWidget
-open Lean.Widget.Jsx
+import WidgetKit.Component.HtmlDisplay
+open scoped WidgetKit.Jsx
 
 -- click on the line below to see it in your infoview!
 #html <b>You can use HTML in lean! {toString <| 1 + 2>}</b>
 ```
 
-We also support all elements that are exposed by the [Recharts library](https://recharts.org/en-US/api), so you can make your own plots. See `src/Demo/Plot.lean` for an example.
+See `WidgetKit/Demos/Basic.lean` and `WidgetKit/Demos/Svg.lean` for a more advanced example.
 
-## Animated html
+~~We also support all elements that are exposed by the [Recharts library](https://recharts.org/en-US/api),
+so you can make your own plots. See `src/Demo/Plot.lean` for an example.~~ (Currently broken.)
 
-As a hidden feature, you can also make animated widgets by passing an array of `Widget.Html` objects to the `staticHtml` widget. This works particularly well with the rechart plotting library, which eases between different plots.
-You can see an example of how to do this in `src/Demo/Plot.lean`
+## Custom `Expr` displays
 
-# Development
+Just like delaborators and unexpanders allow you to customize how expressions are displayed as text,
+WidgetKit allows "delaborating" into (potentially interactive) HTML. See
+`WidgetKit/Demos/Presentation.lean`.
 
-WidgetKit has the built, bundled JavaScript files checked in to the git repository (under widget/dist/*.js), so you do not need to build these yourself.
-If you want to rebuild the javascript, you need to do
+## Animated HTML
 
-```
-cd widget
-npm install
-cd ..
-lake build widgets
-```
-
-This should overwrite the files in `widget/dist`.
+~~As a hidden feature, you can also make animated widgets by passing an array of `Widget.Html`
+objects to the `staticHtml` widget. This works particularly well with the rechart plotting library,
+which eases between different plots.  You can see an example of how to do this in
+`src/Demo/Plot.lean`.~~ (Currently broken.)

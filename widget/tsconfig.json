@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "target": "esnext",
-    "jsx": "react",
+    "jsx": "react-jsx",
     "module": "esnext",
     "moduleResolution": "node",
-    "sourceMap": true,
-    "outDir": "dist/",
+    "sourceMap": false,
+    "outDir": "../build/js",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,

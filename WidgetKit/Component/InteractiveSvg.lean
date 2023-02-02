@@ -1,12 +1,9 @@
-import Lean.Elab
+import WidgetKit.Data.Svg
 
-import WidgetKit.Svg
+namespace WidgetKit
+open Lean
 
-open Lean.Widget.Jsx
-open Lean Widget
-
-
-private def Float.toInt (x : Float) : Int :=
+private def _root_.Float.toInt (x : Float) : Int :=
   if x >= 0 then
     x.toUInt64.toNat
   else
@@ -27,7 +24,7 @@ structure Action where
   data : Option Json
   deriving ToJson, FromJson
 
-/-- The input type `State` is any state the user wants to use and update 
+/-- The input type `State` is any state the user wants to use and update
 
 SvgState in addition automatically handles tracking of time, selection and custom data -/
 structure SvgState (State : Type) where
@@ -38,6 +35,8 @@ structure SvgState (State : Type) where
   idToData : List (String × Json)
 deriving ToJson, FromJson
 
+#mkrpcenc SvgState
+
 structure UpdateParams (State : Type) where
   elapsed : Float
   actions : Array Action
@@ -46,24 +45,25 @@ structure UpdateParams (State : Type) where
   deriving ToJson, FromJson
 
 structure UpdateResult (State : Type) where
-  html : Widget.Html
+  html : EncodableHtml
   state : SvgState State
   /-- Approximate number of milliseconds to wait before calling again. -/
   callbackTime : Option Float := some 33
-  deriving ToJson, FromJson
+
+#mkrpcenc UpdateResult
 
 -- maybe add title, refresh rate, initial time?, custom selection rendering
 structure InteractiveSvg (State : Type) where
   init : State
   frame : Svg.Frame
-  update (time_ms Δt_ms : Float) (action : Action) 
-         (mouseStart mouseEnd : Option (Svg.Point frame)) 
+  update (time_ms Δt_ms : Float) (action : Action)
+         (mouseStart mouseEnd : Option (Svg.Point frame))
          (selectedId : Option String) (getSelectedData : (α : Type) → [FromJson α] → Option α)
          : State → State
   render (time_ms : Float) (mouseStart mouseEnd : Option (Svg.Point frame)) : State → Svg frame
 
-open Server RequestM in
-def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) (params : UpdateParams State) 
+open Server RequestM Jsx in
+def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) (params : UpdateParams State)
   : RequestM (RequestTask (UpdateResult State)) := do
 
   -- Ideally, each action should have time and mouse position attached
@@ -76,14 +76,14 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
   let mut state := params.state.state
   let mut selected := params.state.selected
 
-  let getData := λ (α : Type) [FromJson α] => do 
-    let id ← selected; 
+  let getData := λ (α : Type) [FromJson α] => do
+    let id ← selected;
     let data ← idToData[id]
     match fromJson? (α:=α) data with
     | .error _ => none
     | .ok val => some val
 
-  
+
   let mouseStart := params.state.mousePos.map λ (i,j) => (i, j)
   let mouseEnd := params.mousePos.map λ (x,y) => (x.toInt, y.toInt)
 
@@ -103,9 +103,9 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
     time := time + Δt
 
   let mut svg := isvg.render time mouseStart mouseEnd state
-  
-  let svgState : SvgState State := 
-    { state := state 
+
+  let svgState : SvgState State :=
+    { state := state
       time := params.elapsed
       selected := selected
       mousePos := mouseEnd.map λ p => p.toPixels
@@ -119,7 +119,7 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
 
 
   return RequestTask.pure {
-    html :=
+    html := EncodableHtml.ofHtml
       <div>
         {svg.toHtml}
       </div>,
@@ -128,4 +128,4 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
   }
 
 end Svg
-
+end WidgetKit

@@ -1,18 +1,11 @@
 import Lake
 open Lake DSL System
 
-package widgetKit {
-  -- add package configuration options here
+package widgetkit {
+  preferReleaseBuild := true
 }
 
-lean_lib WidgetKit {
-  -- add library configuration options here
-}
-
-@[default_target]
-lean_exe widgetKit {
-  root := `Main
-}
+lean_lib WidgetKit {}
 
 /-! Widget build -/
 
@@ -33,7 +26,7 @@ target widgetPackageLock : FilePath := do
 
 def widgetTsxTarget (pkg : Package) (tsxName : String) (deps : Array (BuildJob FilePath))
     [Fact (pkg.name = _package.name)] : IndexBuildM (BuildJob FilePath) := do
-  let jsFile := widgetDir / "dist" / s!"{tsxName}.js"
+  let jsFile := pkg.buildDir / "js" / s!"{tsxName}.js"
   let deps := deps ++ #[
     ← inputFile <| widgetDir / "src" / s!"{tsxName}.tsx",
     ← inputFile <| widgetDir / "rollup.config.js",
@@ -47,10 +40,21 @@ def widgetTsxTarget (pkg : Package) (tsxName : String) (deps : Array (BuildJob F
       cwd := some widgetDir
     }
 
-target widgets (pkg : Package) : Array FilePath := do
-  let dependencies : Array FilePath := #[] -- ← add extra deps here
-  let dependencies ← dependencies.mapM fun f => inputFile (widgetDir / "src" / f)
-  let items := #["staticHtml", "interactiveSvg"]
-  let xs ← items.mapM (fun item => widgetTsxTarget pkg item dependencies)
-  BuildJob.collectArray xs
+target widgetJsAll (pkg : Package) : Array FilePath := do
+  let fs ← (widgetDir / "src").readDir
+  let tsxs : Array FilePath := fs.filterMap fun f =>
+    let p := f.path; if let some "tsx" := p.extension then some p else none
+  -- Conservatively, every .js build depends on all the .tsx source files.
+  let deps ← liftM <| tsxs.mapM inputFile
+  let jobs ← tsxs.mapM fun tsx => widgetTsxTarget pkg tsx.fileStem.get! deps
+  BuildJob.collectArray jobs
 
+@[default_target]
+target all (pkg : Package) : Unit := do
+  let some lib := pkg.findLeanLib? ``WidgetKit |
+    error "cannot find lean_lib target"
+  let job₁ ← fetch (pkg.target ``widgetJsAll)
+  let _ ← job₁.await
+  let job₂ ← lib.recBuildLean
+  let _ ← job₂.await
+  return .nil
