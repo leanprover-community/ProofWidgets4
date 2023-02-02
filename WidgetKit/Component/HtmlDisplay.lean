@@ -14,6 +14,10 @@ structure HtmlDisplayProps where
 def HtmlDisplay : Component HtmlDisplayProps where
   javascript := include_str ".." / ".." / "build" / "js" / "htmlDisplay.js"
 
+@[widget_module]
+def HtmlDisplayPanel : Component HtmlDisplayProps where
+  javascript := include_str ".." / ".." / "build" / "js" / "htmlDisplayPanel.js"
+
 open Elab in
 unsafe def evalEncodableHtmlUnsafe (stx : Term) : TermElabM EncodableHtml := do
   let htmlT := mkConst ``EncodableHtml
@@ -31,7 +35,7 @@ def elabHtmlCmd : CommandElab := fun
   | stx@`(#html $t:term) =>
     runTermElabM fun _ => do
       let ht ← evalEncodableHtml <| ← `(WidgetKit.EncodableHtml.ofHtml $t)
-      savePanelWidgetInfo stx ``HtmlDisplay do
+      savePanelWidgetInfo stx ``HtmlDisplayPanel do
         return json% { html: $(← rpcEncode ht) }
   | stx => throwError "Unexpected syntax {stx}."
 
@@ -42,7 +46,7 @@ open Elab Tactic Json in
 def elabHtmlTac : Tactic
   | stx@`(tactic| html! $t:term) => do
     let ht ← evalEncodableHtml <| ← `(WidgetKit.EncodableHtml.ofHtml $t)
-    savePanelWidgetInfo stx ``HtmlDisplay do
+    savePanelWidgetInfo stx ``HtmlDisplayPanel do
       return json% { html: $(← rpcEncode ht) }
   | stx => throwError "Unexpected syntax {stx}."
 

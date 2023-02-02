@@ -1,7 +1,7 @@
 import Lake
 open Lake DSL System
 
-package widgetKit {
+package widgetkit {
   preferReleaseBuild := true
 }
 
@@ -40,7 +40,7 @@ def widgetTsxTarget (pkg : Package) (tsxName : String) (deps : Array (BuildJob F
       cwd := some widgetDir
     }
 
-target widgets (pkg : Package) : Array FilePath := do
+target widgetJsAll (pkg : Package) : Array FilePath := do
   let fs ← (widgetDir / "src").readDir
   let tsxs : Array FilePath := fs.filterMap fun f =>
     let p := f.path; if let some "tsx" := p.extension then some p else none
@@ -53,7 +53,7 @@ target widgets (pkg : Package) : Array FilePath := do
 target all (pkg : Package) : Unit := do
   let some lib := pkg.findLeanLib? ``WidgetKit |
     error "cannot find lean_lib target"
-  let job₁ ← fetch (pkg.target ``widgets)
+  let job₁ ← fetch (pkg.target ``widgetJsAll)
   let _ ← job₁.await
   let job₂ ← lib.recBuildLean
   let _ ← job₂.await

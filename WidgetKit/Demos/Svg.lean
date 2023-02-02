@@ -1,4 +1,5 @@
 import WidgetKit.Data.Svg
+import WidgetKit.Component.HtmlDisplay
 
 open WidgetKit Svg
 

@@ -3,22 +3,21 @@ import WidgetKit.Compat
 
 namespace WidgetKit
 
-/-- A component is a widget module whose `default` export is
-
-a [React component](https://reactjs.org/docs/components-and-props.html). The definition must be
+/-- A component is a widget module whose `default` export is a
+[React component](https://reactjs.org/docs/components-and-props.html). The definition must be
 annotated with `@[widget_module]` to be accessible from the infoview.
 
 ## Execution environment
 
 The JS environment in which components execute provides a fixed set of libraries accessible via
 direct `import`, notably `@leanprover/infoview`. All React contexts exported from
-`@leanprover/infoview` should be usable from components.
+`@leanprover/infoview` are usable from components.
 
 ## Lean encoding of props
 
-`Props` is expected to have a `Lean.Server.RpcEncodable` instance. The export should then have type
-`function(props: JsProps & { pos : DocumentPosition }): React.ReactNode` where `JsProps` is the JSON
-encoding of `Props` and `DocumentPosition` is defined in `@leanprover/infoview`. -/
+`Props` is expected to have a `Lean.Server.RpcEncodable` instance. The JS export should then have
+type `function(props: JsProps & { pos : DocumentPosition }): React.ReactNode` where `JsProps` is the
+JSON encoding of `Props` and `DocumentPosition` is defined in `@leanprover/infoview`. -/
 structure Component (Props : Type) extends Module
 
 open Lean
@@ -55,9 +54,9 @@ one extra roundtrip to make the RPC call. -/
 def InteractiveExpr : Component InteractiveExprProps where
   javascript := include_str ".." / ".." / "build" / "js" / "interactiveExpr.js"
 
-/-- A panel widget is a component which can appear as a top-level panel in the infoview. A goal
-state display is one example. -/
--- TODO: This is in `userWidget.tsx`
+/-- These are the props passed to a panel widget, i.e. a component which can appear as a top-level
+panel in the infoview. For example, a goal state display. See `savePanelWidgetInfo`. -/
+-- TODO: This contains the fields described in `userWidget.tsx`
 structure PanelWidgetProps where
 
 end WidgetKit

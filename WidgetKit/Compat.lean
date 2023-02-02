@@ -160,12 +160,18 @@ def getPanelWidgets (args : GetPanelWidgetsParams) : RequestM (RequestTask GetPa
 
 @[widget]
 def metaWidget : Lean.Widget.UserWidgetDefinition where
-  name := "This header should not be visible as compat.tsx should hide it"
+  -- The header is sometimes briefly visible before compat.tsx loads and hides it
+  name := "Loading WidgetKit.."
   javascript := include_str ".." / "build" / "js" / "compat.js"
 
 open scoped Json in
+/-- Save the data of a panel widget which will be displayed whenever the text cursor is on `stx`.
+`id` must be the name of a definition annotated with `@[widget_module]`.
+
+Note that to be a good citizen which fits in the infoview, a panel widget should be a block element
+with some way to collapse it, for example by having `<details>` be the top-level tag. -/
 def savePanelWidgetInfo [Monad m] [MonadInfoTree m] [MonadNameGenerator m]
-    (stx : Syntax) (id : Name) (props : LazyEncodable Json)  : m Unit := do
+    (stx : Syntax) (id : Name) (props : LazyEncodable Json) : m Unit := do
   let infoId := `panelWidget ++ (← mkFreshId)
   pushInfoLeaf <| .ofUserWidgetInfo {
     stx

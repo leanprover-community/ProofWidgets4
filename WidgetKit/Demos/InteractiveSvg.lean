@@ -1,4 +1,5 @@
 import WidgetKit.Component.InteractiveSvg
+import WidgetKit.Component.HtmlDisplay
 
 open Lean
 open WidgetKit Svg Jsx
