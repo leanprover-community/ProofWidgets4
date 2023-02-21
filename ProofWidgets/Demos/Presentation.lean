@@ -1,6 +1,6 @@
-import WidgetKit.Presentation.Goal
+import ProofWidgets.Presentation.Goal
 
-open WidgetKit Jsx
+open ProofWidgets Jsx
 
 @[expr_presenter]
 def presenter : ExprPresenter where

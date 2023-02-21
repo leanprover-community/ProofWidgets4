@@ -1,6 +1,6 @@
-import WidgetKit.Data.Html
+import ProofWidgets.Data.Html
 
-namespace WidgetKit
+namespace ProofWidgets
 open Lean Server
 
 /-- An `Expr` presenter is similar to a delaborator but outputs HTML trees instead of syntax, and
@@ -25,7 +25,7 @@ structure ExprPresenter where
 
 initialize exprPresenters : TagAttribute ←
   registerTagAttribute `expr_presenter
-    "Register an Expr presenter. It must have the type `WidgetKit.ExprPresenter`."
+    "Register an Expr presenter. It must have the type `ProofWidgets.ExprPresenter`."
     (validate := fun nm => do
       let const ← getConstInfo nm
       if !const.type.isConstOf ``ExprPresenter then
@@ -97,10 +97,10 @@ structure ExprPresentationProps where
 
 #mkrpcenc ExprPresentationProps
 
-/-- This component shows a selection of all known and applicable `WidgetKit.ExprPresenter`s which
-are used to render the expression when selected. By default `WidgetKit.InteractiveExpr` is shown. -/
+/-- This component shows a selection of all known and applicable `ProofWidgets.ExprPresenter`s which
+are used to render the expression when selected. By default `ProofWidgets.InteractiveExpr` is shown. -/
 @[widget_module]
 def ExprPresentation : Component ExprPresentationProps where
   javascript := include_str ".." / ".." / "build" / "js" / "exprPresentation.js"
 
-end WidgetKit
+end ProofWidgets

@@ -1,7 +1,7 @@
-import WidgetKit.Component.Basic
-import WidgetKit.Data.Html
+import ProofWidgets.Component.Basic
+import ProofWidgets.Data.Html
 
-namespace WidgetKit
+namespace ProofWidgets
 open Lean Server
 
 structure PenroseDiagramProps where
@@ -25,4 +25,4 @@ tree.
 def PenroseDiagram : Component PenroseDiagramProps where
   javascript := include_str ".." / ".." / "build" / "js" / "penroseDisplay.js"
 
-end WidgetKit
+end ProofWidgets

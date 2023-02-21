@@ -1,11 +1,11 @@
 import Lake
 open Lake DSL System
 
-package widgetkit {
+package proofwidgets {
   preferReleaseBuild := true
 }
 
-lean_lib WidgetKit {}
+lean_lib ProofWidgets {}
 
 /-! Widget build -/
 
@@ -51,7 +51,7 @@ target widgetJsAll (pkg : Package) : Array FilePath := do
 
 @[default_target]
 target all (pkg : Package) : Unit := do
-  let some lib := pkg.findLeanLib? ``WidgetKit |
+  let some lib := pkg.findLeanLib? ``ProofWidgets |
     error "cannot find lean_lib target"
   let job₁ ← fetch (pkg.target ``widgetJsAll)
   let _ ← job₁.await

@@ -1,7 +1,7 @@
 import Lean.Attributes
 import Lean.Widget.UserWidget
 
-import WidgetKit.Data.Json
+import ProofWidgets.Data.Json
 
 /-!
 A compatibility layer aimed at redefining the user widget API in terms of modules and components.
@@ -15,7 +15,7 @@ New features:
 TODO: If the design works out, it could replace the current Lean core definitions.
 -/
 
-namespace WidgetKit
+namespace ProofWidgets
 open Lean Server Elab
 
 deriving instance TypeName for Expr
@@ -71,7 +71,7 @@ open Lean Meta Elab Command in
 initialize
   registerBuiltinAttribute {
     name := `widget_module
-    descr := "Registers a widget module. Its type must extend WidgetKit.Module."
+    descr := "Registers a widget module. Its type must extend ProofWidgets.Module."
     applicationTime := AttributeApplicationTime.afterCompilation
     -- The implementation is a hack due to the fact that widgetSource is tied to the storage
     -- of user widgets. I think a single widgetModuleRegistry should suffice. TODO fix in core.
@@ -161,7 +161,7 @@ def getPanelWidgets (args : GetPanelWidgetsParams) : RequestM (RequestTask GetPa
 @[widget]
 def metaWidget : Lean.Widget.UserWidgetDefinition where
   -- The header is sometimes briefly visible before compat.tsx loads and hides it
-  name := "Loading WidgetKit.."
+  name := "Loading ProofWidgets.."
   javascript := include_str ".." / "build" / "js" / "compat.js"
 
 open scoped Json in
@@ -183,4 +183,4 @@ def savePanelWidgetInfo [Monad m] [MonadInfoTree m] [MonadNameGenerator m]
   let wi : PanelWidgetInfo := { id, props, infoId }
   pushInfoLeaf <| .ofCustomInfo { stx, value := Dynamic.mk wi }
 
-end WidgetKit
+end ProofWidgets

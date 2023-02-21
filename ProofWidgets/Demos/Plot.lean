@@ -1,10 +1,10 @@
-import WidgetKit.Data.Json
-import WidgetKit.Component.HtmlDisplay
+import ProofWidgets.Data.Json
+import ProofWidgets.Component.HtmlDisplay
 
-open scoped WidgetKit.Jsx
-open scoped WidgetKit.Json
+open scoped ProofWidgets.Jsx
+open scoped ProofWidgets.Json
 
-open Lean WidgetKit
+open Lean ProofWidgets
 
 def fn (t : Float) (x : Float): Float :=
    50 * (x - 0.25) * (x - 0.5) * (x - 0.7) + 0.1 * (x * 40 - t * 2 * 3.141).sin

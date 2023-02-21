@@ -1,7 +1,7 @@
-import WidgetKit.Component.HtmlDisplay
+import ProofWidgets.Component.HtmlDisplay
 
-open Lean WidgetKit
-open scoped WidgetKit.Jsx
+open Lean ProofWidgets
+open scoped ProofWidgets.Jsx
 
 structure RubiksProps where
   seq : Array String := #[]

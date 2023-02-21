@@ -1,7 +1,7 @@
 import Lean.Widget.InteractiveCode
-import WidgetKit.Compat
+import ProofWidgets.Compat
 
-namespace WidgetKit
+namespace ProofWidgets
 
 /-- A component is a widget module whose `default` export is a
 [React component](https://reactjs.org/docs/components-and-props.html). The definition must be
@@ -59,4 +59,4 @@ panel in the infoview. For example, a goal state display. See `savePanelWidgetIn
 -- TODO: This contains the fields described in `userWidget.tsx`
 structure PanelWidgetProps where
 
-end WidgetKit
+end ProofWidgets

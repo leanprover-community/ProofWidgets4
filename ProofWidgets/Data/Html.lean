@@ -8,11 +8,11 @@ import Lean.Parser
 import Lean.PrettyPrinter.Delaborator.Basic
 import Lean.Server.Rpc.Basic
 
-import WidgetKit.Component.Basic
+import ProofWidgets.Component.Basic
 
 /-! We define a representation of HTML trees together with a JSX-like DSL for writing them. -/
 
-namespace WidgetKit
+namespace ProofWidgets
 open Lean Server
 
 /-- A HTML tree which may contain widget components. -/
@@ -67,10 +67,10 @@ def jsxText : Parser :=
 def getJsxText : TSyntax `jsxText → String
   | stx => stx.raw[0].getAtomVal
 
-@[combinator_formatter WidgetKit.Jsx.jsxText]
+@[combinator_formatter ProofWidgets.Jsx.jsxText]
 def jsxText.formatter : Formatter :=
   Formatter.visitAtom `jsxText
-@[combinator_parenthesizer WidgetKit.Jsx.jsxText]
+@[combinator_parenthesizer ProofWidgets.Jsx.jsxText]
 def jsxText.parenthesizer : Parenthesizer :=
   Parenthesizer.visitToken
 
@@ -109,21 +109,21 @@ def transformTag (n m : Ident) (ns : Array Ident) (vs : Array (TSyntax `jsxAttrV
 
 /-- Support for writing HTML trees directly, using XML-like angle bracket syntax. It work very
 similarly to [JSX](https://reactjs.org/docs/introducing-jsx.html) in JavaScript. The syntax is
-enabled using `open scoped WidgetKit.Jsx`.
+enabled using `open scoped ProofWidgets.Jsx`.
 
 Lowercase tags are interpreted as standard HTML whereas uppercase ones are expected to be
-`WidgetKit.Component`s. -/
+`ProofWidgets.Component`s. -/
 macro_rules
   | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* />) => transformTag n n ns vs #[]
   | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* >$cs*</$m>) => transformTag n m ns vs cs
 
 open Lean Delaborator SubExpr
 
-@[delab app.WidgetKit.Html.text]
+@[delab app.ProofWidgets.Html.text]
 def delabHtmlText : Delab := do
   withAppArg delab
 
-@[delab app.WidgetKit.Html.element]
+@[delab app.ProofWidgets.Html.element]
 def delabHtmlElement : Delab := do
   let e ← getExpr
   -- `Html.element tag attrs children`
@@ -145,11 +145,11 @@ def delabHtmlElement : Delab := do
       let txt := mkNode `jsxText #[mkAtom s]
       `(jsxChild| $txt:jsxText)
     -- hack.
-    else if c.raw[0].getKind == ``WidgetKit.Jsx.«jsxElement<__>_</_>» then
+    else if c.raw[0].getKind == ``ProofWidgets.Jsx.«jsxElement<__>_</_>» then
       `(jsxChild| $(⟨c.raw⟩):jsxElement)
     else
       `(jsxChild| { $c })
   `(term| < $tag $[$attrs]* > $[$cs]* </ $tag >)
 
 end Jsx
-end WidgetKit
+end ProofWidgets

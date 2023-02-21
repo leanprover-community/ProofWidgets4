@@ -11,7 +11,7 @@ import Lean.Data.Json
 Now you can write
 
 ```lean
-open scoped WidgetKit.Json
+open scoped ProofWidgets.Json
 
 #eval json% {
   hello : "world",
@@ -24,7 +24,7 @@ open scoped WidgetKit.Json
 ```
 -/
 
-namespace WidgetKit.Json
+namespace ProofWidgets.Json
 open Lean
 
 declare_syntax_cat jso
@@ -91,4 +91,4 @@ macro_rules
       | stx                      => panic! s!"unrecognized ident syntax {stx}"
     `(Lean.Json.mkObj [$[($ks, json% $vs)],*])
 
-end WidgetKit.Json
+end ProofWidgets.Json

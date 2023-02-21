@@ -1,10 +1,10 @@
 import Lean.Elab.Tactic
 import Lean.Meta.ExprLens
 
-import WidgetKit.Component.Basic
-import WidgetKit.Presentation.Expr -- Needed for RPC calls in PresentSelectionPanel
+import ProofWidgets.Component.Basic
+import ProofWidgets.Presentation.Expr -- Needed for RPC calls in PresentSelectionPanel
 
-namespace WidgetKit
+namespace ProofWidgets
 open Lean Server
 
 structure GoalsLocationsToExprsParams where
@@ -46,7 +46,7 @@ where
 def PresentSelectionPanel : Component PanelWidgetProps where
   javascript := include_str ".." / ".." / "build" / "js" / "presentSelection.js"
 
-/-- Displays any expressions selected in the goal state using registered `WidgetKit.ExprPresenter`s.
+/-- Displays any expressions selected in the goal state using registered `ProofWidgets.ExprPresenter`s.
 Expressions can be selected using shift-click -/
 syntax (name := withSelectionDisplayTacStx) "withSelectionDisplay " tacticSeq : tactic
 
@@ -63,4 +63,4 @@ def withSelectionDisplay : Tactic
 -- with access to the entire goal state in order to display it in a "global" way.
 -- In short, implement custom tactic state displays.
 
-end WidgetKit
+end ProofWidgets

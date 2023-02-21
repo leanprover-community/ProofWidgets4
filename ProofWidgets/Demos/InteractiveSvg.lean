@@ -1,8 +1,8 @@
-import WidgetKit.Component.InteractiveSvg
-import WidgetKit.Component.HtmlDisplay
+import ProofWidgets.Component.InteractiveSvg
+import ProofWidgets.Component.HtmlDisplay
 
 open Lean
-open WidgetKit Svg Jsx
+open ProofWidgets Svg Jsx
 
 abbrev State := Array (Float × Float)
 

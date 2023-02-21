@@ -1,6 +1,6 @@
-import WidgetKit.Component.HtmlDisplay
+import ProofWidgets.Component.HtmlDisplay
 
-open scoped WidgetKit.Jsx -- ⟵ remember this!
+open scoped ProofWidgets.Jsx -- ⟵ remember this!
 
 def x := <b>You can use HTML in lean! {.text <| toString <| 4 + 5} <hr/> </b>
 

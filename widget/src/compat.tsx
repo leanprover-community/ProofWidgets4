@@ -15,12 +15,12 @@ interface PanelWidgetInstance {
   range?: Range
 }
 
-export default function(props_: MetaWidgetProps): JSX.Element {
-  const {pos, infoId, ...props} = props_
+export default function (props_: MetaWidgetProps): JSX.Element {
+  const { pos, infoId, ...props } = props_
 
   const rs = React.useContext(RpcContext)
   const st = useAsync(async () => {
-    const ws: { widgets: PanelWidgetInstance[] } = await rs.call('WidgetKit.getPanelWidgets', {pos})
+    const ws: { widgets: PanelWidgetInstance[] } = await rs.call('ProofWidgets.getPanelWidgets', { pos })
     const ret = []
     for (const w of ws.widgets) {
       if (w.infoId === infoId) {

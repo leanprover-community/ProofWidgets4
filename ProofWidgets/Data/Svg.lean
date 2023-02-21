@@ -1,7 +1,7 @@
-import WidgetKit.Data.Json
-import WidgetKit.Data.Html
+import ProofWidgets.Data.Json
+import ProofWidgets.Data.Html
 
-namespace WidgetKit
+namespace ProofWidgets
 open Lean
 
 private def _root_.Float.toInt (x : Float) : Int :=
@@ -200,4 +200,4 @@ def getData {f} (svg : Svg f) (id : String) : Option Json :=
   | some elem => elem.data
 
 end Svg
-end WidgetKit
+end ProofWidgets

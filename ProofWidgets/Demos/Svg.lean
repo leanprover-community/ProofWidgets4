@@ -1,7 +1,7 @@
-import WidgetKit.Data.Svg
-import WidgetKit.Component.HtmlDisplay
+import ProofWidgets.Data.Svg
+import ProofWidgets.Component.HtmlDisplay
 
-open WidgetKit Svg
+open ProofWidgets Svg
 
 private def frame : Frame where
   xmin   := -2

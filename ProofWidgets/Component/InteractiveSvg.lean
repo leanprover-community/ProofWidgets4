@@ -1,6 +1,6 @@
-import WidgetKit.Data.Svg
+import ProofWidgets.Data.Svg
 
-namespace WidgetKit
+namespace ProofWidgets
 open Lean
 
 private def _root_.Float.toInt (x : Float) : Int :=
@@ -128,4 +128,4 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
   }
 
 end Svg
-end WidgetKit
+end ProofWidgets

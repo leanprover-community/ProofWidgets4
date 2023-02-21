@@ -1,9 +1,9 @@
-import WidgetKit.Data.Json
-import WidgetKit.Component.HtmlDisplay
+import ProofWidgets.Data.Json
+import ProofWidgets.Component.HtmlDisplay
 
 open Lean
-open WidgetKit
-open scoped WidgetKit.Jsx
+open ProofWidgets
+open scoped ProofWidgets.Jsx
 
 namespace Svg
 
