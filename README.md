@@ -24,8 +24,8 @@ The easiest way to get started is to clone a **release tag** of ProofWidgets and
 
 ```bash
 # You should replace v0.0.1 with the latest version published under Releases
-git clone https://github.com/EdAyers/ProofWidgets --branch v0.0.1
-cd ProofWidgets/
+git clone https://github.com/EdAyers/ProofWidgets4 --branch v0.0.1
+cd ProofWidgets4/
 lake build :release
 ```
 
