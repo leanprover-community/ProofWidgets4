@@ -38,7 +38,7 @@ the pushpin icon to keep the widget in view. You can then live code your widgets
 Put this in your `lakefile.lean`:
 ```lean
 -- You should replace v0.0.1 with the latest version published under Releases
-require proofwidgets from git "https://github.com/EdAyers/ProofWidgets"@"v0.0.1"
+require proofwidgets from git "https://github.com/EdAyers/ProofWidgets4"@"v0.0.1"
 ```
 
 Note that [developing ProofWidgets](#developing-proofwidgets) involves building TypeScript code with NPM.
