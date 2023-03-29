@@ -148,8 +148,8 @@ def getPanelWidgets (args : GetPanelWidgetsParams) : RequestM (RequestTask GetPa
     let mut widgets := #[]
     for w in ws do
       let some wi := w.value.get? PanelWidgetInfo
-        | IO.eprintln "Oops! Unknown ofCustomInfo found. TODO add kinds"
-          return {widgets := #[]}
+        -- We may encounter other custom infos of unknown type. Ignore them.
+        | continue
       let some widgetDef := Widget.userWidgetRegistry.find? snap.env (wi.id ++ widgetDefPostfix)
         | throw <| RequestError.invalidParams s!"No registered widget source with id {wi.id}"
       widgets := widgets.push { wi with
