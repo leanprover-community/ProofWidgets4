@@ -57,13 +57,14 @@ def widgetDefPostfix : Name := `userWidgetDef
 -- NOTE: Compared to core, this is almost like UserWidgetDefinition but with a different "attitude":
 -- the module itself need not be a user widget, i.e. it can also be a support library. It doesn't
 -- need a displayable `name`.
+/-- A widget module is a unit of source code that can execute in the infoview. -/
 structure Module where
-  /-- An arbitrary JS [module](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules)
-  intended for use in user widgets.
+  /-- A JS [module](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules) intended
+  for use in user widgets.
 
   To initialize this field from an external JS file, use `include_str "path"/"to"/"file.js"`.
-  However **beware** that this does not register a dependency with Lake and your module will not
-  automatically be rebuilt when the `.js` file changes. -/
+  However **beware** that this does not register a dependency with Lake, so your Lean module will
+  not automatically be rebuilt when the `.js` file changes. -/
   javascript : String
 
 -- This could maybe be a macro but good luck actually writing it.
@@ -139,7 +140,8 @@ def customInfosAt? (text : FileMap) (t : InfoTree) (hoverPos : String.Pos) : Lis
 
 open RequestM in
 @[server_rpc_method]
-def getPanelWidgets (args : GetPanelWidgetsParams) : RequestM (RequestTask GetPanelWidgetsResponse) := do
+def getPanelWidgets (args : GetPanelWidgetsParams) : RequestM (RequestTask GetPanelWidgetsResponse)
+    := do
   let doc ← readDoc
   let filemap := doc.meta.text
   let pos := filemap.lspPosToUtf8Pos args.pos
@@ -166,10 +168,7 @@ def metaWidget : Lean.Widget.UserWidgetDefinition where
 
 open scoped Json in
 /-- Save the data of a panel widget which will be displayed whenever the text cursor is on `stx`.
-`id` must be the name of a definition annotated with `@[widget_module]`.
-
-Note that to be a good citizen which fits in the infoview, a panel widget should be a block element
-with some way to collapse it, for example by having `<details>` be the top-level tag. -/
+`id` must be the name of a definition annotated with `@[widget_module]`. See `PanelWidgetProps`. -/
 def savePanelWidgetInfo [Monad m] [MonadInfoTree m] [MonadNameGenerator m]
     (stx : Syntax) (id : Name) (props : LazyEncodable Json) : m Unit := do
   let infoId := `panelWidget ++ (← mkFreshId)
