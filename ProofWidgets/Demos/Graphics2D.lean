@@ -88,7 +88,7 @@ structure Element where
   id          := (none : Option String)
 deriving ToJson, FromJson
 
-def Element.toHtml (frame : Frame) (e : Element) : Html := Id.run do
+def Element.toTHtml (frame : Frame) (e : Element) : THtml := Id.run do
   let mut (tag, args) := e.shape.toHtmlData frame
 
   if let .some color := e.strokeColor then
@@ -121,13 +121,13 @@ structure Svg where
   idToIdx := mkIdToIdx elements
 
 
-def Svg.toHtml (svg : Svg) : Html :=
+def Svg.toTHtml (svg : Svg) : THtml :=
   .element "svg"
            #[("xmlns", "http://www.w3.org/2000/svg"),
              ("version", "1.1"),
              ("width", svg.frame.width),
              ("height", svg.frame.height)]
-           (svg.elements.map λ e => e.toHtml svg.frame)
+           (svg.elements.map λ e => e.toTHtml svg.frame)
 
 instance : GetElem Svg Nat Svg.Element (λ svg idx => idx < svg.elements.size) where
   getElem svg i h := svg.elements[i]
@@ -161,6 +161,6 @@ private def svg : Svg :=
              ],
     frame := frame }
 
-#html svg.toHtml
+#html svg.toTHtml
 
 end Example
