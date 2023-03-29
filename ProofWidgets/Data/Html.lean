@@ -15,32 +15,44 @@ import ProofWidgets.Component.Basic
 namespace ProofWidgets
 open Lean Server
 
-/-- A HTML tree which may contain widget components. -/
+/-- A HTML tree which may contain widget components (typed props variant). See also `Html`. -/
+inductive THtml : Type 1 where
+  /-- An `element "tag" attrs children` represents `<tag {...attrs}>{...children}</tag>`. -/
+  | element : String → Array (String × Json) → Array THtml → THtml
+  /-- Raw HTML text.-/
+  | text : String → THtml
+  /-- A `component Foo props children` represents `<Foo {...props}>{...children}</Foo>`,
+  where `Foo : Component Props`. -/
+  -- TODO: The universe lift is unfortunate.
+  | component {Props} [RpcEncodable Props] : Component Props → Props → Array THtml → THtml
+  deriving Inhabited
+
+/-- A HTML tree which may contain widget components (untyped props variant).
+
+Unfortunately we cannot build `RpcEncodable THtml` because `THtml : Type 1` and `RpcEncodable`
+is not universe-polymorphic. Thus we define `Html : Type`, which can be encoded, instead. -/
 inductive Html where
   /-- An `element "tag" attrs children` represents `<tag {...attrs}>{...children}</tag>`. -/
   | element : String → Array (String × Json) → Array Html → Html
   /-- Raw HTML text.-/
   | text : String → Html
-  /-- A `component Foo props children` represents `<Foo {...props}>{...children}</>`. -/
-  -- TODO: The universe lift is unfortunate.
-  | component {Props} [RpcEncodable Props] : Component Props → Props → Array Html → Html
-
-/-- A variant of `Html` which lives in `Type`, at the cost of some type safety.
-
-Unfortunately we cannot build `RpcEncodable Html` because `Html : Type 1` and `RpcEncodable` is not
-universe-polymorphic. We can, however, do it for `EncodableHtml`. -/
-inductive EncodableHtml where
-  | element : String → Array (String × Json) → Array EncodableHtml → EncodableHtml
-  | text : String → EncodableHtml
-  | component : UInt64 → LazyEncodable Json → Array EncodableHtml → EncodableHtml
+  /-- A `component h props children` represents `<Foo {...props}>{...children}</Foo>`,
+  where `Foo : Component Props` is some component such that `h = hash Foo.javascript`,
+  and `props` corresponds to a value of type `Props`. -/
+  | component : UInt64 → LazyEncodable Json → Array Html → Html
   deriving Inhabited
 
-#mkrpcenc EncodableHtml
+#mkrpcenc Html
 
-partial def EncodableHtml.ofHtml : Html → EncodableHtml
-  | .element t as cs => element t as (cs.map ofHtml)
+partial def Html.ofTHtml : THtml → Html
+  | .element t as cs => element t as (cs.map ofTHtml)
   | .text s => text s
-  | @Html.component _ _ c ps cs => component (hash c.javascript) (rpcEncode ps) (cs.map ofHtml)
+  | @THtml.component _ _ c ps cs => component (hash c.javascript) (rpcEncode ps) (cs.map ofTHtml)
+
+/-- See [MDN docs](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flow_Layout/Block_and_Inline_Layout_in_Normal_Flow). -/
+inductive LayoutKind where
+  | block
+  | inline
 
 namespace Jsx
 open Parser PrettyPrinter
@@ -89,7 +101,7 @@ def transformTag (n m : Ident) (ns : Array Ident) (vs : Array (TSyntax `jsxAttrV
   if n.getId != m.getId then
     Macro.throwErrorAt m s!"expected </{n.getId}>"
   let cs ← cs.mapM fun
-    | `(jsxChild| $t:jsxText)    => `(Html.text $(quote <| getJsxText t))
+    | `(jsxChild| $t:jsxText)    => `(THtml.text $(quote <| getJsxText t))
     | `(jsxChild| { $t })        => return t
     | `(jsxChild| $e:jsxElement) => `(term| $e:jsxElement)
     | _                          => unreachable!
@@ -100,15 +112,15 @@ def transformTag (n m : Ident) (ns : Array Ident) (vs : Array (TSyntax `jsxAttrV
   let tag := toString n.getId
   -- Uppercase tags are parsed as components
   if tag.get? 0 |>.filter (·.isUpper) |>.isSome then
-    `(Html.component $n { $[$ns:ident := $vs],* } #[ $[$cs],* ])
+    `(THtml.component $n { $[$ns:ident := $vs],* } #[ $[$cs],* ])
   -- Lowercase tags are parsed as standard HTML
   else
     let ns := ns.map (quote <| toString ·.getId)
-    `(Html.element $(quote tag) #[ $[($ns, $vs)],* ] #[ $[$cs],* ])
+    `(THtml.element $(quote tag) #[ $[($ns, $vs)],* ] #[ $[$cs],* ])
 
 
-/-- Support for writing HTML trees directly, using XML-like angle bracket syntax. It work very
-similarly to [JSX](https://reactjs.org/docs/introducing-jsx.html) in JavaScript. The syntax is
+/-- Support for writing HTML trees directly, using XML-like angle bracket syntax. It works very
+similarly to [JSX](https://react.dev/learn/writing-markup-with-jsx) in JavaScript. The syntax is
 enabled using `open scoped ProofWidgets.Jsx`.
 
 Lowercase tags are interpreted as standard HTML whereas uppercase ones are expected to be
@@ -119,14 +131,14 @@ macro_rules
 
 open Lean Delaborator SubExpr
 
-@[delab app.ProofWidgets.Html.text]
-def delabHtmlText : Delab := do
+@[delab app.ProofWidgets.THtml.text]
+def delabTHtmlText : Delab := do
   withAppArg delab
 
-@[delab app.ProofWidgets.Html.element]
-def delabHtmlElement : Delab := do
+@[delab app.ProofWidgets.THtml.element]
+def delabTHtmlElement : Delab := do
   let e ← getExpr
-  -- `Html.element tag attrs children`
+  -- `THtml.element tag attrs children`
   let #[tag, _, _] := e.getAppArgs | failure
 
   let .lit (.strVal s) := tag | failure

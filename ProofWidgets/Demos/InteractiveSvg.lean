@@ -49,7 +49,7 @@ def SvgWidget : Component (UpdateResult State) where
   javascript := include_str ".." / ".." / "build" / "js" / "interactiveSvg.js"
 
 def init : UpdateResult State := {
-  html := EncodableHtml.ofHtml <div>Init!!!</div>,
+  html := Html.ofTHtml <div>Init!!!</div>,
   state := { state := isvg.init
              time := 0
              selected := none

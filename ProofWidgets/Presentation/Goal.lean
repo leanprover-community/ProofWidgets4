@@ -59,7 +59,7 @@ def withSelectionDisplay : Tactic
   | _ => throwUnsupportedSyntax
 
 -- TODO: replace the panel with an extensible one which invokes an arbitrary
--- `@[goals_presenter]` where `GoalsPresenter ≈ PanelWidgetProps → MetaM EncodableHtml`
+-- `@[goals_presenter]` where `GoalsPresenter ≈ PanelWidgetProps → MetaM Html`
 -- with access to the entire goal state in order to display it in a "global" way.
 -- In short, implement custom tactic state displays.
 

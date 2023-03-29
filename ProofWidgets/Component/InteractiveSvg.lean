@@ -45,7 +45,7 @@ structure UpdateParams (State : Type) where
   deriving ToJson, FromJson
 
 structure UpdateResult (State : Type) where
-  html : EncodableHtml
+  html : Html
   state : SvgState State
   /-- Approximate number of milliseconds to wait before calling again. -/
   callbackTime : Option Float := some 33
@@ -119,9 +119,9 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
 
 
   return RequestTask.pure {
-    html := EncodableHtml.ofHtml
+    html := Html.ofTHtml
       <div>
-        {svg.toHtml}
+        {svg.toTHtml}
       </div>,
     state := svgState,
     callbackTime := some 33,

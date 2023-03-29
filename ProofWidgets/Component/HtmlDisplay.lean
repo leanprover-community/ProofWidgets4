@@ -6,7 +6,7 @@ namespace ProofWidgets
 open Lean Server
 
 structure HtmlDisplayProps where
-  html : EncodableHtml
+  html : Html
 
 #mkrpcenc HtmlDisplayProps
 
@@ -19,13 +19,13 @@ def HtmlDisplayPanel : Component HtmlDisplayProps where
   javascript := include_str ".." / ".." / "build" / "js" / "htmlDisplayPanel.js"
 
 open Elab in
-unsafe def evalEncodableHtmlUnsafe (stx : Term) : TermElabM EncodableHtml := do
-  let htmlT := mkConst ``EncodableHtml
-  Term.evalTerm EncodableHtml htmlT stx
+unsafe def evalHtmlUnsafe (stx : Term) : TermElabM Html := do
+  let htmlT := mkConst ``Html
+  Term.evalTerm Html htmlT stx
 
 open Elab in
-@[implemented_by evalEncodableHtmlUnsafe]
-opaque evalEncodableHtml : Term → TermElabM EncodableHtml
+@[implemented_by evalHtmlUnsafe]
+opaque evalHtml : Term → TermElabM Html
 
 syntax (name := htmlCmd) "#html " term : command
 
@@ -34,7 +34,7 @@ open Elab Command Json in
 def elabHtmlCmd : CommandElab := fun
   | stx@`(#html $t:term) =>
     runTermElabM fun _ => do
-      let ht ← evalEncodableHtml <| ← `(ProofWidgets.EncodableHtml.ofHtml $t)
+      let ht ← evalHtml <| ← `(ProofWidgets.Html.ofTHtml $t)
       savePanelWidgetInfo stx ``HtmlDisplayPanel do
         return json% { html: $(← rpcEncode ht) }
   | stx => throwError "Unexpected syntax {stx}."
@@ -45,7 +45,7 @@ open Elab Tactic Json in
 @[tactic htmlTac]
 def elabHtmlTac : Tactic
   | stx@`(tactic| html! $t:term) => do
-    let ht ← evalEncodableHtml <| ← `(ProofWidgets.EncodableHtml.ofHtml $t)
+    let ht ← evalHtml <| ← `(ProofWidgets.Html.ofTHtml $t)
     savePanelWidgetInfo stx ``HtmlDisplayPanel do
       return json% { html: $(← rpcEncode ht) }
   | stx => throwError "Unexpected syntax {stx}."

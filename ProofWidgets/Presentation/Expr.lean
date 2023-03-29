@@ -10,18 +10,23 @@ structure ExprPresenter where
   /-- A user-friendly name for this presenter. For example, "LaTeX". -/
   userName : String
   /- TODO: there is a general problem of writing env extensions which store an extendable list of
-  functions to run on `Expr`s, but not all of which are applicable (actually, most are not) to any
-  single `Expr`. Invoking them in sequence is O(n); we should better use sth like `DiscrTree`.
+  functions to run on `Expr`s, but not all of which are applicable to any single `Expr` (actually,
+  most are not). Invoking them in sequence is O(n); we should better use sth like `DiscrTree`.
   Registering new entries would need to extend the DiscrTree, perhaps like
   `registerSelf : DiscrTree ExprPresenter → DiscrTree ExprPresenter`.
-  Dispatching on just one constant like e.g. delaborators (`app.MyType.myCtr`) is not sufficient
-  because one entry may apply to multiple expressions of a given form which could be represented
-  as a schematic with mvars, say `@ofNat ? 0 ?`. -/
+  Dispatching on just one constant like e.g. delaborators (`app.MyType.myCtr`) does not appear
+  sufficient because one entry may apply to multiple expressions of a given form which could be
+  represented as a schematic with mvars, say `@ofNat ? 0 ?`.
+  TODO: actually, for most use cases name-based dispatch might be sufficient, and it's simple. -/
   /-- Should quickly determine if the `Expr` is within this presenter's domain of applicability.
   For example it could check for a constant like the `` `name `` in ``@[delab `name]``. -/
   isApplicable : Expr → MetaM Bool
+  /-- Whether the output should use inline (think something which fits in the space normally
+  occupied by an `Expr`, e.g. LaTeX) or block (think large diagram which needs dedicated space)
+  HTML layout. -/
+  layoutKind : LayoutKind := .block
   /-- *Must* return `some _` or throw when `isApplicable` is `true`. -/
-  present : Expr → MetaM (Option EncodableHtml)
+  present : Expr → MetaM (Option Html)
 
 initialize exprPresenters : TagAttribute ←
   registerTagAttribute `expr_presenter
@@ -69,7 +74,8 @@ def applicableExprPresenters : ApplicableExprPresentersParams →
         throw <| RequestError.internalError s!"Failed to evaluate Expr presenter '{nm}': {e}"
     return { presenters }
 
-structure GetExprPresentationParams extends ApplicableExprPresentersParams where
+structure GetExprPresentationParams where
+  expr : WithRpcRef ExprWithCtx
   /-- Name of the presenter to use. -/
   name : Name
 
@@ -77,7 +83,7 @@ structure GetExprPresentationParams extends ApplicableExprPresentersParams where
 
 @[server_rpc_method]
 def getExprPresentation : GetExprPresentationParams →
-    RequestM (RequestTask EncodableHtml)
+    RequestM (RequestTask Html)
   | { expr := ⟨expr⟩, name } => RequestM.asTask do
     let ci := expr.ci
     if !exprPresenters.hasTag ci.env name then
