@@ -65,8 +65,8 @@ needed for the pretty-printing RPC call. -/
 def InteractiveExpr : Component InteractiveExprProps where
   javascript := include_str ".." / ".." / "build" / "js" / "interactiveExpr.js"
 
-/-- A panel widget is a component which can appear as a top-level panel in the infoview.
-For example, a goal state display. These are the props passed to a panel widget. See
+/-- These are the props passed to a panel widget. A panel widget is a component which can appear
+as a top-level panel in the infoview. For example, a goal state display. See also
 `savePanelWidgetInfo`.
 
 Note that to be a good citizen which doesn't mess up the infoview, a panel widget should be a block
