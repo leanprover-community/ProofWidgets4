@@ -172,7 +172,7 @@ interface CubeletProps {
 }
 
 function Cubelet(props: CubeletProps) {
-  const me = React.useRef<THREE.Mesh>()
+  const me = React.useRef<THREE.Mesh | null>(null)
 
   React.useEffect(() => {
     const m = elementToRotation(props.seq, props.cid, props.time ?? 1.0)
@@ -182,7 +182,6 @@ function Cubelet(props: CubeletProps) {
     }
   }, [props.cid, props.time, props.seq])
   return (
-    // @ts-ignore
     <mesh ref={me}>
       <boxGeometry args={[1, 1, 1]} />
       {colors.map((col, idx) => (
@@ -199,7 +198,8 @@ interface CubeProps {
 
 function Cube(props: CubeProps) {
   return <group>
-    {cubelets.map(cubelet => <Cubelet key={cubelet} cid={cubelet} time={props.time} seq={props.seq} />)}
+    {cubelets.map(cubelet =>
+      <Cubelet key={cubelet} cid={cubelet} time={props.time} seq={props.seq} />)}
   </group>
 }
 

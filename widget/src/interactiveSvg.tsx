@@ -1,6 +1,6 @@
-import {Html, StaticHtml, Elt} from './staticHtml';
+import HtmlDisplay, { Html } from './htmlDisplay';
 import * as React from 'react';
-import { RpcContext, mapRpcError } from '@leanprover/infoview';
+import { DocumentPosition, RpcContext } from '@leanprover/infoview';
 
 type State = any
 
@@ -21,7 +21,8 @@ interface UpdateParams {
 }
 
 interface UpdateResult {
-    html : Html;
+    pos : DocumentPosition
+    html : Html
     state : State
     callbackTime? : number
 
@@ -58,7 +59,6 @@ export function Svg(props : UpdateResult) {
     const [frame, setFrame] = React.useState<number>(0)
     const [mousePos, mouseButtonState] = useMousePos(rootDiv)
 
-
     React.useEffect(() => {
         if (state.current.callbackTime) {
             const t = setTimeout(() => increment({kind : 'timeout'}), state.current.callbackTime)
@@ -90,24 +90,24 @@ export function Svg(props : UpdateResult) {
         }
     }
 
-    function visitor(e : Elt) : Elt {
-        let attrs = {...e.attrs}
-        const mouseEvents : Action['kind'][] = []
-        for (const me of mouseEvents) {
-            if (me in attrs) {
-                const value = attrs[me]
-                attrs[me] = () => increment({kind: me, value})
-            }
-        }
-        return {...e, attrs}
-    }
+    // function visitor(e : Elt) : Elt {
+    //     let attrs = {...e.attrs}
+    //     const mouseEvents : Action['kind'][] = []
+    //     for (const me of mouseEvents) {
+    //         if (me in attrs) {
+    //             const value = attrs[me]
+    //             attrs[me] = () => increment({kind: me, value})
+    //         }
+    //     }
+    //     return {...e, attrs}
+    // }
 
     function handleMouseEvent(e : MouseEvent) {
         console.log(e)
         const id = e.target.id || undefined
-	const data = e.target.data || undefined
-	console.log(id)
-	console.log(data)
+        const data = e.target.data || undefined
+        console.log(id)
+        console.log(data)
         if (e.type === "mouseup" || e.type === "mousedown") {
             increment({kind : e.type, id, data})
         }
@@ -118,7 +118,7 @@ export function Svg(props : UpdateResult) {
     }
 
     return <div onMouseDown={handleMouseEvent} onMouseUp={handleMouseEvent} onMouseMove={handleMouseEvent} ref={rootDiv}>
-        <StaticHtml html={html} visitor={visitor}/>
+        <HtmlDisplay pos={props.pos} html={html} />
         <div>frame: {frame}. state: {asyncState.current}, mousePos: {mousePos ? mousePos.join(", ") : "none"}, mouseButtonState: {mouseButtonState}</div>
     </div>
 }

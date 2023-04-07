@@ -67,7 +67,7 @@ async function renderPenroseTrio(trio: PenroseTrio, maxOptSteps: number): Promis
     if (stateRes.isErr()) throw new Error(penrose.showError(stateRes.error))
     if (!penrose.stateConverged(stateRes.value))
         console.warn(`Diagram failed to converge in ${maxOptSteps} steps`)
-    const svg = await penrose.RenderStatic(stateRes.value, async path => path)
+    const svg = await penrose.RenderStatic(stateRes.value, async path => path, '')
 
     // The canvas is usually too large, so trim the SVG as a postprocessing step
     const obj = SVG.SVG(svg)
