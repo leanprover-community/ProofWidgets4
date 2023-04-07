@@ -15,7 +15,7 @@ interface PanelWidgetInstance {
   range?: Range
 }
 
-export default function (props_: MetaWidgetProps): JSX.Element {
+function MetaWidget (props_: MetaWidgetProps): JSX.Element {
   const { pos, infoId, ...props } = props_
 
   const rs = React.useContext(RpcContext)
@@ -51,19 +51,29 @@ export default function (props_: MetaWidgetProps): JSX.Element {
   }, [st.state])
 
   let inner = <></>
-  if (st0 !== undefined)
+  if (st0 !== undefined) {
+    // If every widget panel uses a unique hash, use the hash as the key so that state persists
+    // when moving the cursor.
+    const seenHashes = new Set<string>()
+    const hashKeysOkay = st0.every(w => {
+      if (seenHashes.has(w.srcHash)) return false
+      seenHashes.add(w.srcHash)
+      return true
+    })
     inner = <>
       {st0.map(w =>
         <DynamicComponent
           pos={pos}
-          key={w.infoId}
+          key={hashKeysOkay ? w.srcHash : w.infoId}
           hash={w.srcHash}
           props={{ ...w.props, ...props, pos }} />)}
     </>
-  else if (st.state === 'rejected')
+  } else if (st.state === 'rejected')
     inner = <>Error: {mapRpcError(st.error).message}</>
   else
     inner = <>Loading..</>
 
   return <div ref={ref}>{inner}</div>
 }
+
+export default MetaWidget

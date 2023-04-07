@@ -1,20 +1,31 @@
 /*
 Copyright (c) 2022 E.W.Ayers. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: E.W.Ayers
+Authors: E.W.Ayers, Wojciech Nawrocki
 */
 
 import * as React from 'react';
-import { DynamicComponent, DocumentPosition } from '@leanprover/infoview';
+import { DocumentPosition, RpcContext, RpcSessionAtPos, importWidgetModule, mapRpcError,
+    useAsyncPersistent } from '@leanprover/infoview';
+import type { DynamicComponent } from '@leanprover/infoview';
 
 type HtmlAttribute = [string, any]
 
 export type Html =
     | { element: [string, HtmlAttribute[], Html[]] }
     | { text: string }
-    | { component: [string, any, Html[]] }
+    | { component: [string, string, any, Html[]] }
 
-export default function HtmlDisplay({pos, html} : {pos: DocumentPosition, html: Html}): JSX.Element {
+/**
+ * Render a HTML tree into JSX, resolving any dynamic imports corresponding to `component`s along
+ * the way.
+ *
+ * This guarantees that the resulting React tree is exactly as written down in Lean. In particular,
+ * there are no extraneous {@link DynamicComponent} nodes which works better with some libraries
+ * that directly inspect the children nodes.
+ */
+async function renderHtml(rs: RpcSessionAtPos, pos: DocumentPosition, html: Html):
+        Promise<JSX.Element> {
     if ('text' in html) {
         return <>{html.text}</>
     } else if ('element' in html) {
@@ -23,7 +34,7 @@ export default function HtmlDisplay({pos, html} : {pos: DocumentPosition, html: 
         for (const [k,v] of attrsList) {
             attrs[k] = v
         }
-        const children = cs.map(html => HtmlDisplay({ pos, html }))
+        const children = await Promise.all(cs.map(async html => await renderHtml(rs, pos, html)))
         if (tag === "hr") {
             // React is greatly concerned by <hr/>s having children.
             return <hr/>
@@ -33,17 +44,28 @@ export default function HtmlDisplay({pos, html} : {pos: DocumentPosition, html: 
             return React.createElement(tag, attrs, children)
         }
     } else if ('component' in html) {
-        const [hash, props, cs] = html.component
-        const children = cs.map(html => HtmlDisplay({ pos, html }))
+        const [hash, export_, props, cs] = html.component
+        const children = await Promise.all(cs.map(async html => await renderHtml(rs, pos, html)))
         const dynProps = {...props, pos}
+        const mod = await importWidgetModule(rs, pos, hash)
+        if (!(export_ in mod)) throw new Error(`Module '${hash}' does not export '${export_}'`)
         if (children.length === 0) {
-            return <DynamicComponent pos={pos} hash={hash} props={dynProps} />
+            return React.createElement(mod[export_], dynProps)
         } else {
-            return <DynamicComponent pos={pos} hash={hash} props={dynProps}>
-                <>{children}</>
-            </DynamicComponent>
+            return React.createElement(mod[export_], dynProps, children)
         }
     } else {
-        return <span className="red">Unknown HTML: {JSON.stringify(html)}</span>
+        return <span className="red">Unknown HTML variant: {JSON.stringify(html)}</span>
     }
+}
+
+export default function HtmlDisplay({pos, html} : {pos: DocumentPosition, html: Html}):
+        JSX.Element {
+    const rs = React.useContext(RpcContext)
+    const state = useAsyncPersistent(() => renderHtml(rs, pos, html), [rs, pos, html])
+    if (state.state === 'resolved')
+        return state.value
+    else if (state.state === 'rejected')
+        return <span className="red">Error rendering HTML: {mapRpcError(state.error).message}</span>
+    return <></>
 }

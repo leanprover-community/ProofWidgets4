@@ -3,7 +3,7 @@ import ProofWidgets.Compat
 
 namespace ProofWidgets
 
-/-- A component is a widget module whose `default` export is a
+/-- A component is a widget module with a `default` or named export which is a
 [React component](https://react.dev/learn/your-first-component). Every component definition must
 be annotated with `@[widget_module]`. This makes it possible for the infoview to load the component.
 
@@ -19,11 +19,13 @@ All [React contexts](https://react.dev/learn/passing-data-deeply-with-context) e
 
 `Props` is the Lean representation of the type `JsProps` of
 [React props](https://react.dev/learn/passing-props-to-a-component) that the component expects.
-The `default` export of the module should then have type
+The export of the module specified in `«export»` should then have type
 `(props: JsProps & { pos: DocumentPosition }): React.ReactNode` where `DocumentPosition` is
 defined in `@leanprover/infoview`. `Props` is expected to have a `Lean.Server.RpcEncodable` instance
 specifying how to encode props as JSON. -/
-structure Component (Props : Type) extends Module
+structure Component (Props : Type) extends Module where
+  /-- Which export of the module to use as the component function. -/
+  «export» : String := "default"
 
 open Lean
 
