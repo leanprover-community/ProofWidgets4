@@ -4,7 +4,9 @@
   "description": "",
   "scripts": {
     "watch": "rollup --environment NODE_ENV:production --config --watch",
-    "build": "rollup --environment NODE_ENV:production --config"
+    "watch-dev": "rollup --config --watch",
+    "build": "rollup --environment NODE_ENV:production --config",
+    "build-dev": "rollup --config"
   },
   "author": "",
   "license": "Apache-2.0",

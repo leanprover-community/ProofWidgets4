@@ -11,18 +11,21 @@ export default cliArgs => {
     if (tsxName !== undefined)
         // We delete the custom argument so that Rollup does not try to process it and complain.
         delete cliArgs.tsxName;
-
     const inputs = tsxName ?
         [ `src/${tsxName}.tsx` ] :
         glob.sync('src/**/*.tsx')
 
+    const isProduction = process.env.NODE_ENV && process.env.NODE_ENV === 'production';
     const configForInput = fname => ({
     input: fname,
     output: {
         dir: '../build/js',
         format: 'es',
         // Hax: apparently setting `global` makes some CommonJS modules work ¯\_(ツ)_/¯
-        intro: 'const global = window;'
+        intro: 'const global = window;',
+        sourcemap: isProduction ? false : 'inline',
+        plugins: isProduction ? [ terser() ] : [],
+        compact: isProduction
     },
     external: [
         'react',
@@ -55,8 +58,7 @@ export default cliArgs => {
                 'timers', 'console', 'vm', 'zlib', 'tty', 'domain', 'dns', 'dgram', 'child_process',
                 'cluster', 'module', 'net', 'readline', 'repl', 'tls', 'fs', 'crypto', 'perf_hooks',
             ],
-        }),
-        terser(),
+        })
     ],
     })
 

@@ -25,6 +25,7 @@ target widgetPackageLock : FilePath := do
     }
 
 def widgetTsxTarget (pkg : Package) (tsxName : String) (deps : Array (BuildJob FilePath))
+    (isDev : Bool)
     [Fact (pkg.name = _package.name)] : IndexBuildM (BuildJob FilePath) := do
   let jsFile := pkg.buildDir / "js" / s!"{tsxName}.js"
   let deps := deps ++ #[
@@ -36,18 +37,29 @@ def widgetTsxTarget (pkg : Package) (tsxName : String) (deps : Array (BuildJob F
   buildFileAfterDepArray jsFile deps fun _srcFile => do
     proc {
       cmd := npmCmd
-      args := #["run", "build", "--", "--tsxName", tsxName]
+      args :=
+        if isDev then
+          #["run", "build-dev", "--", "--tsxName", tsxName]
+        else
+          #["run", "build", "--", "--tsxName", tsxName]
       cwd := some widgetDir
     }
 
-target widgetJsAll (pkg : Package) : Array FilePath := do
+def widgetJsAllTarget (pkg : Package) [Fact (pkg.name = _package.name)] (isDev : Bool) :
+    IndexBuildM (BuildJob (Array FilePath)) := do
   let fs ← (widgetDir / "src").readDir
   let tsxs : Array FilePath := fs.filterMap fun f =>
     let p := f.path; if let some "tsx" := p.extension then some p else none
   -- Conservatively, every .js build depends on all the .tsx source files.
   let deps ← liftM <| tsxs.mapM inputFile
-  let jobs ← tsxs.mapM fun tsx => widgetTsxTarget pkg tsx.fileStem.get! deps
+  let jobs ← tsxs.mapM fun tsx => widgetTsxTarget pkg tsx.fileStem.get! deps isDev
   BuildJob.collectArray jobs
+
+target widgetJsAll (pkg : Package) : Array FilePath := do
+  widgetJsAllTarget pkg (isDev := false)
+
+target widgetJsAllDev (pkg : Package) : Array FilePath := do
+  widgetJsAllTarget pkg (isDev := true)
 
 @[default_target]
 target all (pkg : Package) : Unit := do
