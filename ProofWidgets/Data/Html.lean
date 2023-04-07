@@ -36,10 +36,10 @@ inductive Html where
   | element : String → Array (String × Json) → Array Html → Html
   /-- Raw HTML text.-/
   | text : String → Html
-  /-- A `component h props children` represents `<Foo {...props}>{...children}</Foo>`,
+  /-- A `component h e props children` represents `<Foo {...props}>{...children}</Foo>`,
   where `Foo : Component Props` is some component such that `h = hash Foo.javascript`,
-  and `props` corresponds to a value of type `Props`. -/
-  | component : UInt64 → LazyEncodable Json → Array Html → Html
+  `e = Foo.«export»` and `props` corresponds to a value of type `Props`. -/
+  | component : UInt64 → String → LazyEncodable Json → Array Html → Html
   deriving Inhabited
 
 #mkrpcenc Html
@@ -47,7 +47,8 @@ inductive Html where
 partial def Html.ofTHtml : THtml → Html
   | .element t as cs => element t as (cs.map ofTHtml)
   | .text s => text s
-  | @THtml.component _ _ c ps cs => component (hash c.javascript) (rpcEncode ps) (cs.map ofTHtml)
+  | @THtml.component _ _ c ps cs =>
+    component (hash c.javascript) c.«export» (rpcEncode ps) (cs.map ofTHtml)
 
 /-- See [MDN docs](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flow_Layout/Block_and_Inline_Layout_in_Normal_Flow). -/
 inductive LayoutKind where
