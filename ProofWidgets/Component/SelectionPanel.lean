@@ -2,6 +2,25 @@ import Lean.Meta.ExprLens
 import ProofWidgets.Component.Panel
 import ProofWidgets.Presentation.Expr -- Needed for RPC calls in SelectionPanel
 
+open ProofWidgets in
+/-- Save the expression corresponding to a goals location. -/
+def Lean.SubExpr.GoalsLocation.saveExprWithCtx (loc : GoalsLocation) : MetaM ExprWithCtx :=
+  let mvarId := loc.mvarId
+  match loc.loc with
+  | .hyp fv =>
+    mvarId.withContext <|
+      ExprWithCtx.save (mkFVar fv)
+  | .hypType fv pos => mvarId.withContext do
+    let tp ← Meta.inferType (mkFVar fv)
+    Meta.viewSubexpr (visit := fun _ => ExprWithCtx.save) pos tp
+  | .hypValue fv pos => mvarId.withContext do
+    let some val ← fv.getValue?
+      | throwError "fvar {mkFVar fv} is not a let-binding"
+    Meta.viewSubexpr (visit := fun _ => ExprWithCtx.save) pos val
+  | .target pos => mvarId.withContext do
+    let tp ← Meta.inferType (mkMVar mvarId)
+    Meta.viewSubexpr (visit := fun _ => ExprWithCtx.save) pos tp
+
 namespace ProofWidgets
 open Lean Server
 
@@ -22,23 +41,8 @@ def goalsLocationsToExprs (args : GoalsLocationsToExprsParams) :
   RequestM.asTask do
     let mut exprs := #[]
     for ⟨⟨ci⟩, loc⟩ in args.locations do
-      exprs := exprs.push ⟨← ci.runMetaM {} <| go loc.mvarId loc.loc⟩
+      exprs := exprs.push ⟨← ci.runMetaM {} loc.saveExprWithCtx⟩
     return { exprs }
-where
-  go (mvarId : MVarId) : SubExpr.GoalLocation → MetaM ExprWithCtx
-  | .hyp fv =>
-    mvarId.withContext <|
-      ExprWithCtx.save (mkFVar fv)
-  | .hypType fv pos => mvarId.withContext do
-    let tp ← Meta.inferType (mkFVar fv)
-    Meta.viewSubexpr (visit := fun _ => ExprWithCtx.save) pos tp
-  | .hypValue fv pos => mvarId.withContext do
-    let some val ← fv.getValue?
-      | throwError "fvar {mkFVar fv} is not a let-binding"
-    Meta.viewSubexpr (visit := fun _ => ExprWithCtx.save) pos val
-  | .target pos => mvarId.withContext do
-    let tp ← Meta.inferType (mkMVar mvarId)
-    Meta.viewSubexpr (visit := fun _ => ExprWithCtx.save) pos tp
 
 /-- Display a list of all expressions selected in the goal state, with a choice of which `Expr`
 presenter should be used to display each of those expressions. -/
