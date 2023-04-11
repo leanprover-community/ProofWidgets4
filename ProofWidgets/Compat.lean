@@ -44,7 +44,9 @@ def ExprWithCtx.save (e : Expr) : MetaM ExprWithCtx :=
   }
 
 open Command in
-/-- HACK: around https://leanprover.zulipchat.com/#narrow/stream/341532-lean4-dev/topic/Should.20instance.20names.20inherit.20macro.20scopes.3F -/
+/-- Derive `Lean.Server.RpcEncodable` for a type.
+
+HACK: around https://leanprover.zulipchat.com/#narrow/stream/341532-lean4-dev/topic/Should.20instance.20names.20inherit.20macro.20scopes.3F -/
 elab "#mkrpcenc" n:ident : command => do
   elabCommand <| ← `(
     namespace $n

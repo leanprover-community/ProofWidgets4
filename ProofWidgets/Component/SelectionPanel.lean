@@ -1,8 +1,6 @@
-import Lean.Elab.Tactic
 import Lean.Meta.ExprLens
-
-import ProofWidgets.Component.Basic
-import ProofWidgets.Presentation.Expr -- Needed for RPC calls in PresentSelectionPanel
+import ProofWidgets.Component.Panel
+import ProofWidgets.Presentation.Expr -- Needed for RPC calls in SelectionPanel
 
 namespace ProofWidgets
 open Lean Server
@@ -42,25 +40,10 @@ where
     let tp ← Meta.inferType (mkMVar mvarId)
     Meta.viewSubexpr (visit := fun _ => ExprWithCtx.save) pos tp
 
+/-- Display a list of all expressions selected in the goal state, with a choice of which `Expr`
+presenter should be used to display each of those expressions. -/
 @[widget_module]
-def PresentSelectionPanel : Component PanelWidgetProps where
+def SelectionPanel : Component PanelWidgetProps where
   javascript := include_str ".." / ".." / "build" / "js" / "presentSelection.js"
-
-/-- Displays any expressions selected in the goal state using registered `ProofWidgets.ExprPresenter`s.
-Expressions can be selected using shift-click -/
-syntax (name := withSelectionDisplayTacStx) "withSelectionDisplay " tacticSeq : tactic
-
-open Elab Tactic in
-@[tactic withSelectionDisplayTacStx]
-def withSelectionDisplay : Tactic
-  | stx@`(tactic| withSelectionDisplay $seq) => do
-    savePanelWidgetInfo stx ``PresentSelectionPanel (pure .null)
-    evalTacticSeq seq
-  | _ => throwUnsupportedSyntax
-
--- TODO: replace the panel with an extensible one which invokes an arbitrary
--- `@[goals_presenter]` where `GoalsPresenter ≈ PanelWidgetProps → MetaM Html`
--- with access to the entire goal state in order to display it in a "global" way.
--- In short, implement custom tactic state displays.
 
 end ProofWidgets

@@ -9,24 +9,10 @@ interactive outputs with a reference to the original input *presentations*. -/
 structure ExprPresenter where
   /-- A user-friendly name for this presenter. For example, "LaTeX". -/
   userName : String
-  /- TODO: there is a general problem of writing env extensions which store an extendable list of
-  functions to run on `Expr`s, but not all of which are applicable to any single `Expr` (actually,
-  most are not). Invoking them in sequence is O(n); we should better use sth like `DiscrTree`.
-  Registering new entries would need to extend the DiscrTree, perhaps like
-  `registerSelf : DiscrTree ExprPresenter → DiscrTree ExprPresenter`.
-  Dispatching on just one constant like e.g. delaborators (`app.MyType.myCtr`) does not appear
-  sufficient because one entry may apply to multiple expressions of a given form which could be
-  represented as a schematic with mvars, say `@ofNat ? 0 ?`.
-  TODO: actually, for most use cases name-based dispatch might be sufficient, and it's simple. -/
-  /-- Should quickly determine if the `Expr` is within this presenter's domain of applicability.
-  For example it could check for a constant like the `` `name `` in ``@[delab `name]``. -/
-  isApplicable : Expr → MetaM Bool
-  /-- Whether the output should use inline (think something which fits in the space normally
-  occupied by an `Expr`, e.g. LaTeX) or block (think large diagram which needs dedicated space)
-  HTML layout. -/
+  /-- Whether the output HTML has inline (think something which fits in the space normally occupied
+  by an `Expr`, e.g. LaTeX) or block (think large diagram which needs dedicated space) layout. -/
   layoutKind : LayoutKind := .block
-  /-- *Must* return `some _` or throw when `isApplicable` is `true`. -/
-  present : Expr → MetaM (Option Html)
+  present : Expr → MetaM Html
 
 initialize exprPresenters : TagAttribute ←
   registerTagAttribute `expr_presenter
@@ -68,8 +54,7 @@ def applicableExprPresenters : ApplicableExprPresentersParams →
     for nm in exprPresenters.ext.getState expr.ci.env do
       match evalExprPresenter ci.env ci.options nm with
       | .ok p =>
-        if ← expr.runMetaM p.isApplicable then
-          presenters := presenters.push ⟨nm, p.userName⟩
+        presenters := presenters.push ⟨nm, p.userName⟩
       | .error e =>
         throw <| RequestError.internalError s!"Failed to evaluate Expr presenter '{nm}': {e}"
     return { presenters }
@@ -82,19 +67,14 @@ structure GetExprPresentationParams where
 #mkrpcenc GetExprPresentationParams
 
 @[server_rpc_method]
-def getExprPresentation : GetExprPresentationParams →
-    RequestM (RequestTask Html)
+def getExprPresentation : GetExprPresentationParams → RequestM (RequestTask Html)
   | { expr := ⟨expr⟩, name } => RequestM.asTask do
     let ci := expr.ci
     if !exprPresenters.hasTag ci.env name then
       throw <| RequestError.invalidParams s!"The constant '{name}' is not an Expr presenter."
     match evalExprPresenter ci.env ci.options name with
     | .ok p =>
-      let some ret ← expr.runMetaM p.present
-        | throw <| RequestError.internalError <|
-          s!"Got none from {name}.present e, expected some _ because {name}.isApplicable e " ++
-          s!"returned true, where e := {expr.expr}"
-      return ret
+      expr.runMetaM p.present
     | .error e =>
       throw <| RequestError.internalError s!"Failed to evaluate Expr presenter '{name}': {e}"
 

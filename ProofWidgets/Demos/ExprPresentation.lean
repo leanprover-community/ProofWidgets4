@@ -1,4 +1,4 @@
-import ProofWidgets.Presentation.Goal
+import ProofWidgets.Component.SelectionPanel
 
 open ProofWidgets Jsx
 
@@ -6,7 +6,6 @@ open ProofWidgets Jsx
 def presenter : ExprPresenter where
   userName := "With octopodes"
   layoutKind := .inline
-  isApplicable _ := return true
   present e :=
     return Html.ofTHtml
       <span>
@@ -14,6 +13,6 @@ def presenter : ExprPresenter where
       </span>
 
 example (h : 2 + 2 = 5) : 2 + 2 = 4 := by
-  withSelectionDisplay
+  withPanelWidgets [SelectionPanel]
   -- Place cursor here and select subexpressions in the goal with shift-click
     rfl

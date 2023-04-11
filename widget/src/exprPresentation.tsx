@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { useAsync, RpcContext, RpcSessionAtPos, RpcPtr, Name, DocumentPosition, mapRpcError }
+import { RpcContext, RpcSessionAtPos, RpcPtr, Name, DocumentPosition, mapRpcError, useAsyncPersistent }
   from '@leanprover/infoview'
 import HtmlDisplay, { Html } from './htmlDisplay'
 import InteractiveExpr from './interactiveExpr'
@@ -12,13 +12,13 @@ interface PresenterId {
 }
 
 async function applicableExprPresenters(rs: RpcSessionAtPos, expr: ExprWithCtx):
-  Promise<PresenterId[]> {
+    Promise<PresenterId[]> {
   const ret: any = await rs.call('ProofWidgets.applicableExprPresenters', { expr })
   return ret.presenters
 }
 
 async function getExprPresentation(rs: RpcSessionAtPos, expr: ExprWithCtx, name: Name):
-  Promise<Html> {
+    Promise<Html> {
   return await rs.call('ProofWidgets.getExprPresentation', { expr, name })
 }
 
@@ -28,12 +28,10 @@ interface ExprPresentationUsingProps {
   name: Name
 }
 
-// TODO: a UseAsync component which displays resolved/loading/error like we do in every component
-
 /** Display the given expression using the `ExprPresenter` registered at `name`. */
 function ExprPresentationUsing({ pos, expr, name }: ExprPresentationUsingProps): JSX.Element {
   const rs = React.useContext(RpcContext)
-  const st = useAsync(() => getExprPresentation(rs, expr, name), [rs, expr, name])
+  const st = useAsyncPersistent(() => getExprPresentation(rs, expr, name), [rs, expr, name])
   return st.state === 'resolved' ? <HtmlDisplay pos={pos} html={st.value} />
     : st.state === 'loading' ? <>Loading..</>
       : <>Error: {mapRpcError(st.error).message}</>
@@ -44,7 +42,7 @@ function ExprPresentationUsing({ pos, expr, name }: ExprPresentationUsingProps):
  * to display the expression. */
 export default function ({ pos, expr }: { pos: DocumentPosition, expr: ExprWithCtx }): JSX.Element {
   const rs = React.useContext(RpcContext)
-  const st = useAsync(() => applicableExprPresenters(rs, expr), [rs, expr])
+  const st = useAsyncPersistent(() => applicableExprPresenters(rs, expr), [rs, expr])
   const [selection, setSelection] = React.useState<Name | undefined>(undefined)
 
   if (st.state === 'rejected')
@@ -57,7 +55,8 @@ export default function ({ pos, expr }: { pos: DocumentPosition, expr: ExprWithC
         <InteractiveExpr expr={expr} />}
       <select className='fr' onChange={ev => setSelection(ev.target.value)}>
         <option key='none' value='none'>Default</option>
-        {st.value.map(pid => <option key={pid.name} value={pid.name}>{pid.userName}</option>)}
+        {st.value.map(pid =>
+          <option key={pid.name} value={pid.name}>{pid.userName}</option>)}
       </select>
     </div>
   else
