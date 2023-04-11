@@ -67,14 +67,4 @@ needed for the pretty-printing RPC call. -/
 def InteractiveExpr : Component InteractiveExprProps where
   javascript := include_str ".." / ".." / "build" / "js" / "interactiveExpr.js"
 
-/-- These are the props passed to a panel widget. A panel widget is a component which can appear
-as a top-level panel in the infoview. For example, a goal state display. See also
-`savePanelWidgetInfo`.
-
-Note that to be a good citizen which doesn't mess up the infoview, a panel widget should be a block
-element, and should provide some way to collapse it, for example by using `<details>` as the
-top-level tag. -/
--- TODO: This contains the fields described in `userWidget.tsx`
-structure PanelWidgetProps where
-
 end ProofWidgets
