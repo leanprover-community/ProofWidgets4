@@ -45,7 +45,9 @@ def goalsLocationsToExprs (args : GoalsLocationsToExprsParams) :
     return { exprs }
 
 /-- Display a list of all expressions selected in the goal state, with a choice of which `Expr`
-presenter should be used to display each of those expressions. -/
+presenter should be used to display each of those expressions.
+
+Expressions can be selected using shift-click. -/
 @[widget_module]
 def SelectionPanel : Component PanelWidgetProps where
   javascript := include_str ".." / ".." / "build" / "js" / "presentSelection.js"
