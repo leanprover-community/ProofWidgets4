@@ -108,7 +108,7 @@ open scoped ProofWidgets.Json
 
 We have good support for building diagrams with [Penrose](https://penrose.cs.cmu.edu/), and expose
 some [Recharts](https://recharts.org/en-US/) components for plotting functions and other kinds of
-data. See the `Plot.lean` demo.
+data. See the `Venn.lean` and `Plot.lean` demos.
 
 For more purpose-specific integrations of libraries see the `Rubiks.lean` and `RbTree.lean` demos.
 
