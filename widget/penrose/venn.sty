@@ -1,0 +1,37 @@
+forall Set x {
+  x.icon = Circle {
+    strokeWidth : 0
+  }
+
+  x.textBox = Rectangle {
+    -- string : x.label
+    -- fontSize : "25px"
+    cornerRadius : 5
+    width : 50
+    height : 30
+  }
+
+  ensure contains(x.icon, x.textBox)
+  --encourage sameCenter(x.textBox, x.icon)
+  -- x.textLayering = x.textBox above x.icon
+}
+
+forall Set x; Set y
+where IsSubset(x, y) {
+  ensure smallerThan(x.icon, y.icon)
+  ensure disjoint(y.textBox, x.icon, 10)
+  ensure contains(y.icon, x.icon, 5)
+  x.icon above y.icon
+}
+
+forall Set x; Set y
+where Not(Intersecting(x, y)) {
+  ensure disjoint(x.icon, y.icon)
+}
+
+forall Set x; Set y
+where Intersecting(x, y) {
+  ensure overlapping(x.icon, y.icon)
+  ensure disjoint(y.textBox, x.icon)
+  ensure disjoint(x.textBox, y.icon)
+}
