@@ -26,7 +26,7 @@ target widgetPackageLock : FilePath := do
 
 def widgetTsxTarget (pkg : Package) (tsxName : String) (deps : Array (BuildJob FilePath))
     (isDev : Bool)
-    [Fact (pkg.name = _package.name)] : IndexBuildM (BuildJob FilePath) := do
+    [PackageName pkg _package.name] : IndexBuildM (BuildJob FilePath) := do
   let jsFile := pkg.buildDir / "js" / s!"{tsxName}.js"
   let deps := deps ++ #[
     ← inputFile <| widgetDir / "src" / s!"{tsxName}.tsx",
@@ -45,7 +45,7 @@ def widgetTsxTarget (pkg : Package) (tsxName : String) (deps : Array (BuildJob F
       cwd := some widgetDir
     }
 
-def widgetJsAllTarget (pkg : Package) [Fact (pkg.name = _package.name)] (isDev : Bool) :
+def widgetJsAllTarget (pkg : Package) [PackageName pkg _package.name] (isDev : Bool) :
     IndexBuildM (BuildJob (Array FilePath)) := do
   let fs ← (widgetDir / "src").readDir
   let tsxs : Array FilePath := fs.filterMap fun f =>
