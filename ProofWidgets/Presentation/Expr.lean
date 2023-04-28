@@ -50,14 +50,24 @@ def applicableExprPresenters : ApplicableExprPresentersParams →
     RequestM (RequestTask ApplicableExprPresenters)
   | ⟨⟨expr⟩⟩ => RequestM.asTask do
     let mut presenters : Array ExprPresenterId := #[]
-    let ci := expr.ci
-    for nm in exprPresenters.ext.getState expr.ci.env do
-      match evalExprPresenter ci.env ci.options nm with
-      | .ok p =>
-        presenters := presenters.push ⟨nm, p.userName⟩
-      | .error e =>
-        throw <| RequestError.internalError s!"Failed to evaluate Expr presenter '{nm}': {e}"
+    let env := expr.ci.env
+    for nm in exprPresenters.ext.getState env do
+      presenters ← addPresenterIfApplicable expr.ci nm presenters
+    -- FIXME: The fact that we need this loop suggests that TagAttribute is not the right way
+    -- to implement a persistent, iterable set of names.
+    for modNm in env.allImportedModuleNames do
+      let some modIdx := env.getModuleIdx? modNm
+        | throw <| RequestError.internalError s!"unknown module {modNm}"
+      for nm in exprPresenters.ext.getModuleEntries env modIdx do
+        presenters ← addPresenterIfApplicable expr.ci nm presenters
     return { presenters }
+where addPresenterIfApplicable (ci : Elab.ContextInfo) (nm : Name) (ps : Array ExprPresenterId) :
+    RequestM (Array ExprPresenterId) :=
+  match evalExprPresenter ci.env ci.options nm with
+  | .ok p =>
+    return ps.push ⟨nm, p.userName⟩
+  | .error e =>
+    throw <| RequestError.internalError s!"Failed to evaluate Expr presenter '{nm}': {e}"
 
 structure GetExprPresentationParams where
   expr : WithRpcRef ExprWithCtx
