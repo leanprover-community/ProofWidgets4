@@ -19,7 +19,7 @@ interface DiagramData {
 export default function(props: DiagramData & {pos: DocumentPosition}): JSX.Element {
     const {embeds, dsl, sub} = props
     const mkElt = (html: Html): JSX.Element =>
-        <div className="pa2">
+        <div className="pv1 ph2">
             <HtmlDisplay pos={props.pos} html={html} />
         </div>
 
