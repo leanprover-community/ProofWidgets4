@@ -66,7 +66,9 @@ where addPresenterIfApplicable (expr : ExprWithCtx) (nm : Name) (ps : Array Expr
   match evalExprPresenter expr.ci.env expr.ci.options nm with
   | .ok p =>
     try
-      let html ← expr.runMetaM p.present
+      let html ← expr.runMetaM fun e => do
+        let e ← Lean.instantiateMVars e
+        p.present e
       return ps.push ⟨nm, p.userName, html⟩
     catch _ =>
       return ps

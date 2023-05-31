@@ -1,4 +1,5 @@
 import ProofWidgets.Component.SelectionPanel
+import ProofWidgets.Component.GoalTypePanel
 
 open ProofWidgets Jsx
 
@@ -12,7 +13,14 @@ def presenter : ExprPresenter where
         {.text "🐙 "}<InteractiveCode fmt={← Lean.Widget.ppExprTagged e} />{.text " 🐙"}
       </span>
 
+example : 2 + 2 = 4 ∧ 3 + 3 = 6 := by
+  withPanelWidgets [GoalTypePanel]
+    -- Place cursor here.
+    constructor
+    rfl
+    rfl
+
 example (h : 2 + 2 = 5) : 2 + 2 = 4 := by
   withPanelWidgets [SelectionPanel]
-  -- Place cursor here and select subexpressions in the goal with shift-click
+    -- Place cursor here and select subexpressions in the goal with shift-click.
     rfl
