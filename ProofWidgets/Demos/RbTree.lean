@@ -138,7 +138,7 @@ example {α : Type} (x y z : α) (a b c d : RBTree α)
     (h : ¬ ∃ e w f, a = node red e w f) :
     balance black (node red a x (node red b y c)) z d =
     node red (node black a x b) y (node black c z d) := by
-  withPanelWidgets [SelectionPanel]
+  with_panel_widgets [SelectionPanel]
     match a with
     | .empty => simp [balance]
     | node black .. => simp [balance]

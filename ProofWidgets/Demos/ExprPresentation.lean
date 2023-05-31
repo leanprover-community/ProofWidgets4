@@ -14,13 +14,13 @@ def presenter : ExprPresenter where
       </span>
 
 example : 2 + 2 = 4 ∧ 3 + 3 = 6 := by
-  withPanelWidgets [GoalTypePanel]
+  with_panel_widgets [GoalTypePanel]
     -- Place cursor here.
     constructor
     rfl
     rfl
 
 example (h : 2 + 2 = 5) : 2 + 2 = 4 := by
-  withPanelWidgets [SelectionPanel]
+  with_panel_widgets [SelectionPanel]
     -- Place cursor here and select subexpressions in the goal with shift-click.
     rfl

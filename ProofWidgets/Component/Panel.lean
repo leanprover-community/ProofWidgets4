@@ -34,17 +34,17 @@ def processIdent (stx : Syntax) (nmStx : TSyntax `ident) : CoreM Unit := do
 /-- Display the selected panel widgets in the nested tactic script. For example,
 assuming we have written a `GeometryDisplay` component,
 ```lean
-by withPanelWidgets [GeometryDisplay]
+by with_panel_widgets [GeometryDisplay]
   simp
   rfl
 ```
 will show the geometry display alongside the usual tactic state throughout the proof.
 -/
-syntax (name := withPanelWidgetsTacticStx) "withPanelWidgets" "[" ident,+ "]" tacticSeq : tactic
+syntax (name := withPanelWidgetsTacticStx) "with_panel_widgets" "[" ident,+ "]" tacticSeq : tactic
 
 @[tactic withPanelWidgetsTacticStx]
 def withPanelWidgets : Tactic
-  | stx@`(tactic| withPanelWidgets [ $nms,* ] $seq) => do
+  | stx@`(tactic| with_panel_widgets [ $nms,* ] $seq) => do
     liftM <| nms.getElems.forM (processIdent stx)
     evalTacticSeq seq
   | _ => throwUnsupportedSyntax
