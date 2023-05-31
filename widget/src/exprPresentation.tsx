@@ -1,40 +1,21 @@
 import * as React from 'react'
-import { RpcContext, RpcSessionAtPos, RpcPtr, Name, DocumentPosition, mapRpcError, useAsyncPersistent }
-  from '@leanprover/infoview'
+import { RpcContext, RpcSessionAtPos, RpcPtr, Name, DocumentPosition, mapRpcError,
+  useAsyncPersistent } from '@leanprover/infoview'
 import HtmlDisplay, { Html } from './htmlDisplay'
 import InteractiveExpr from './interactiveExpr'
 
 type ExprWithCtx = RpcPtr<'ProofWidgets.ExprWithCtx'>
 
-interface PresenterId {
+interface ExprPresentationData {
   name: Name
   userName: string
+  html: Html
 }
 
-async function applicableExprPresenters(rs: RpcSessionAtPos, expr: ExprWithCtx):
-    Promise<PresenterId[]> {
-  const ret: any = await rs.call('ProofWidgets.applicableExprPresenters', { expr })
-  return ret.presenters
-}
-
-async function getExprPresentation(rs: RpcSessionAtPos, expr: ExprWithCtx, name: Name):
-    Promise<Html> {
-  return await rs.call('ProofWidgets.getExprPresentation', { expr, name })
-}
-
-interface ExprPresentationUsingProps {
-  pos: DocumentPosition
-  expr: ExprWithCtx
-  name: Name
-}
-
-/** Display the given expression using the `ExprPresenter` registered at `name`. */
-function ExprPresentationUsing({ pos, expr, name }: ExprPresentationUsingProps): JSX.Element {
-  const rs = React.useContext(RpcContext)
-  const st = useAsyncPersistent(() => getExprPresentation(rs, expr, name), [rs, expr, name])
-  return st.state === 'resolved' ? <HtmlDisplay pos={pos} html={st.value} />
-    : st.state === 'loading' ? <>Loading..</>
-      : <>Error: {mapRpcError(st.error).message}</>
+async function getExprPresentations(rs: RpcSessionAtPos, expr: ExprWithCtx):
+    Promise<ExprPresentationData[]> {
+  const ret: any = await rs.call('ProofWidgets.getExprPresentations', { expr })
+  return ret.presentations
 }
 
 /** Display the given expression using an `ExprPresenter`. The server is queried for registered
@@ -42,23 +23,52 @@ function ExprPresentationUsing({ pos, expr, name }: ExprPresentationUsingProps):
  * to display the expression. */
 export default function ({ pos, expr }: { pos: DocumentPosition, expr: ExprWithCtx }): JSX.Element {
   const rs = React.useContext(RpcContext)
-  const st = useAsyncPersistent(() => applicableExprPresenters(rs, expr), [rs, expr])
-  const [selection, setSelection] = React.useState<Name | undefined>(undefined)
+  type Selection =
+    { tag: 'auto' } |
+    // Here `none` means use the default, that is `InteractiveExpr`.
+    // We assume no presenter is registered under this name.
+    { tag: 'manual', name: Name | 'none' }
+  const [selection, setSelection] = React.useState<Selection>({ tag: 'auto' })
+  const st = useAsyncPersistent<Map<Name, ExprPresentationData>>(async () => {
+      const ret = await getExprPresentations(rs, expr)
+      setSelection(s => {
+        // If there was a manually selected presenter which no longer applies, reset to auto.
+        if (s.tag === 'manual' && s.name !== undefined &&
+            !ret.some(d => d.name === s.name))
+          return { tag: 'auto' }
+        return s
+      })
+      return new Map(ret.map(v => [v.name, v]))
+    }, [rs, expr])
 
   if (st.state === 'rejected')
     return <>Error: {mapRpcError(st.error).message}</>
-  else if (st.state === 'resolved' && 0 < st.value.length)
+  else if (st.state === 'resolved') {
+    let selectionName: Name | 'none' = 'none'
+    if (selection.tag === 'auto' && 0 < st.value.size)
+      selectionName = Array.from(st.value.values())[0].name
+    else if (selection.tag === 'manual' &&
+        (selection.name === 'none' || st.value.has(selection.name)))
+      selectionName = selection.name
+
     // For explanation of flow-root see https://stackoverflow.com/a/32301823
     return <div style={{ display: 'flow-root' }}>
-      {selection && selection !== 'none' ?
-        <ExprPresentationUsing pos={pos} expr={expr} name={selection} /> :
+      {selectionName !== 'none' &&
+        <HtmlDisplay pos={pos} html={st.value.get(selectionName)!.html} />}
+      {selectionName === 'none' &&
         <InteractiveExpr expr={expr} />}
-      <select className='fr' onChange={ev => setSelection(ev.target.value)}>
-        <option key='none' value='none'>Default</option>
-        {st.value.map(pid =>
+      <select
+          className='fr'
+          value={selectionName}
+          onChange={ev => {
+            setSelection({ tag: 'manual', name: ev.target.name })
+          }}
+      >
+        {Array.from(st.value.values(), pid =>
           <option key={pid.name} value={pid.name}>{pid.userName}</option>)}
+        <option key='none' value='none'>Default</option>
       </select>
     </div>
-  else
+  } else
     return <InteractiveExpr expr={expr} />
 }

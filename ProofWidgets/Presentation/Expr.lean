@@ -31,41 +31,45 @@ private unsafe def evalExprPresenterUnsafe (env : Environment) (opts : Options)
 opaque evalExprPresenter (env : Environment) (opts : Options) (constName : Name) :
   Except String ExprPresenter
 
-structure ApplicableExprPresentersParams where
+structure GetExprPresentationsParams where
   expr : WithRpcRef ExprWithCtx
 
-#mkrpcenc ApplicableExprPresentersParams
+#mkrpcenc GetExprPresentationsParams
 
-structure ExprPresenterId where
+structure ExprPresentationData where
   name : Name
   userName : String
-  deriving FromJson, ToJson
+  html : Html
+  deriving RpcEncodable
 
-structure ApplicableExprPresenters where
-  presenters : Array ExprPresenterId
-  deriving FromJson, ToJson
+structure ExprPresentations where
+  presentations : Array ExprPresentationData
+  deriving RpcEncodable
 
 @[server_rpc_method]
-def applicableExprPresenters : ApplicableExprPresentersParams →
-    RequestM (RequestTask ApplicableExprPresenters)
+def getExprPresentations : GetExprPresentationsParams → RequestM (RequestTask ExprPresentations)
   | ⟨⟨expr⟩⟩ => RequestM.asTask do
-    let mut presenters : Array ExprPresenterId := #[]
+    let mut presentations : Array ExprPresentationData := #[]
     let env := expr.ci.env
     for nm in exprPresenters.ext.getState env do
-      presenters ← addPresenterIfApplicable expr.ci nm presenters
+      presentations ← addPresenterIfApplicable expr nm presentations
     -- FIXME: The fact that we need this loop suggests that TagAttribute is not the right way
     -- to implement a persistent, iterable set of names.
     for modNm in env.allImportedModuleNames do
       let some modIdx := env.getModuleIdx? modNm
         | throw <| RequestError.internalError s!"unknown module {modNm}"
       for nm in exprPresenters.ext.getModuleEntries env modIdx do
-        presenters ← addPresenterIfApplicable expr.ci nm presenters
-    return { presenters }
-where addPresenterIfApplicable (ci : Elab.ContextInfo) (nm : Name) (ps : Array ExprPresenterId) :
-    RequestM (Array ExprPresenterId) :=
-  match evalExprPresenter ci.env ci.options nm with
+        presentations ← addPresenterIfApplicable expr nm presentations
+    return { presentations }
+where addPresenterIfApplicable (expr : ExprWithCtx) (nm : Name) (ps : Array ExprPresentationData) :
+    RequestM (Array ExprPresentationData) :=
+  match evalExprPresenter expr.ci.env expr.ci.options nm with
   | .ok p =>
-    return ps.push ⟨nm, p.userName⟩
+    try
+      let html ← expr.runMetaM p.present
+      return ps.push ⟨nm, p.userName, html⟩
+    catch _ =>
+      return ps
   | .error e =>
     throw <| RequestError.internalError s!"Failed to evaluate Expr presenter '{nm}': {e}"
 
@@ -76,7 +80,7 @@ structure GetExprPresentationParams where
 
 #mkrpcenc GetExprPresentationParams
 
-@[server_rpc_method]
+@[deprecated, server_rpc_method]
 def getExprPresentation : GetExprPresentationParams → RequestM (RequestTask Html)
   | { expr := ⟨expr⟩, name } => RequestM.asTask do
     let ci := expr.ci
@@ -94,7 +98,8 @@ structure ExprPresentationProps where
 #mkrpcenc ExprPresentationProps
 
 /-- This component shows a selection of all known and applicable `ProofWidgets.ExprPresenter`s which
-are used to render the expression when selected. By default `ProofWidgets.InteractiveExpr` is shown. -/
+are used to render the expression when selected. The one with highest precedence (TODO) is shown by
+default. -/
 @[widget_module]
 def ExprPresentation : Component ExprPresentationProps where
   javascript := include_str ".." / ".." / "build" / "js" / "exprPresentation.js"
