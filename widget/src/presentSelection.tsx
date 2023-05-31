@@ -1,8 +1,8 @@
+import * as  React from "react";
 import {
   DocumentPosition, GoalsLocation, InteractiveGoal, mapRpcError, PanelWidgetProps,
-  RpcContext, RpcPtr, useAsync
+  RpcContext, RpcPtr, useAsyncPersistent
 } from "@leanprover/infoview";
-import * as  React from "react";
 import ExprPresentation from "./exprPresentation";
 
 function findGoalForLocation(goals: InteractiveGoal[], loc: GoalsLocation): InteractiveGoal {
@@ -21,10 +21,10 @@ interface GoalsLocationsToExprsResponse {
 /**
  * Display the expression corresponding to a given `GoalsLocation` using {@link ExprPresentation}.
  */
-function GoalsLocationPresentation({ pos, goals, loc }:
+export function GoalsLocationPresentation({ pos, goals, loc }:
   { pos: DocumentPosition, goals: InteractiveGoal[], loc: GoalsLocation }) {
   const rs = React.useContext(RpcContext)
-  const st = useAsync<ExprWithCtx>(async () => {
+  const st = useAsyncPersistent<ExprWithCtx>(async () => {
     const g = findGoalForLocation(goals, loc)
     if (g.ctx === undefined) throw new Error(`Lean server 1.1.2 or newer is required.`)
     const ret: GoalsLocationsToExprsResponse =
@@ -46,7 +46,7 @@ export default function (props: PanelWidgetProps) {
     {props.selectedLocations.length > 0 ?
       props.selectedLocations.map(loc =>
         <GoalsLocationPresentation
-          key={JSON.stringify(loc)} pos={props.pos} goals={props.goals} loc={loc} />) :
+          key={JSON.stringify(loc.loc)} pos={props.pos} goals={props.goals} loc={loc} />) :
       <>Nothing selected. You can use shift-click to select expressions in the goal.</>}
   </details>
 }

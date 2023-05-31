@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { mapRpcError, useAsync, DynamicComponent, PanelWidgetProps, RpcContext }
+import { mapRpcError, DynamicComponent, PanelWidgetProps, RpcContext, useAsyncPersistent }
   from '@leanprover/infoview'
 import { Range } from 'vscode-languageserver-protocol'
 
@@ -19,7 +19,7 @@ function MetaWidget (props_: MetaWidgetProps): JSX.Element {
   const { pos, infoId, ...props } = props_
 
   const rs = React.useContext(RpcContext)
-  const st = useAsync(async () => {
+  const st = useAsyncPersistent(async () => {
     const ws: { widgets: PanelWidgetInstance[] } = await rs.call('ProofWidgets.getPanelWidgets', { pos })
     const ret = []
     for (const w of ws.widgets) {
@@ -44,24 +44,18 @@ function MetaWidget (props_: MetaWidgetProps): JSX.Element {
     }
   }, [])
 
-  const [st0, setSt0] = React.useState<PanelWidgetInstance[] | undefined>(undefined)
-  React.useEffect(() => {
-    if (st.state === 'resolved')
-      setSt0(st.value)
-  }, [st.state])
-
   let inner = <></>
-  if (st0 !== undefined) {
+  if (st.state === 'resolved') {
     // If every widget panel uses a unique hash, use the hash as the key so that state persists
     // when moving the cursor.
     const seenHashes = new Set<string>()
-    const hashKeysOkay = st0.every(w => {
+    const hashKeysOkay = st.value.every(w => {
       if (seenHashes.has(w.srcHash)) return false
       seenHashes.add(w.srcHash)
       return true
     })
     inner = <>
-      {st0.map(w =>
+      {st.value.map(w =>
         <DynamicComponent
           pos={pos}
           key={hashKeysOkay ? w.srcHash : w.infoId}
