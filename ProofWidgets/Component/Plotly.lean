@@ -1,50 +1,32 @@
 import ProofWidgets.Component.Basic
 import ProofWidgets.Component.HtmlDisplay
 
-namespace ProofWidgets.Plotly
-open Lean
+open Lean ProofWidgets
+
+namespace Plotly
 
 @[widget_module]
-def Plotly : Module where
+def Plotly : ProofWidgets.Module where
   javascript := include_str "../../build/js/react-plotly.js"
 
-structure PlotData where
-  x : Array Float
-  y : Array Float
-  type : String
-    deriving FromJson, ToJson
-
-structure PlotLayout where
-  width : Nat
-  height : Nat
-  title : String
-    deriving FromJson, ToJson
-
-structure PlotParams where
-  data : Array PlotData
-  layout : PlotLayout
-    deriving FromJson, ToJson
-
-def Plot : Component PlotParams where
+def Plot : Component Json where
   javascript := Plotly.javascript
 
-end ProofWidgets.Plotly
+end Plotly
 
-open Lean ProofWidgets Plotly in
-open scoped ProofWidgets.Jsx in
-open scoped ProofWidgets.Json in
-def plot : THtml :=
-  .component Plot {
-    data := #[{
-      x := #[1, 2, 3],
-      y := #[4, 1, 12],
-      type := "scatter"
-    }],
-    layout := {
-      width := 500,
-      height := 500,
-      title := "Plots in Lean4"
-    }
-  } #[]
+open Plotly
+open scoped ProofWidgets.Jsx
+open scoped ProofWidgets.Json
 
-#html plot
+syntax (name := plotCmd) "#plot " jso : command
+
+open Elab Command Server Json in
+@[command_elab plotCmd]
+def elabPlotCmd : CommandElab
+  | stx@`(command| #plot $cfg) => do
+    runTermElabM fun _ => do
+      let plot ← `(ProofWidgets.Html.ofTHtml <| THtml.component Plot (json% $cfg) #[])
+      let ht ← evalHtml plot
+      savePanelWidgetInfo stx ``HtmlDisplayPanel do
+        return json% { html: $(← rpcEncode ht) }
+  | _ => throwError "Unexpected syntax for plotting."
