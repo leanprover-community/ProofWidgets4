@@ -1,1 +1,2 @@
-export * from 'react-plotly.js';
+import Plot from 'react-plotly.js';
+export default Plot;
