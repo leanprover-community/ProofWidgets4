@@ -15,7 +15,7 @@ def Plot : Component Json where
 end Plotly
 
 open Plotly
-open scoped ProofWidgets.Jsx ProofWidgets.Json
+
 
 syntax (name := plotCmd) "#plot " jso : command
 

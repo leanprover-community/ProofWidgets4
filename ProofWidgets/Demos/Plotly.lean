@@ -12,12 +12,22 @@ open scoped ProofWidgets.Jsx ProofWidgets.Json
     }]
   }
 
+
+def histData := [1, 1, 5, 5, 3, 4, 4, 4, 5, 1, 2, 2, 3, 3, 5]
+
 #plot {
   data: [{
-    x: [1, 1, 3, 4, 4, 4, 5, 1, 2, 2, 3, 3, 5],
+    x: $(histData),
     type: "histogram"
   }],
   layout: {
     title: "A sample histogram"
+  },
+  config: {
+    scrollZoom: true,
+    editable: true,
+    plotlyServerURL: "https://chart-studio.plotly.com",
+    showLink: true,
+    showEditInChartStudio: true
   }
 }
