@@ -3,51 +3,52 @@ import ProofWidgets.Component.HtmlDisplay
 open Lean ProofWidgets Elab Command Server Json
 open scoped ProofWidgets.Jsx
 
-#html <iframe src="https://leanprover-community.github.io/mathlib4_docs/" width="100%" height="500px" frameborder="0"></iframe>
+syntax (name := infoview_browse) "#browse " str : command
 
-syntax (name := browse_macro) "browse " ident str : command
+@[command_elab infoview_browse]
+def browseElab : CommandElab
+  | stx@`(command| #browse $url:str) => do
+    runTermElabM fun _ => do
+    let docs := ProofWidgets.Html.ofTHtml <|
+      THtml.element "iframe" #[("src", url.getString),
+        ("width", "100%"), ("height", "600px"), ("frameborder", "0")] #[]
+    savePanelWidgetInfo stx ``HtmlDisplayPanel do
+      return json% { html: $(← rpcEncode docs) }
+  | stx => throwError s!"Unsupported syntax {stx}."
 
-@[macro browse_macro]
-def browseMacro : Macro
-| `(command| browse $site:ident $url:str) => do
+syntax (name := web_macro) "#web " ident str : command
+
+@[macro web_macro]
+def webMacro : Macro
+| `(command| #web $site:ident $url:str) => do
   let raw := toString site.getId
   let cmdName : TSyntax `str := quote <| "#" ++ raw
   let cmdCmd : TSyntax `command := ⟨.node .none (.mkSimple raw) #[.atom .none ("#" ++ raw)]⟩
-  let out ←  `(syntax (name := $site) $cmdName:str : command
+  `(syntax (name := $site) $cmdName:str : command
 
     @[command_elab $site]
     def elabCmd : CommandElab
       | stx@`(command| $cmdCmd:command) =>
         runTermElabM fun _ => do
           let docs := ProofWidgets.Html.ofTHtml <|
-            <iframe src=$url:str
-                width="100%" height="600px" frameborder="0">
-            </iframe>
+            THtml.element "iframe" #[("src", $url:str),
+              ("width", "100%"), ("height", "600px"), ("frameborder", "0")] #[]
           savePanelWidgetInfo stx ``HtmlDisplayPanel do
-            return json% { html: $(← rpcEncode docs) }
+            return .mkObj [("html", ← rpcEncode docs)]
       | stx => throwError s!"Unexpected syntax {stx}."
   )
-  dbg_trace out.raw.reprint.get!
-  pure out
 | _ => Macro.throwUnsupported
 
-#check liftM
 
-syntax (name := docs) "#docs" : command
+#browse "https://leanprover-community.github.io/mathlib-port-status/"
+#browse "https://leanprover-community.github.io/blog/"
 
-@[command_elab docs]
-def elabDocsCmd : CommandElab
-  | stx@`(command| #docs) => do
-    runTermElabM fun _ => do
-      let docs := ProofWidgets.Html.ofTHtml <|
-        <iframe src="https://leanprover-community.github.io/mathlib4_docs/"
-            width="100%" height="600px" frameborder="0">
-        </iframe>
-      savePanelWidgetInfo stx ``HtmlDisplayPanel do
-        return json% { html: $(← rpcEncode docs) }
-  | stx => throwError "Unexpected syntax {stx}."
-
-browse desmos "https://www.desmos.com/calculator"
+#web desmos "https://www.desmos.com/calculator"
+#web fplean "https://leanprover.github.io/functional_programming_in_lean/"
+#web zulip "https://leanprover.zulipchat.com/"
+#web docs "https://leanprover-community.github.io/mathlib4_docs/"
 
 #desmos
+#fplean
+#zulip
 #docs
