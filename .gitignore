@@ -4,3 +4,4 @@
 # JavaScript build artefacts.
 /widget/dist
 /widget/node_modules
+*.tar.gz
