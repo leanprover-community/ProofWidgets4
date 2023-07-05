@@ -17,9 +17,9 @@ a `conv?` tactic that allows to select a subterm of the goal and, after clicking
 below the tactic state, replace the `conv?` call by a `conv => enter [...]` call zooming on the
 selected subterm.
 
-The only public part of this file is the `mkSelectInsertTactic` macro. Every other declarations
+The only public part of this file is the `mkSelectInsertTactic` macro. Other declarations
 are internal details of the implementation of this macro. The corresponding JaveScript code,
-which is in `wdiget/src/selectInsertPanel.tsx`, is also an implemantation detail.
+which is in `widget/src/selectInsertPanel.tsx`, is also an implemantation detail.
 -/
 
 /-- Parameter for a widget callback that will insert a tactic call after selecting things in
@@ -47,7 +47,8 @@ structure SelectInsertResponse where
   deriving FromJson, ToJson
 
 /-- Create the function that will actually handle the call from the widget. -/
-def mkSelectInsertCommand (mkCmdStr : (pos : Array Lean.SubExpr.GoalsLocation) → (goalType : Expr) → MetaM String) :
+def mkSelectInsertCommand
+    (mkCmdStr : (pos : Array Lean.SubExpr.GoalsLocation) → (goalType : Expr) → MetaM String) :
     SelectInsertParams → RequestM (RequestTask (Option SelectInsertResponse)) :=
   fun ⟨cursorPos, ⟨ctx⟩, selectedLocations, replaceRange⟩ ↦
     RequestM.withWaitFindSnapAtPos cursorPos fun _ => do
@@ -81,10 +82,9 @@ structure InsertPanelProps where
   replaceRange : Lsp.Range
   deriving FromJson, ToJson
 
-/-- Create a component using the javascript code from `selectInsertPanel.js`. -/
+@[widget_module]
 def mkInsertWidget : ProofWidgets.Component InsertPanelProps where
   javascript := include_str ".."/".."/"build"/"js"/"selectInsertPanel.js"
-
 
 open Elab Tactic ProofWidgets in
 /-- Create the tactic that will display the widget. -/
@@ -105,13 +105,9 @@ the given callback function to generate a String that will replace the tactic wh
 users click on a link.  The callback function must have type
 `(pos : Array Lean.SubExpr.GoalsLocation) → (goalType : Expr) → MetaM String`. -/
 macro "mkSelectInsertTactic" name:str title:str help:str callback:ident : command =>
-let cmdName : Name := .str `mkSelectInsertCmd (name.getString ++ "_widget")
-let panelName : Name := .str `mkSelectInsertPanel (name.getString ++ "_widget")
-`(@[server_rpc_method]
-def $(mkIdent cmdName) := mkSelectInsertCommand $callback
-
-@[widget_module]
-def $(mkIdent panelName) := mkInsertWidget
-
-elab stx:$name:str : $(mkIdent `tactic) =>
-  mkInsertTactic $(quote panelName) $title:str $help:str $(quote cmdName) stx)
+  let cmdName : Name := .str `mkSelectInsertCmd (name.getString ++ "_widget")
+  `(
+    @[server_rpc_method]
+    def $(mkIdent cmdName) := mkSelectInsertCommand $callback
+    elab stx:$name:str : $(mkIdent `tactic) =>
+      mkInsertTactic ``mkInsertWidget $title:str $help:str $(quote cmdName) stx)
