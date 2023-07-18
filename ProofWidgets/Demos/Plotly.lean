@@ -21,13 +21,12 @@ def histData := [1, 1, 5, 5, 3, 4, 4, 4, 5, 1, 2, 2, 3, 3, 5]
     type: "histogram"
   }],
   layout: {
-    title: "A sample histogram"
+    title: "A sample histogram",
+    xaxis: { title: "Bins" },
+    yaxis: { title: "Count" }
   },
   config: {
     scrollZoom: true,
-    editable: true,
-    plotlyServerURL: "https://chart-studio.plotly.com",
-    showLink: true,
-    showEditInChartStudio: true
+    editable: true
   }
 }
