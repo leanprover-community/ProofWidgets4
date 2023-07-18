@@ -5,7 +5,7 @@ Authors: Robin Böhne, Wojciech Nawrocki, Patrick Massot
 -/
 
 import Std.Lean.Position
-import ProofWidgets.Component.Panel
+import ProofWidgets.Component.Panel.Basic
 
 open Lean Meta Server
 
@@ -84,7 +84,7 @@ structure InsertPanelProps where
 
 @[widget_module]
 def mkInsertWidget : ProofWidgets.Component InsertPanelProps where
-  javascript := include_str ".."/".."/"build"/"js"/"selectInsertPanel.js"
+  javascript := include_str ".."/".."/".."/"build"/"js"/"selectInsertPanel.js"
 
 open Elab Tactic ProofWidgets in
 /-- Create the tactic that will display the widget. -/

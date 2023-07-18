@@ -2,7 +2,7 @@ import Lean.Data.HashMap
 import Lean.Elab.Tactic
 import ProofWidgets.Component.PenroseDiagram
 import ProofWidgets.Component.HtmlDisplay
-import ProofWidgets.Component.Panel
+import ProofWidgets.Component.Panel.Basic
 
 open Lean Meta Server
 open ProofWidgets

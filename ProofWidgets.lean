@@ -3,10 +3,12 @@ import ProofWidgets.Component.Basic
 import ProofWidgets.Component.GoalTypePanel
 import ProofWidgets.Component.HtmlDisplay
 import ProofWidgets.Component.InteractiveSvg
-import ProofWidgets.Component.Panel
+import ProofWidgets.Component.Panel.Basic
+import ProofWidgets.Component.Panel.GoalTypePanel
+import ProofWidgets.Component.Panel.SelectionPanel
+import ProofWidgets.Component.Panel.SelectInsertPanel
 import ProofWidgets.Component.PenroseDiagram
 import ProofWidgets.Component.Recharts
-import ProofWidgets.Component.SelectionPanel
 import ProofWidgets.Data.Html
 import ProofWidgets.Data.Json
 import ProofWidgets.Data.Svg

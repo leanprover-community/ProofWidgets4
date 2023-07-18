@@ -5,13 +5,15 @@ import Lean.Elab.Tactic
 namespace ProofWidgets
 open Lean Elab Tactic
 
-/-- In the infoview, an info block is a top-level collapsible block corresponding to a given
+/-- In the infoview, an **info block** is a top-level collapsible block corresponding to a given
 location in a Lean file (e.g. with the header `Basic.lean:12:34`).
 
-A panel widget is a component which can appear as a panel in an info block in the infoview.
-For example, a tactic state display. This type represents the props passed to a panel widget. Since
-panel widgets can be stateful, giving them a Lean type is a bit tricky, so for now we keep it
-opaque. The real TypeScript version is exported as `PanelWidgetProps` from `@leanprover/infoview`.
+A **panel widget** is a component which can appear as a panel in an info block in the infoview.
+For example, a tactic state display.
+The type `PanelWidgetProps` represents the props passed to a panel widget.
+Since panel widgets can be stateful, giving them a Lean type is a bit tricky,
+so for now we keep it opaque.
+The real TypeScript version is exported as `PanelWidgetProps` from `@leanprover/infoview`.
 
 Note that to be a good citizen which doesn't mess up the infoview, a panel widget should be a block
 element, and should provide some way to collapse it, for example by using `<details>` as the

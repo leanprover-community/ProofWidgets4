@@ -1,5 +1,5 @@
 import ProofWidgets.Presentation.Expr
-import ProofWidgets.Component.SelectionPanel
+import ProofWidgets.Component.Panel.SelectionPanel
 
 /-! ## References:
 - Chris Okasaki. "Functional Pearls: Red-Black Trees in a Functional Setting". 1993 -/
