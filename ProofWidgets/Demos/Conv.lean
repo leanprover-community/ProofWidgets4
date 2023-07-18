@@ -447,7 +447,7 @@ example [Add α] [Neg α] [OfNat α (nat_lit 0)]
     (h₂ : ∀ (a b c : α), (a + b) + c = a + (b + c))
     (h₃ : ∀ (a : α), a + (-a) = 0) :
     ∀ (a : α), (-a) + a = 0 :=
-by withPanelWidgets [ConvPanel]
+by with_panel_widgets [ConvPanel]
   intro a
   have : ∀ (a : α), a + a = a → a = 0 := by
     intro a h
@@ -456,4 +456,3 @@ by withPanelWidgets [ConvPanel]
   rw [← h₂]
   conv =>
     -- Place your cursor in the `conv` block
-    sorry

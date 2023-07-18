@@ -82,7 +82,7 @@ structure GetExprPresentationParams where
 
 #mkrpcenc GetExprPresentationParams
 
-@[deprecated, server_rpc_method]
+@[server_rpc_method]
 def getExprPresentation : GetExprPresentationParams → RequestM (RequestTask Html)
   | { expr := ⟨expr⟩, name } => RequestM.asTask do
     let ci := expr.ci
@@ -93,6 +93,9 @@ def getExprPresentation : GetExprPresentationParams → RequestM (RequestTask Ht
       expr.runMetaM p.present
     | .error e =>
       throw <| RequestError.internalError s!"Failed to evaluate Expr presenter '{name}': {e}"
+
+-- https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/deprecation.20warning.20from.20ProofWidgets
+attribute [deprecated] getExprPresentation
 
 structure ExprPresentationProps where
   expr : WithRpcRef ExprWithCtx
