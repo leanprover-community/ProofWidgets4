@@ -24,9 +24,8 @@ target widgetPackageLock : FilePath := do
       cwd := some widgetDir
     }
 
-def widgetTsxTarget (pkg : Package) (tsxName : String) (deps : Array (BuildJob FilePath))
-    (isDev : Bool)
-    [PackageName pkg _package.name] : IndexBuildM (BuildJob FilePath) := do
+def widgetTsxTarget (pkg : NPackage _package.name) (tsxName : String)
+    (deps : Array (BuildJob FilePath)) (isDev : Bool) : IndexBuildM (BuildJob FilePath) := do
   let jsFile := pkg.buildDir / "js" / s!"{tsxName}.js"
   let deps := deps ++ #[
     ← inputFile <| widgetDir / "src" / s!"{tsxName}.tsx",
@@ -45,7 +44,7 @@ def widgetTsxTarget (pkg : Package) (tsxName : String) (deps : Array (BuildJob F
       cwd := some widgetDir
     }
 
-def widgetJsAllTarget (pkg : Package) [PackageName pkg _package.name] (isDev : Bool) :
+def widgetJsAllTarget (pkg : NPackage _package.name) (isDev : Bool) :
     IndexBuildM (BuildJob (Array FilePath)) := do
   let fs ← (widgetDir / "src").readDir
   let tsxs : Array FilePath := fs.filterMap fun f =>
@@ -55,14 +54,14 @@ def widgetJsAllTarget (pkg : Package) [PackageName pkg _package.name] (isDev : B
   let jobs ← tsxs.mapM fun tsx => widgetTsxTarget pkg tsx.fileStem.get! deps isDev
   BuildJob.collectArray jobs
 
-target widgetJsAll (pkg : Package) : Array FilePath := do
+target widgetJsAll (pkg : NPackage _package.name) : Array FilePath := do
   widgetJsAllTarget pkg (isDev := false)
 
-target widgetJsAllDev (pkg : Package) : Array FilePath := do
+target widgetJsAllDev (pkg : NPackage _package.name) : Array FilePath := do
   widgetJsAllTarget pkg (isDev := true)
 
 @[default_target]
-target all (pkg : Package) : Unit := do
+target all (pkg : NPackage _package.name) : Unit := do
   let some lib := pkg.findLeanLib? ``ProofWidgets |
     error "cannot find lean_lib target"
   let job₁ ← fetch (pkg.target ``widgetJsAll)
