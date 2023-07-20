@@ -1,4 +1,6 @@
+import ProofWidgets.Compat
 import ProofWidgets.Component.Basic
+import ProofWidgets.Component.GoalTypePanel
 import ProofWidgets.Component.HtmlDisplay
 import ProofWidgets.Component.InteractiveSvg
 import ProofWidgets.Component.Panel
