@@ -8,8 +8,7 @@ def presenter : ExprPresenter where
   userName := "With octopodes"
   layoutKind := .inline
   present e :=
-    return Html.ofTHtml
-      <span>
+    return <span>
         {.text "🐙 "}<InteractiveCode fmt={← Lean.Widget.ppExprTagged e} />{.text " 🐙"}
       </span>
 

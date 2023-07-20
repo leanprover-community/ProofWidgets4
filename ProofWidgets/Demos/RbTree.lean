@@ -105,9 +105,9 @@ def RBDisplay : Component RBDisplayProps where
 open scoped Jsx in
 partial def drawTree? (e : Expr) : MetaM (Option Html) := do
   if let some _ := node? e then
-    return some <| .ofTHtml <RBDisplay tree={← go e}/>
+    return some <RBDisplay tree={← go e}/>
   else if empty? e then
-    return some <| .ofTHtml <RBDisplay tree={← go e}/>
+    return some <RBDisplay tree={← go e}/>
   else
     return none
 where go (e : Expr) : MetaM RBTreeVars := do
