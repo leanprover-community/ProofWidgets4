@@ -25,18 +25,11 @@ target widgetPackageLock : FilePath := do
 
 /-- Target to build `build/js/foo.js` from a `widget/src/foo.tsx` widget module.
 Rebuilds whenever the `.tsx` source, or any part of the build configuration, has changed. -/
-def widgetTsxTarget (pkg : NPackage _package.name) (nodeModulesMutex : IO.Mutex Unit)
+def widgetTsxTarget (pkg : NPackage _package.name) (nodeModulesMutex : IO.Mutex Bool)
     (tsxName : String) (deps : Array (BuildJob FilePath)) (isDev : Bool) :
     IndexBuildM (BuildJob FilePath) := do
   let jsFile := pkg.buildDir / "js" / s!"{tsxName}.js"
-  let deps := deps ++ #[
-    ← inputFile <| widgetDir / "src" / s!"{tsxName}.tsx",
-    ← inputFile <| widgetDir / "rollup.config.js",
-    ← inputFile <| widgetDir / "tsconfig.json",
-    ← fetch (pkg.target ``widgetPackageLock)
-  ]
   buildFileAfterDepArray jsFile deps fun _srcFile => do
-    let nodeModules := widgetDir / "node_modules"
     /-
     HACK: Ensure that NPM modules are installed before building TypeScript, *if* we are building it.
     It would probably be better to have a proper target for `node_modules`
@@ -49,15 +42,14 @@ def widgetTsxTarget (pkg : NPackage _package.name) (nodeModulesMutex : IO.Mutex 
     It has to be guarded by a mutex to avoid multiple `.tsx` builds trampling on each other
     with multiple `npm clean-install`s.
     -/
-    let mkNodeModulesX : IO Unit :=
-      nodeModulesMutex.atomically do
-        if !(← nodeModules.isDir) then
-          let _ ← IO.Process.run {
-            cmd := npmCmd
-            args := #["clean-install"]
-            cwd := some widgetDir
-          }
-    mkNodeModulesX
+    nodeModulesMutex.atomically (m := IO) do
+      if (← get) then return
+      let _ ← IO.Process.run {
+        cmd := npmCmd
+        args := #["clean-install"]
+        cwd := some widgetDir
+      }
+      set true
     proc {
       cmd := npmCmd
       args :=
@@ -75,8 +67,10 @@ def widgetJsAllTarget (pkg : NPackage _package.name) (isDev : Bool) :
   let tsxs : Array FilePath := fs.filterMap fun f =>
     let p := f.path; if let some "tsx" := p.extension then some p else none
   -- Conservatively, every .js build depends on all the .tsx source files.
-  let deps ← liftM <| tsxs.mapM inputFile
-  let nodeModulesMutex ← IO.Mutex.new ()
+  let depFiles := tsxs ++ #[ widgetDir / "rollup.config.js", widgetDir / "tsconfig.json" ]
+  let deps ← liftM <| depFiles.mapM inputFile
+  let deps := deps.push $ ← fetch (pkg.target ``widgetPackageLock)
+  let nodeModulesMutex ← IO.Mutex.new false
   let jobs ← tsxs.mapM fun tsx => widgetTsxTarget pkg nodeModulesMutex tsx.fileStem.get! deps isDev
   BuildJob.collectArray jobs
 
