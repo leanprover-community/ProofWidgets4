@@ -1,5 +1,5 @@
-import ProofWidgets.Component.Basic
 import Lean.Server.Utils
+import ProofWidgets.Component.Basic
 
 namespace ProofWidgets
 open Lean
@@ -19,10 +19,9 @@ def MakeEditLinkProps.ofReplaceRange (meta : Server.DocumentMeta) (range : Lsp.R
     (newText : String) : MakeEditLinkProps :=
   let edit := { textDocument := { uri := meta.uri, version? := meta.version }
                 edits        := #[{ range, newText }] }
-  -- TODO: UTF-32
   let newCursorPos? := some {
     line := range.start.line
-    character := range.start.character + newText.length
+    character := range.start.character + newText.codepointPosToUtf16Pos newText.length
   }
   { edit, newCursorPos? }
 
