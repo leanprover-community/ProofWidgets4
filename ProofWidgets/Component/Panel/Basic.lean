@@ -11,14 +11,22 @@ location in a Lean file (e.g. with the header `Basic.lean:12:34`).
 A **panel widget** is a component which can appear as a panel in an info block in the infoview.
 For example, a tactic state display.
 The type `PanelWidgetProps` represents the props passed to a panel widget.
-Since panel widgets can be stateful, giving them a Lean type is a bit tricky,
-so for now we keep it opaque.
-The real TypeScript version is exported as `PanelWidgetProps` from `@leanprover/infoview`.
+The TypeScript version is exported as `PanelWidgetProps` from `@leanprover/infoview`.
 
-Note that to be a good citizen which doesn't mess up the infoview, a panel widget should be a block
-element, and should provide some way to collapse it, for example by using `<details>` as the
-top-level tag. -/
-opaque PanelWidgetProps : Type
+Note that to be a good citizen which doesn't mess up the infoview layout,
+a panel widget should be a block element,
+and should provide some way to collapse it,
+for example by using `<details>` as the top-level tag. -/
+structure PanelWidgetProps : Type where
+  /-- Cursor position in the file at which the widget is being displayed. -/
+  pos : Lsp.Position
+  /-- The current tactic-mode goals. -/
+  goals : Array Widget.InteractiveGoal
+  /-- The current term-mode goal, if any. -/
+  termGoal? : Option Widget.InteractiveTermGoal
+  /-- Locations currently selected in the goal state. -/
+  selectedLocations : Array SubExpr.GoalsLocation
+  deriving Server.RpcEncodable
 
 def processIdent (stx : Syntax) (nmStx : TSyntax `ident) : CoreM Unit := do
   let nm ← resolveGlobalConstNoOverloadWithInfo nmStx
