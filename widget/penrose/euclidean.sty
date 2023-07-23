@@ -1,0 +1,43 @@
+forall Point x {
+  x.icon = Circle {
+    strokeWidth : 0
+  }
+
+  x.textBox = Rectangle {
+    -- string : x.label
+    -- fontSize : "25px"
+    cornerRadius : 5
+    width : 50
+    height : 30
+  }
+
+  ensure contains(x.icon, x.textBox)
+  encourage sameCenter(x.textBox, x.icon)
+  x.textLayering = x.textBox above x.icon
+}
+
+forall Line x {
+  x.icon = Circle {
+    strokeWidth : 0
+  }
+
+  x.textBox = Rectangle {
+    -- string : x.label
+    -- fontSize : "25px"
+    cornerRadius : 5
+    width : 50
+    height : 30
+  }
+
+  ensure contains(x.icon, x.textBox)
+  encourage sameCenter(x.textBox, x.icon)
+  x.textLayering = x.textBox above x.icon
+}
+
+forall Point x; Line y
+where IsOnline(x, y) {
+  ensure smallerThan(x.icon, y.icon)
+  ensure disjoint(y.textBox, x.icon, 10)
+  ensure contains(y.icon, x.icon, 5)
+  x.icon above y.icon
+}
