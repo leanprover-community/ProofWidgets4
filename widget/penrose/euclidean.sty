@@ -1,7 +1,4 @@
---canvas {
---    width = 800
---    height = 600
---}
+--inspired by https://github.com/penrose/penrose/blob/499cd21f39549abd317976f492b803a09ce2277d/packages/examples/src/geometry-domain/euclidean-teaser.style
 
 Colors {
     -- Keenan palette
@@ -17,57 +14,38 @@ Colors {
 }
 
 const {
-    pi = 3.14159
-    arrowheadSize = 0.65
     strokeWidth = 1.75
-    textPadding = 7.0
-    textPadding2 = 25.0
-    textPadding3 = 0.1
-    repelWeight = 0.7 -- TODO: Reverted from 0.0
-    repelWeight2 = 0.5
-    fontSize = "22pt"
-    containPadding = 50.0
-    rayLength = 100.0
+    textPadding = 0.1
+    repelWeight = 0.3
     pointRadius = 4.0
-    pointStroke = 0.0
-    thetaRadius = 30.0
-    circleRadius = 150.0
-    labelPadding = 30.0
-    minSegmentLength = 80.0
     minLineLength = 200.0
 }
 
 
 -- Point
 forall Point p {
-  p.x = ?
-  p.y = ?
-  p.vec = (p.x, p.y)
-  p.color = Colors.black
+  p.vec = (?, ?)
 
   p.icon = Circle {
     center: p.vec
     r : const.pointRadius
     fillColor : Colors.white
-    strokeWidth : 0.0
+    strokeWidth : const.strokeWidth
     strokeColor : Colors.black
-  }
-
-  p.textBox = Rectangle {
-    fontSize : const.fontSize
-    fillColor : Colors.none
-    cornerRadius : 5
-    width : 50
-    height : 30
     }
 
-  ensure equal(signedDistance(p.textBox, p.vec), const.textPadding3 + const.pointRadius)
+  p.textBox = Rectangle {
+    fillColor : Colors.none
+    cornerRadius : 5
+    }
+
+  ensure equal(signedDistance(p.textBox, p.vec), 0)
   p.textLayering = p.textBox above p.icon
   }
 
 
--- Line
-forall Line L {
+  -- Line
+  forall Line L {
   L.color = Colors.black
 
   L.icon = Line {
@@ -79,17 +57,13 @@ forall Line L {
   }
 
   L.textBox = Rectangle {
-    string : L.label
-    fontSize : const.fontSize
     fillColor : Colors.none
     cornerRadius : 5
-    width : 50
-    height : 30
     }
 
-  ensure equal(signedDistance(L.textBox, L.icon.start), const.textPadding3)
+  ensure lessThan(const.minLineLength, norm(L.icon.start - L.icon.end))
+  ensure equal(signedDistance(L.textBox, L.icon.start), const.textPadding)
   ensure disjoint(L.textBox, L.icon)
-  L.textBox above L.icon
 }
 
 
@@ -98,7 +72,6 @@ forall Point p; Line L
 where On(p, L) {
   ensure equal(signedDistance(L.icon, p.vec), 0)
   ensure disjoint(L.textBox, p.icon)
-  ensure disjoint(L.icon, p.textBox)
   p.icon above L.icon
 }
 
@@ -111,4 +84,19 @@ where Between(p, q, r) {
   ensure inRange(q.icon.center[1], p.icon.center[1], r.icon.center[1])
   encourage notTooClose(p.icon, q.icon, const.repelWeight)
   encourage notTooClose(q.icon, r.icon, const.repelWeight)
+}
+
+
+-- Repelling
+forall Point p; Line L {
+  ensure disjoint(p.textBox, L.textBox)
+}
+
+forall Line L; Line M {
+  ensure disjoint(L.textBox, M.textBox)
+}
+
+forall Point p; Point q {
+  ensure disjoint(p.textBox, q.textBox)
+  encourage notTooClose(p.icon, q.icon, const.repelWeight)
 }

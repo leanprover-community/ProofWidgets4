@@ -1,3 +1,9 @@
+/-
+ Copyright (c) 2023 Vladimir Sedlacek. All rights reserved.
+ Released under Apache 2.0 license as described in the file LICENSE.
+ Authors: Vladimir Sedlacek
+ -/
+
 import Lean.Data.HashMap
 import Lean.Elab.Tactic
 import ProofWidgets.Component.PenroseDiagram
@@ -11,14 +17,14 @@ open ProofWidgets
 
 universe u1 u2 u3
 class incidence_geometry :=
-(point : Type u1)
-(line : Type u2)
+point : Type u1
+line : Type u2
 
-(B : point → point → point → Prop) -- Betweenness
-(online : point → line → Prop)
-(ne_23_of_B : ∀ {a b c : point}, B a b c → b ≠ c )
-(line_unique_of_pts : ∀ {a b : point}, ∀ {L M : line}, a ≠ b → online a L → online b L → online a M → online b M → L = M)
-(online_2_of_B : ∀ {a b c : point}, ∀ {L : line}, B a b c → online a L → online c L → online b L)
+B : point → point → point → Prop -- Betweenness (implies colinearity)
+online : point → line → Prop
+ne_23_of_B : ∀ {a b c : point}, B a b c → b ≠ c
+line_unique_of_pts : ∀ {a b : point}, ∀ {L M : line}, a ≠ b → online a L → online b L → online a M → online b M → L = M
+online_2_of_B : ∀ {a b c : point}, ∀ {L : line}, B a b c → online a L → online c L → online b L
 
 variable [i : incidence_geometry]
 open incidence_geometry
