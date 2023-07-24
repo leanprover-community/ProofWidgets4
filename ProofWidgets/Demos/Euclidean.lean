@@ -13,13 +13,12 @@ universe u1 u2 u3
 class incidence_geometry :=
 (point : Type u1)
 (line : Type u2)
-(circle : Type u3)
 
 (B : point → point → point → Prop) -- Betweenness
 (online : point → line → Prop)
-(ne_12_of_B : ∀ {a b c : point}, B a b c → a ≠ b )
-(ne_13_of_B : ∀ {a b c : point}, B a b c → a ≠ c )
 (ne_23_of_B : ∀ {a b c : point}, B a b c → b ≠ c )
+(line_unique_of_pts : ∀ {a b : point}, ∀ {L M : line}, a ≠ b → online a L → online b L → online a M → online b M → L = M)
+(online_2_of_B : ∀ {a b c : point}, ∀ {L : line}, B a b c → online a L → online c L → online b L)
 
 variable [i : incidence_geometry]
 open incidence_geometry
@@ -164,7 +163,9 @@ def withEuclideanDisplay : Tactic
     evalTacticSeq seq
   | _ => throwUnsupportedSyntax
 
-example {a b c : point} {L M : line} (hB : B a b c) (aL : online a L) (bM : online b M) (cL : online c L) (cM : online c M) : a ≠ b := by
+example {a b c : point} {L M : line} (Babc : B a b c) (aL : online a L) (bM : online b M) (cL : online c L) (cM : online c M) : L = M := by
   withEuclideanDisplay
     -- Place your cursor here.
-  exact ne_12_of_B hB
+  have bc := ne_23_of_B Babc
+  have bL := online_2_of_B Babc aL cL
+  exact line_unique_of_pts bc bL cL bM cM
