@@ -1,43 +1,103 @@
-forall Point x {
-  x.icon = Circle {
-    strokeWidth : 0
+--canvas {
+--    width = 800
+--    height = 600
+--}
+
+Colors {
+    -- Keenan palette
+    black = #000000
+    white = #fff
+    darkpurple = #8c90c1
+    lightpurple = #d0d3e6
+    purple2 = rgba(0.106, 0.122, 0.54, 0.2)
+    verylightpurple = rgba(0.953, 0.957, 0.977, 1.0)
+    purple3 = rgba(0.557, 0.627, 0.769, 1.0)
+    midnightblue = rgba(0.14, 0.16, 0.52, 1.0)
+    none = none()
+}
+
+const {
+    pi = 3.14159
+    arrowheadSize = 0.65
+    strokeWidth = 1.75
+    textPadding = 7.0
+    textPadding2 = 25.0
+    textPadding3 = 0.1
+    repelWeight = 0.7 -- TODO: Reverted from 0.0
+    repelWeight2 = 0.5
+    fontSize = "22pt"
+    containPadding = 50.0
+    rayLength = 100.0
+    pointRadius = 4.0
+    pointStroke = 0.0
+    thetaRadius = 30.0
+    circleRadius = 150.0
+    labelPadding = 30.0
+    minSegmentLength = 80.0
+    minLineLength = 200.0
+}
+
+
+-- Point
+forall Point p {
+  p.x = ?
+  p.y = ?
+  p.vec = (p.x, p.y)
+  p.color = Colors.black
+
+  p.icon = Circle {
+    center: p.vec
+    r : const.pointRadius
+    fillColor : Colors.white
+    strokeWidth : 0.0
+    strokeColor : Colors.black
   }
 
-  x.textBox = Rectangle {
-    -- string : x.label
-    -- fontSize : "25px"
+  p.textBox = Rectangle {
+    fontSize : const.fontSize
+    fillColor : Colors.none
     cornerRadius : 5
     width : 50
     height : 30
+    }
+
+  ensure equal(signedDistance(p.textBox, p.vec), const.textPadding3 + const.pointRadius)
+  p.textLayering = p.textBox above p.icon
   }
 
-  ensure contains(x.icon, x.textBox)
-  encourage sameCenter(x.textBox, x.icon)
-  x.textLayering = x.textBox above x.icon
-}
 
-forall Line x {
-  x.icon = Circle {
-    strokeWidth : 0
+-- Line
+forall Line L {
+  L.color = Colors.black
+
+  L.icon = Line {
+    start : (?, ?)
+    end : (?, ?)
+    strokeColor : L.color
+    strokeWidth : const.strokeWidth
+    style : "solid"
   }
 
-  x.textBox = Rectangle {
-    -- string : x.label
-    -- fontSize : "25px"
+  L.textBox = Rectangle {
+    string : L.label
+    fontSize : const.fontSize
+    fillColor : Colors.none
     cornerRadius : 5
     width : 50
     height : 30
-  }
+    }
 
-  ensure contains(x.icon, x.textBox)
-  encourage sameCenter(x.textBox, x.icon)
-  x.textLayering = x.textBox above x.icon
+  ensure equal(signedDistance(L.textBox, L.icon.start), const.textPadding3)
+  ensure disjoint(L.textBox, L.icon)
+  L.textBox above L.icon
 }
 
-forall Point x; Line y
-where IsOnline(x, y) {
-  ensure smallerThan(x.icon, y.icon)
-  ensure disjoint(y.textBox, x.icon, 10)
-  ensure contains(y.icon, x.icon, 5)
-  x.icon above y.icon
+
+-- Point on Line
+forall Point p; Line L
+where On(p, L) {
+  ensure equal(signedDistance(L.icon, p.vec), 0)
+  ensure disjoint(L.textBox, p.icon)
+  ensure disjoint(L.icon, p.textBox)
+  p.icon above L.icon
 }

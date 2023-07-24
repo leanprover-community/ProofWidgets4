@@ -60,7 +60,7 @@ def isEuclideanGoal? (hyps : Array LocalDecl) : MetaM (Option Html) := do
         sub := sub ++ s!"Point {sa}\n"
       if !cL then
         sub := sub ++ s!"Line {sL}\n"
-      sub := sub ++ s!"IsOnline({sa}, {sL})\n"
+      sub := sub ++ s!"On({sa}, {sL})\n"
       -- dbg_trace sub
   if sets.isEmpty then return none
   some <$> mkEuclideanDiag sub sets.toArray
@@ -145,7 +145,7 @@ def withEuclideanDisplay : Tactic
     evalTacticSeq seq
   | _ => throwUnsupportedSyntax
 
-example {a b c : point} {L M : line} (hB : B a b c) (aL : online a L) (bM : online b M) : a ≠ b := by
+example {a b c : point} {L M : line} (hB : B a b c) (aL : online a L) (bM : online b M) (cL : online c L) (cM : online c M) : a ≠ b := by
   withEuclideanDisplay
     -- Place your cursor here.
   exact ne_12_of_B hB
