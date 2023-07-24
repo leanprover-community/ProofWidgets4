@@ -31,6 +31,11 @@ def isOnlinePred? (e : Expr) : Option (Expr × Expr) := do
   let some (_, a, L) := e.app3? ``online | none
   return (a, L)
 
+/-- If `e == B a b c` return `some (a, b, c)`, otherwise `none`. -/
+def isBetweenPred? (e : Expr) : Option (Expr × Expr × Expr) := do
+  let some (_, a, b, c) := e.app4? ``B | none
+  return (a, b, c)
+
 /-- Expressions to display as labels in a diagram. -/
 abbrev ExprEmbeds := Array (String × Expr)
 
@@ -61,7 +66,21 @@ def isEuclideanGoal? (hyps : Array LocalDecl) : MetaM (Option Html) := do
       if !cL then
         sub := sub ++ s!"Line {sL}\n"
       sub := sub ++ s!"On({sa}, {sL})\n"
-      -- dbg_trace sub
+    if let some (a, b, c) := isBetweenPred? tp then
+      let sa ← toString <$> Lean.Meta.ppExpr a
+      let sb ← toString <$> Lean.Meta.ppExpr b
+      let sc ← toString <$> Lean.Meta.ppExpr c
+      let (sets', ca) := sets.insert' sa a
+      let (sets', cb) := sets'.insert' sb b
+      let (sets', cc) := sets'.insert' sc c
+      sets := sets'
+      if !ca then
+        sub := sub ++ s!"Point {sa}\n"
+      if !cb then
+        sub := sub ++ s!"Point {sb}\n"
+      if !cc then
+        sub := sub ++ s!"Point {sc}\n"
+      sub := sub ++ s!"Between({sa}, {sb}, {sc})\n"
   if sets.isEmpty then return none
   some <$> mkEuclideanDiag sub sets.toArray
 
