@@ -74,7 +74,6 @@ forall Point p; Line L
 where On(p, L) {
   ensure equal(signedDistance(L.icon, p.vec), 0)
   ensure disjoint(L.textBox, p.icon)
-  p.icon above L.icon
 }
 
 
@@ -92,6 +91,7 @@ where Between(p, q, r) {
 -- Repelling
 forall Point p; Line L {
   ensure disjoint(p.textBox, L.textBox)
+  p.icon above L.icon
 }
 
 forall Line L; Line M {
