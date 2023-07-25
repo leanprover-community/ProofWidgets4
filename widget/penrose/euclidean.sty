@@ -41,7 +41,7 @@ forall Point p {
     cornerRadius : 5
   }
 
-  ensure equal(signedDistance(p.textBox, p.vec), 0)
+  ensure equal(signedDistance(p.textBox, p.vec), const.textPadding)
   p.textLayering = p.textBox above p.icon
 }
 
