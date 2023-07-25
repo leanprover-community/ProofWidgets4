@@ -16,29 +16,29 @@ open ProofWidgets
 /-! # Minimal definitions of synthetic geometric primitives, inspired by https://github.com/ah1112/synthetic_euclid_4 -/
 
 universe u1 u2 u3
-class incidence_geometry :=
-point : Type u1
-line : Type u2
+class IncidenceGeometry where
+Point : Type u1
+Line : Type u2
 
-B : point → point → point → Prop -- Betweenness (implies colinearity)
-online : point → line → Prop
-ne_23_of_B : ∀ {a b c : point}, B a b c → b ≠ c
-line_unique_of_pts : ∀ {a b : point}, ∀ {L M : line}, a ≠ b → online a L → online b L → online a M → online b M → L = M
-online_2_of_B : ∀ {a b c : point}, ∀ {L : line}, B a b c → online a L → online c L → online b L
+between : Point → Point → Point → Prop -- implies colinearity
+onLine : Point → Line → Prop
+ne_23_of_between : ∀ {a b c : Point}, between a b c → b ≠ c
+line_unique_of_pts : ∀ {a b : Point}, ∀ {L M : Line}, a ≠ b → onLine a L → onLine b L → onLine a M → onLine b M → L = M
+onLine_2_of_between : ∀ {a b c : Point}, ∀ {L : Line}, between a b c → onLine a L → onLine c L → onLine b L
 
-variable [i : incidence_geometry]
-open incidence_geometry
+variable [i : IncidenceGeometry]
+open IncidenceGeometry
 
 /-! # Metaprogramming utilities to break down expressions -/
 
-/-- If `e == online a L` return `some (a, L)`, otherwise `none`. -/
-def isOnlinePred? (e : Expr) : Option (Expr × Expr) := do
-  let some (_, a, L) := e.app3? ``online | none
+/-- If `e == onLine a L` return `some (a, L)`, otherwise `none`. -/
+def isOnLinePred? (e : Expr) : Option (Expr × Expr) := do
+  let some (_, a, L) := e.app3? ``onLine | none
   return (a, L)
 
-/-- If `e == B a b c` return `some (a, b, c)`, otherwise `none`. -/
+/-- If `e == between a b c` return `some (a, b, c)`, otherwise `none`. -/
 def isBetweenPred? (e : Expr) : Option (Expr × Expr × Expr) := do
-  let some (_, a, b, c) := e.app4? ``B | none
+  let some (_, a, b, c) := e.app4? ``between | none
   return (a, b, c)
 
 /-- Expressions to display as labels in a diagram. -/
@@ -60,7 +60,7 @@ def isEuclideanGoal? (hyps : Array LocalDecl) : MetaM (Option Html) := do
   let mut sets : HashMap String Expr := .empty
   for assm in hyps do
     let tp ← instantiateMVars assm.type
-    if let some (a, L) := isOnlinePred? tp then
+    if let some (a, L) := isOnLinePred? tp then
       let sa ← toString <$> Lean.Meta.ppExpr a
       let sL ← toString <$> Lean.Meta.ppExpr L
       let (sets', ca) := sets.insert' sa a
@@ -159,10 +159,10 @@ def EuclideanDisplayPanel : Component PanelWidgetProps where
 
 /-! # Example usage -/
 
-example {a b c : point} {L M : line} (Babc : B a b c) (aL : online a L) (bM : online b M)
-    (cL : online c L) (cM : online c M) : L = M := by
+example {a b c : Point} {L M : Line} (Babc : between a b c) (aL : onLine a L) (bM : onLine b M)
+    (cL : onLine c L) (cM : onLine c M) : L = M := by
   with_panel_widgets [EuclideanDisplayPanel]
       -- Place your cursor here.
-    have bc := ne_23_of_B Babc
-    have bL := online_2_of_B Babc aL cL
+    have bc := ne_23_of_between Babc
+    have bL := onLine_2_of_between Babc aL cL
     exact line_unique_of_pts bc bL cL bM cM
