@@ -1,24 +1,26 @@
---inspired by https://github.com/penrose/penrose/blob/499cd21f39549abd317976f492b803a09ce2277d/packages/examples/src/geometry-domain/euclidean-teaser.style
+-- inspired by https://github.com/penrose/penrose/blob/499cd21f39549abd317976f492b803a09ce2277d/packages/examples/src/geometry-domain/euclidean-teaser.style
+
 
 Colors {
-    -- Keenan palette
-    black = #000000
-    white = #fff
-    darkpurple = #8c90c1
-    lightpurple = #d0d3e6
-    purple2 = rgba(0.106, 0.122, 0.54, 0.2)
-    verylightpurple = rgba(0.953, 0.957, 0.977, 1.0)
-    purple3 = rgba(0.557, 0.627, 0.769, 1.0)
-    midnightblue = rgba(0.14, 0.16, 0.52, 1.0)
-    none = none()
+  -- Keenan palette
+  black = #000000
+  white = #fff
+  darkpurple = #8c90c1
+  lightpurple = #d0d3e6
+  purple2 = rgba(0.106, 0.122, 0.54, 0.2)
+  verylightpurple = rgba(0.953, 0.957, 0.977, 1.0)
+  purple3 = rgba(0.557, 0.627, 0.769, 1.0)
+  midnightblue = rgba(0.14, 0.16, 0.52, 1.0)
+  none = none()
 }
 
+
 const {
-    strokeWidth = 1.75
-    textPadding = 0.1
-    repelWeight = 0.3
-    pointRadius = 4.0
-    minLineLength = 200.0
+  strokeWidth = 1.75
+  textPadding = 0.1
+  repelWeight = 0.3
+  pointRadius = 4.0
+  minLineLength = 200.0
 }
 
 
@@ -32,20 +34,20 @@ forall Point p {
     fillColor : Colors.white
     strokeWidth : const.strokeWidth
     strokeColor : Colors.black
-    }
+  }
 
   p.textBox = Rectangle {
     fillColor : Colors.none
     cornerRadius : 5
-    }
+  }
 
   ensure equal(signedDistance(p.textBox, p.vec), 0)
   p.textLayering = p.textBox above p.icon
-  }
+}
 
 
-  -- Line
-  forall Line L {
+-- Line
+forall Line L {
   L.color = Colors.black
 
   L.icon = Line {
@@ -59,7 +61,7 @@ forall Point p {
   L.textBox = Rectangle {
     fillColor : Colors.none
     cornerRadius : 5
-    }
+  }
 
   ensure lessThan(const.minLineLength, norm(L.icon.start - L.icon.end))
   ensure equal(signedDistance(L.textBox, L.icon.start), const.textPadding)
