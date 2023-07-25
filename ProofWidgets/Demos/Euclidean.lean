@@ -159,19 +159,10 @@ def EuclideanDisplayPanel : Component PanelWidgetProps where
 
 /-! # Example usage -/
 
-syntax (name := withEuclideanDisplayTacStx) "withEuclideanDisplay " tacticSeq : tactic
-
-open Elab Tactic in
-@[tactic withEuclideanDisplayTacStx]
-def withEuclideanDisplay : Tactic
-  | stx@`(tactic| withEuclideanDisplay $seq) => do
-    savePanelWidgetInfo stx ``EuclideanDisplayPanel (pure .null)
-    evalTacticSeq seq
-  | _ => throwUnsupportedSyntax
-
-example {a b c : point} {L M : line} (Babc : B a b c) (aL : online a L) (bM : online b M) (cL : online c L) (cM : online c M) : L = M := by
-  withEuclideanDisplay
-    -- Place your cursor here.
-  have bc := ne_23_of_B Babc
-  have bL := online_2_of_B Babc aL cL
-  exact line_unique_of_pts bc bL cL bM cM
+example {a b c : point} {L M : line} (Babc : B a b c) (aL : online a L) (bM : online b M)
+    (cL : online c L) (cM : online c M) : L = M := by
+  with_panel_widgets [EuclideanDisplayPanel]
+      -- Place your cursor here.
+    have bc := ne_23_of_B Babc
+    have bL := online_2_of_B Babc aL cL
+    exact line_unique_of_pts bc bL cL bM cM
