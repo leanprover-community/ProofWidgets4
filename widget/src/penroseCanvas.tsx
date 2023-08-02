@@ -5,6 +5,7 @@ Authors: Wojciech Nawrocki
 */
 import * as React from "react"
 import * as penrose from "@penrose/core"
+import { ok } from "@penrose/core/dist/utils/Error"
 import * as SVG from "@svgdotjs/svg.js"
 import useResizeObserver from "use-resize-observer";
 
@@ -45,12 +46,29 @@ function svgNumberToNumber (x: SVG.NumberAlias): number {
   else return y
 }
 
+function optimizeMaxSteps(
+  state: penrose.PenroseState,
+  maxSteps: number,
+): penrose.Result<penrose.PenroseState, penrose.PenroseError> {
+  let i = 0
+  const until = () => { console.log(i); return i++ >= maxSteps }
+  while ((!penrose.isOptimized(state) || !penrose.finalStage(state)) && !until()) {
+    if (penrose.isOptimized(state))
+      state = penrose.nextStage(state)
+    const res = penrose.step(state, { until })
+    if (res.isErr())
+      return res
+    state = res.value
+  }
+  return ok(state)
+}
+
 async function renderPenroseTrio(trio: PenroseTrio, hash: string, variation: string | undefined,
     embedSizes: Map<string, [number, number]>, maxOptSteps: number): Promise<SVGSVGElement> {
   if (diagramSvgCache.has(hash))
     return diagramSvgCache.get(hash)!.cloneNode(true) as any
   const {dsl, sty, sub} = trio
-  const compileRes = await penrose.compileTrio({
+  const compileRes = await penrose.compile({
     domain: dsl,
     style: sty,
     substance: sub,
@@ -78,12 +96,11 @@ async function renderPenroseTrio(trio: PenroseTrio, hash: string, variation: str
   //     shape.properties.height.contents = height
   //   }
   // }
-  state = await penrose.prepareState(state)
-  const stateRes = penrose.stepUntilConvergence(state, maxOptSteps)
+  const stateRes = optimizeMaxSteps(state, maxOptSteps)
   if (stateRes.isErr()) throw new Error(penrose.showError(stateRes.error))
-  if (!penrose.stateConverged(stateRes.value))
+  if (!penrose.isOptimized(stateRes.value))
     console.warn(`Diagram failed to converge in ${maxOptSteps} steps`)
-  const svg = await penrose.RenderStatic(stateRes.value, async path => path, '')
+  const svg = await penrose.toSVG(stateRes.value, async path => path, '')
 
   // The canvas is usually too large, so trim the SVG as a postprocessing step
   const obj = SVG.SVG(svg)
