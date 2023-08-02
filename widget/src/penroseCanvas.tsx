@@ -34,8 +34,12 @@ async function hashTrio({dsl, sty, sub}: PenroseTrio): Promise<string> {
 }
 
 /** The compile -> optimize -> prepare SVG sequence is not cheap (up to seconds),
- * so we cache its SVG outputs by the {@link hashTrio} of the input trio. */
-const diagramSvgCache = new Map<string, SVGSVGElement>()
+ * so we cache its SVG outputs by the {@link hashTrio} of the input trio.
+ * The values are `[svg, variation]` where `variation` is the one
+ * that was used to draw the diagram.
+ * It is not part of the hash: a 'good variation' is instead viewed as an output
+ * associated to a trio. */
+const diagramSvgCache = new Map<string, [SVGSVGElement, string]>()
 
 function svgNumberToNumber (x: SVG.NumberAlias): number {
   let y: string | number
@@ -68,14 +72,23 @@ function optimizeMaxSteps(
 
 async function renderPenroseTrio(trio: PenroseTrio, hash: string, variation: string | undefined,
     embedSizes: Map<string, [number, number]>, maxOptSteps: number): Promise<SVGSVGElement> {
-  if (diagramSvgCache.has(hash))
-    return diagramSvgCache.get(hash)!.cloneNode(true) as any
+  if (diagramSvgCache.has(hash)) {
+    const [svg, svgVariation] = diagramSvgCache.get(hash)!
+    if (variation) {
+      if (svgVariation === variation)
+        return svg.cloneNode(true) as any
+      // Otherwise the diagram was drawn previously but with another variation, so redo it.
+    } else {
+      return svg.cloneNode(true) as any
+    }
+  }
   const {dsl, sty, sub} = trio
+  variation = variation ?? ''
   const compileRes = await penrose.compile({
     domain: dsl,
     style: sty,
     substance: sub,
-    variation: variation ?? ''
+    variation
   })
   if (compileRes.isErr()) throw new Error(penrose.showError(compileRes.error))
   let state = compileRes.value
@@ -123,7 +136,7 @@ async function renderPenroseTrio(trio: PenroseTrio, hash: string, variation: str
   const newX = minX - padding, newY = minY - padding,
         newW = (maxX - minX) + padding, newH = (maxY - minY) + padding
   const newSvg = obj.viewbox(newX, newY, newW, newH).width(newW).height(newH)
-  diagramSvgCache.set(hash, newSvg.node)
+  diagramSvgCache.set(hash, [newSvg.node, variation])
 
   return newSvg.node
 }
@@ -256,13 +269,11 @@ export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
 
   // If present, used as the random seed from which the diagram is drawn.
   const [variation, setVariation] = React.useState<string | undefined>(undefined)
+  React.useEffect(() => { setVariation(undefined) }, [props.trio])
 
   const drawDiagram =
       (trio: PenroseTrio, embedSizes: Map<string, [number, number]>) =>
       async () => {
-    // Note: the variation is intentionally ignored in the hash key
-    // under the assumption that once a good variation is found,
-    // it will work for all diagrams with the same trio.
     const hash = await hashTrio(trio)
     try {
       setState(st => ({tag: 'drawing', hash, diag: CanvasState.getDiag(st)}))
