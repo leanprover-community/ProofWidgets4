@@ -6,6 +6,9 @@ Authors: Wojciech Nawrocki
 import * as React from "react"
 import * as penrose from "@penrose/core"
 import { ok } from "@penrose/core/dist/utils/Error"
+import { andThen, err } from "@penrose/core/dist/utils/Error"
+import { collectLabels, insertPending, mathjaxInit } from "@penrose/core/dist/utils/CollectLabels"
+import { compileStyle } from "@penrose/core/dist/compiler/Style"
 import * as SVG from "@svgdotjs/svg.js"
 import useResizeObserver from "use-resize-observer";
 
@@ -16,17 +19,25 @@ export interface PenroseTrio {
   sub: string
 }
 
-/** Compute the hash of a Penrose trio. */
-async function hashTrio({dsl, sty, sub}: PenroseTrio): Promise<string> {
+/** Compute the hash of inputs that determine a diagram:
+ * the Penrose trio and embed sizes. */
+async function hashInputs({dsl, sty, sub}: PenroseTrio, embedSizes: Map<string, [number, number]>):
+    Promise<string> {
+  const sizesStr = Array.from(embedSizes.entries())
+    // lexicographic sort on keys
+    .sort(([n1, _a], [n2, _b]) => n1 === n2 ? 0 : n1 < n2 ? -1 : 1)
+    .toString()
   // https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder/encodeInto#buffer_sizing
-  const data = new Uint8Array(3 * (dsl.length + sty.length + sub.length))
+  const data = new Uint8Array(3 * (dsl.length + sty.length + sub.length + sizesStr.length))
   const encoder = new TextEncoder()
   let dataView = data
   const {written} = encoder.encodeInto(dsl, dataView)
   dataView = data.subarray(written)
   const {written: written2} = encoder.encodeInto(sty, dataView)
   dataView = data.subarray(written2)
-  encoder.encodeInto(sub, dataView)
+  const {written: written3} = encoder.encodeInto(sub, dataView)
+  dataView = data.subarray(written3)
+  encoder.encodeInto(sizesStr, dataView)
   const digest = await crypto.subtle.digest("SHA-1", data)
   const digestArr = Array.from(new Uint8Array(digest))
   // https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/digest#converting_a_digest_to_a_hex_string
@@ -70,49 +81,69 @@ function optimizeMaxSteps(
   return ok(state)
 }
 
-async function renderPenroseTrio(trio: PenroseTrio, hash: string, variation: string | undefined,
-    embedSizes: Map<string, [number, number]>, maxOptSteps: number): Promise<SVGSVGElement> {
+/** Like {@link penrose.compile} but also assigns `textBox.width/height`s. See main doc. */
+async function compileWithSizes(prog: {
+  substance: string
+  style: string
+  domain: string
+  variation: string
+  embedSizes: Map<string, [number, number]>
+  excludeWarnings?: string[]
+}): Promise<penrose.Result<penrose.PenroseState, penrose.PenroseError>> {
+  const domainRes = penrose.compileDomain(prog.domain);
+  const subRes = andThen(env => penrose.compileSubstance(prog.substance, env), domainRes)
+  if (subRes.isErr()) return err(subRes.error)
+  const [env, varEnv] = subRes.value
+  let sty = prog.style
+  for (const [name, [w, h]] of prog.embedSizes.entries()) {
+    if (!varEnv.vars.has(name))
+      throw new Error(`could not find object ${name} in the substance program`)
+    const tp = varEnv.vars.get(name)!.name.value
+    // KC's hack: https://github.com/penrose/penrose/issues/1057#issuecomment-1164313880
+    sty = sty + `
+      forall ${tp} \`${name}\` {
+        override \`${name}\`.textBox.width = ${w}
+        override \`${name}\`.textBox.height = ${h}
+      }`
+  }
+  const styRes =
+    await compileStyle(prog.variation, sty, prog.excludeWarnings ?? [], env, varEnv)
+  if (styRes.isErr()) return err(styRes.error)
+  const state = styRes.value
+  // collect labels and return state
+  const convert = mathjaxInit()
+  const labelCache = await collectLabels(state.shapes, convert)
+  if (labelCache.isErr()) {
+      return err(labelCache.error)
+  }
+  return ok(insertPending({ ...state, labelCache: labelCache.value }))
+}
+
+async function renderPenroseTrio(trio: PenroseTrio, embedSizes: Map<string, [number, number]>,
+    hash: string, variation: string | undefined, maxOptSteps: number): Promise<SVGSVGElement> {
   if (diagramSvgCache.has(hash)) {
     const [svg, svgVariation] = diagramSvgCache.get(hash)!
+    // When `variation === undefined`, an SVG for the given `trio/embedSizes` inputs
+    // drawn with any variation can be retrieved from cache.
+    // Otherwise an SVG drawn with the specific provided `variation` must be returned.
     if (variation) {
       if (svgVariation === variation)
         return svg.cloneNode(true) as any
-      // Otherwise the diagram was drawn previously but with another variation, so redo it.
     } else {
       return svg.cloneNode(true) as any
     }
   }
   const {dsl, sty, sub} = trio
   variation = variation ?? ''
-  const compileRes = await penrose.compile({
+  const compileRes = await compileWithSizes({
     domain: dsl,
     style: sty,
     substance: sub,
-    variation
+    variation,
+    embedSizes,
   })
   if (compileRes.isErr()) throw new Error(penrose.showError(compileRes.error))
-  let state = compileRes.value
-  // Doesn't work :( Getting `TypeError: missing node for value FloatV`
-  // for (const shape of state.shapes) {
-  //   if (shape.shapeType === 'Rectangle' && 'name' in shape.properties) {
-  //     const nameP: {tag: string, contents: any} = shape.properties.name
-  //     if (nameP.tag !== 'StrV') continue
-  //     const matches = /`(\w+)`.textBox/.exec(nameP.contents)
-  //     if (matches === null) continue
-  //     const name: string | undefined = matches[1]
-  //     if (name === undefined) continue
-  //     const wh = embedSizes.get(name)
-  //     if (wh === undefined) continue
-  //     const [width, height] = wh
-  //     if (!('width' in shape.properties) || !('height' in shape.properties)) {
-  //       console.warn('no width or height on ', shape.properties)
-  //       continue
-  //     }
-  //     shape.properties.width.contents = width
-  //     shape.properties.height.contents = height
-  //   }
-  // }
-  const stateRes = optimizeMaxSteps(state, maxOptSteps)
+  const stateRes = optimizeMaxSteps(compileRes.value, maxOptSteps)
   if (stateRes.isErr()) throw new Error(penrose.showError(stateRes.error))
   if (!penrose.isOptimized(stateRes.value))
     console.warn(`Diagram failed to converge in ${maxOptSteps} steps`)
@@ -274,34 +305,35 @@ export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
   const drawDiagram =
       (trio: PenroseTrio, embedSizes: Map<string, [number, number]>) =>
       async () => {
-    const hash = await hashTrio(trio)
+    const hash = await hashInputs(trio, embedSizes)
     try {
       setState(st => ({tag: 'drawing', hash, diag: CanvasState.getDiag(st)}))
-    const svg = await renderPenroseTrio(trio, hash, variation, embedSizes, props.maxOptSteps)
+      const svg = await renderPenroseTrio(trio, embedSizes, hash, variation, props.maxOptSteps)
 
-    // Compute embed offsets.
-    const obj = SVG.SVG(svg)
-    const diagramBoxes = getPenroseNamedElements(obj)
-    const embedOffs = new Map<string, [number, number]>()
-    for (const [name, _] of embedSizes) {
-      const gElt = diagramBoxes.get(name)
-      if (!gElt) throw new Error(`Could not find object named '${name}' in the diagram.`)
-      // Note: this calculation assumes that one SVG user unit is one pixel. We achieve
-      // this by setting the `viewBox` width/height to the `<svg>` width/height.
-      const userY = svgNumberToNumber(gElt.y()) - obj.viewbox().y
-      const userX = svgNumberToNumber(gElt.x()) - obj.viewbox().x
-      embedOffs.set(name, [userX, userY])
-    }
+      // Compute embed offsets.
+      const obj = SVG.SVG(svg)
+      const diagramBoxes = getPenroseNamedElements(obj)
+      const embedOffs = new Map<string, [number, number]>()
+      for (const [name, _] of embedSizes) {
+        const gElt = diagramBoxes.get(name)
+        if (!gElt) throw new Error(`Could not find object named '${name}' in the diagram.`)
+        // Note: this calculation assumes that one SVG user unit is one pixel. We achieve
+        // this by setting the `viewBox` width/height to the `<svg>` width/height.
+        const userY = svgNumberToNumber(gElt.y()) - obj.viewbox().y
+        const userX = svgNumberToNumber(gElt.x()) - obj.viewbox().x
+        embedOffs.set(name, [userX, userY])
+      }
 
-    setState(st => {
-      if (st.tag !== 'drawing') return st
-      if (st.hash !== hash) return st
-      return {tag: 'drawn', diag: {svg, embedOffs}}
-    })
+      setState(st => {
+        if (st.tag !== 'drawing') return st
+        if (st.hash !== hash) return st
+        return {tag: 'drawn', diag: {svg, embedOffs}}
+      })
     } catch (e) {
       setState(st => {
         if (st.tag !== 'drawing') return st
         if (st.hash !== hash) return st
+        console.warn(e)
         const error = e instanceof Error ? e : new Error(JSON.stringify(e))
         return {tag: 'error', error}
       })
@@ -354,17 +386,6 @@ export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
         width = ${diagramWidth}
         height = ${diagramWidth}
       }`
-
-    for (const [name, [w, h]] of embedSizes) {
-      // KC's hack: https://github.com/penrose/penrose/issues/1057#issuecomment-1164313880
-      // NOTE: To manipulate objects directly, look at impl of `compileTrio`. `compileSubstance`
-      // exposes the objects from the substance program in the `Env` type.
-      sty = sty +`
-        forall Targettable \`${name}\` {
-          override \`${name}\`.textBox.width = ${w}
-          override \`${name}\`.textBox.height = ${h}
-        }`
-    }
 
     setState(st => {
       if (st.tag === 'loading' && st.timeout) window.clearTimeout(st.timeout)
