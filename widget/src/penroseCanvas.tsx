@@ -9,7 +9,7 @@ import { ok } from "@penrose/core/dist/utils/Error"
 import * as SVG from "@svgdotjs/svg.js"
 import useResizeObserver from "use-resize-observer";
 
-/** See [here](https://penrose.gitbook.io/penrose/#what-makes-up-a-penrose-program). */
+/** See [here](https://penrose.cs.cmu.edu/docs/tutorial/welcome#what-makes-up-a-penrose-program). */
 export interface PenroseTrio {
   dsl: string
   sty: string
@@ -33,8 +33,8 @@ async function hashTrio({dsl, sty, sub}: PenroseTrio): Promise<string> {
   return digestArr.map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-/** The compile -> optimize -> prepare SVG sequence is not cheap (up to seconds), so we cache
- * its SVG outputs. */
+/** The compile -> optimize -> prepare SVG sequence is not cheap (up to seconds),
+ * so we cache its SVG outputs by the {@link hashTrio} of the input trio. */
 const diagramSvgCache = new Map<string, SVGSVGElement>()
 
 function svgNumberToNumber (x: SVG.NumberAlias): number {
@@ -46,12 +46,15 @@ function svgNumberToNumber (x: SVG.NumberAlias): number {
   else return y
 }
 
+/** Run the Penrose optimizer starting from `state` for at most `maxSteps` total steps.
+ * There is a single step counter across all optimization stages,
+ * i.e. it is not reset when advancing the stage. */
 function optimizeMaxSteps(
   state: penrose.PenroseState,
   maxSteps: number,
 ): penrose.Result<penrose.PenroseState, penrose.PenroseError> {
   let i = 0
-  const until = () => { console.log(i); return i++ >= maxSteps }
+  const until = () => i++ >= maxSteps
   while ((!penrose.isOptimized(state) || !penrose.finalStage(state)) && !until()) {
     if (penrose.isOptimized(state))
       state = penrose.nextStage(state)
@@ -109,6 +112,7 @@ async function renderPenroseTrio(trio: PenroseTrio, hash: string, variation: str
 
   obj.each((i, children) => {
     const child = children[i]
+    if (!child.x) return
     minX = Math.min(minX, svgNumberToNumber(child.x()))
     maxX = Math.max(maxX, svgNumberToNumber(child.x()) + svgNumberToNumber(child.width()))
     minY = Math.min(minY, svgNumberToNumber(child.y()))
@@ -124,8 +128,9 @@ async function renderPenroseTrio(trio: PenroseTrio, hash: string, variation: str
   return newSvg.node
 }
 
-/** Return all elements in a Penrose-generated SVG which have names corresponding to objects in the
- * substance program. These are detected by looking for strings in the elements' `textContent`s. */
+/** Return all elements in a Penrose-generated SVG
+ * which have names corresponding to objects in the substance program.
+ * HACK: These are detected by looking for strings in the elements' `textContent`s. */
 function getPenroseNamedElements(svg: SVG.Svg): Map<string, SVG.Element> {
   const res = new Map<string, SVG.Element>()
   for (const child of svg.find('g, rect')) {
@@ -138,37 +143,42 @@ function getPenroseNamedElements(svg: SVG.Svg): Map<string, SVG.Element> {
   return res
 }
 
+/** A drawn diagram in SVG form. */
 interface Diagram {
   svg: SVGSVGElement
+  /** The offset of each named element from the top-left corner of the SVG, in pixels. */
   embedOffs: Map<string, [number, number]>
 }
 
-type DiagramState =
+/** The state of a {@link PenroseCanvas} component. */
+type CanvasState =
   { tag: 'loading',
-    /** If present, there is a timeout in place which will start drawing a diagram upon
-     * realization. This exists in order to debounce rapid changes to diagram inputs, e.g. when
-     * the embeds render for the first time. */
+    /** If present, there is a timeout in place which, upon realization,
+     * will transition to `drawing` and start drawing a diagram.
+     * We don't transition immediately in order to debounce rapid changes to diagram inputs,
+     * e.g. when the embeds render for the first time. */
     timeout?: number,
-    /* If present and the state is loading/drawing, then we had already drawn a correct diagram
-     * in the past. We keep showing it (grayed out) as the last-known-good state. */
     diag?: Diagram } |
   { tag: 'drawing',
-    /** Hash of the inputs making up the diagram being drawn. */
+    /** Hash of the inputs making up the diagram being drawn.
+     * This is used for consistency:
+     * if a drawing job A finishes and sees that the `hash` is different,
+     * this means that another job B is in flight and A should discard its results. */
     hash: string,
     diag?: Diagram } |
   { tag: 'drawn',
-    diag: Diagram }
+    diag: Diagram } |
+  { tag: 'error',
+    error: Error }
 
-export interface PenroseTrio {
-  dsl: string
-  sty: string
-  sub: string
+namespace CanvasState {
+/** If present and the state is `loading`/`drawing`,
+ * then we had already drawn a correct diagram in the past.
+ * We keep showing it (grayed out) as the last-known-good state. */
+export function getDiag(cs : CanvasState): Diagram | undefined {
+  if ('diag' in cs) return cs.diag
+  return undefined
 }
-
-export interface PenroseCanvasProps {
-  trio: PenroseTrio
-  maxOptSteps: number
-  embedNodes: Map<string, React.ReactNode>
 }
 
 interface EmbedData {
@@ -184,6 +194,8 @@ type EmbeddedNodeProps =
     setEmbedData: (nm: string, f: (curr: EmbedData | undefined) => EmbedData | undefined) => void
   }
 
+/** A React node embedded in an SVG.
+ * We inform the parent about resizes and (un)mounts of the embedded node. */
 function EmbeddedNode(props_: EmbeddedNodeProps): JSX.Element {
   const {name, setEmbedData, ...props} = props_
   const { ref: setRef } = useResizeObserver<HTMLDivElement>({
@@ -206,10 +218,10 @@ function EmbeddedNode(props_: EmbeddedNodeProps): JSX.Element {
   return <div
     {...props}
     ref={newDiv => {
+      // Gets called with `null` on every commit phase, just ignore that.
+      if (!newDiv) return
       setRef(newDiv)
       setEmbedData(name, curr => {
-        // Gets called with `null` on every commit phase, just ignore that.
-        if (!newDiv) return curr
         if (curr && curr.elt === newDiv) return curr
         if (curr) return { ...curr, elt: newDiv }
         return { elt: newDiv, height: 0, width: 0 }
@@ -217,31 +229,43 @@ function EmbeddedNode(props_: EmbeddedNodeProps): JSX.Element {
     }}>{props.children}</div>
 }
 
-/** Renders an interactive [Penrose](https://github.com/penrose/penrose) diagram with the specified
- * trio. The Penrose optimizer is ran for at most `maxOptSteps`, a heuristic for when to stop trying.
+export interface PenroseCanvasProps {
+  trio: PenroseTrio
+  maxOptSteps: number
+  embedNodes: Map<string, React.ReactNode>
+}
+
+/** Renders an interactive [Penrose](https://github.com/penrose/penrose) diagram
+ * with the specified `trio`.
+ * The Penrose optimizer is ran for at most `maxOptSteps`,
+ * a heuristic for when to stop trying and return a non-converged diagram.
  *
- * Values of `canvas.width` and `canvas.height` (required by Penrose) matching the dimensions of
- * this component are prepended to the style program.
+ * Values of `canvas.width` and `canvas.height` (required by Penrose)
+ * matching the dimensions of this component
+ * are prepended to the style program.
  *
- * For every `[name, nd]` in `embedNodes` we locate an object with the name `name` in the substance
- * program. The object *must* be assigned a `name.textBox : Rectangle` field in the style program.
- * We fix the dimensions of `name.textBox` to those of the React node `nd`, and draw `nd` over
- * `name.textBox` in the SVG diagram.
+ * For every `[name, nd]` in `embedNodes`,
+ * we locate an object with the name `name` in the substance program.
+ * The object *must* be assigned a `name.textBox : Rectangle` field in the style program.
+ * We fix the dimensions of `name.textBox` to those of the React node `nd`,
+ * and draw `nd` over `name.textBox` in the SVG diagram.
  *
  * The diagram is redrawn when the dimensions of this component or any `embedNode` change. */
 export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
-  const [state, setState] = React.useState<DiagramState>({tag: 'loading'})
+  const [state, setState] = React.useState<CanvasState>({tag: 'loading'})
 
-  // If present, used as the seed from which the diagram is drawn.
+  // If present, used as the random seed from which the diagram is drawn.
   const [variation, setVariation] = React.useState<string | undefined>(undefined)
 
   const drawDiagram =
       (trio: PenroseTrio, embedSizes: Map<string, [number, number]>) =>
       async () => {
-    // Note: the variation is intentionally ignored in the hash key under the assumption that once
-    // a good variation is found, it will work for all diagrams with the same trio.
+    // Note: the variation is intentionally ignored in the hash key
+    // under the assumption that once a good variation is found,
+    // it will work for all diagrams with the same trio.
     const hash = await hashTrio(trio)
-    setState(st => ({tag: 'drawing', hash, diag: st.diag}))
+    try {
+      setState(st => ({tag: 'drawing', hash, diag: CanvasState.getDiag(st)}))
     const svg = await renderPenroseTrio(trio, hash, variation, embedSizes, props.maxOptSteps)
 
     // Compute embed offsets.
@@ -263,6 +287,14 @@ export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
       if (st.hash !== hash) return st
       return {tag: 'drawn', diag: {svg, embedOffs}}
     })
+    } catch (e) {
+      setState(st => {
+        if (st.tag !== 'drawing') return st
+        if (st.hash !== hash) return st
+        const error = e instanceof Error ? e : new Error(JSON.stringify(e))
+        return {tag: 'error', error}
+      })
+    }
   }
 
   const { ref: containerRef, width: containerWidth = 1 } = useResizeObserver<HTMLDivElement>({
@@ -270,6 +302,8 @@ export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
   })
 
   // The map has entries for exactly those embeds for which divs have been mounted.
+  // It has immutable reference semantics: whenever any of the stored data change,
+  // the reference identity of the whole map must change.
   const [embedsData, setEmbedsData] = React.useState<Map<string, EmbedData>>(new Map())
   const setEmbedData = React.useCallback(
     (nm: string, f: (curr: EmbedData | undefined) => EmbedData | undefined) => {
@@ -277,7 +311,6 @@ export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
         const curr = embedsData.get(nm)
         const new_ = f(curr)
         if (new_ === curr) return embedsData
-        // The reference must change whenever any of the stored data change.
         const embedsDataNew = new Map(embedsData)
         if (new_ === undefined) {
           embedsDataNew.delete(nm)
@@ -292,8 +325,10 @@ export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
   const diagramWidth = Math.max(400, containerWidth)
   const maxEmbedWidth = Math.ceil(diagramWidth / 2)
 
-  // Gets called when `props.embedNodes` changes in a way that influences the layout.
+  // This effect draws or redraws the diagram
+  // whenever any of the inputs that may influence its layout have changed.
   React.useEffect(() => {
+    // If not all embeds are mounted yet, return immediately.
     if (embedsData.size !== props.embedNodes.size) return
     // If the container is too small, return immediately. This can happen early after mounting.
     if (containerWidth < 4) return
@@ -323,32 +358,35 @@ export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
     setState(st => {
       if (st.tag === 'loading' && st.timeout) window.clearTimeout(st.timeout)
       const timeout = window.setTimeout(drawDiagram({...props.trio, sty}, embedSizes), 300)
-      return {tag: 'loading', timeout, diag: st.diag}
+      return {tag: 'loading', timeout, diag: CanvasState.getDiag(st)}
     })
   }, [containerWidth, embedsData, variation, props.trio.sub, props.trio.sty, props.trio.dsl])
 
   let cn = 'relative'
-  // Decrease opacity when loading.
-  if (state.tag !== 'drawn')
+  // Decrease opacity when loading or updating.
+  if (state.tag !== 'drawn' && state.tag !== 'error')
     cn += ' o-30'
 
+  const diag = CanvasState.getDiag(state)
+
   return <div className={cn} ref={containerRef}>
-    {state.diag &&
+    {diag &&
       <>
         <a className='fr link pointer dim codicon codicon-refresh'
           onClick={() => setVariation(Math.random().toString())} />
         <div ref={ref => {
-            if (!ref || !state.diag) return
-            if (ref.firstChild) ref.replaceChild(state.diag.svg, ref.firstChild)
-            else ref.appendChild(state.diag.svg)
+            if (!ref) return
+            if (ref.firstChild) ref.replaceChild(diag.svg, ref.firstChild)
+            else ref.appendChild(diag.svg)
           }} />
       </>
       }
-    {!state.diag && state.tag === 'loading' && <>Loading..</>}
-    {!state.diag && state.tag === 'drawing' && <>Drawing..</>}
-    <div style={{visibility: state.diag ? 'visible' : 'hidden'}}>
+    {!diag && state.tag === 'loading' && <>Loading..</>}
+    {!diag && state.tag === 'drawing' && <>Drawing..</>}
+    {state.tag === 'error' && <span className='red'>{state.error.toString()}</span>}
+    <div style={{visibility: diag ? 'visible' : 'hidden'}}>
       {Array.from(props.embedNodes, ([nm, nd]) => {
-        const [userX, userY] = state.diag?.embedOffs.get(nm) ?? [0, 0]
+        const [userX, userY] = diag?.embedOffs.get(nm) ?? [0, 0]
         return <EmbeddedNode
             key={nm}
             name={nm}
