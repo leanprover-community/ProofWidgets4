@@ -1,5 +1,4 @@
-type Targettable
-type Set <: Targettable
+type Set
 
 predicate Not(Prop p1)
 predicate Intersecting(Set s1, Set s2)

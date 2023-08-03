@@ -13,10 +13,10 @@
   "type": "module",
   "dependencies": {
     "@leanprover/infoview": "~0.4.3",
-    "@penrose/core": "^2.3.0",
+    "@penrose/core": "^3.1.0",
     "@react-three/drei": "^9.64.0",
     "@react-three/fiber": "^8.12.0",
-    "@svgdotjs/svg.js": "^3.1.2",
+    "@svgdotjs/svg.js": "^3.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-d3-tree": "^3.5.1",

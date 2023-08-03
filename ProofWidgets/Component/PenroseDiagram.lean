@@ -13,13 +13,14 @@ structure PenroseDiagramProps where
 
 #mkrpcenc PenroseDiagramProps
 
-/-- Displays the given diagram using [Penrose](https://penrose.cs.cmu.edu/). The website contains
-explanations of how to write domain (`dsl`), style (`sty`), and substance (`sub`) programs.
+/-- Displays the given diagram using [Penrose](https://penrose.cs.cmu.edu/).
+The website contains explanations of how to write domain (`dsl`), style (`sty`),
+and substance (`sub`) programs.
 
-The diagram may also contain embedded HTML trees which are specified in `embeds`. Each embed is HTML
-together with the name of an object `x` in the substance program which *must* be assigned
-an `x.textBox : Rectangle` field in the style program. This rectangle will be replaced with the HTML
-tree.
+The diagram may also contain embedded HTML trees which are specified in `embeds`.
+Each embed is HTML together with the name of an object `x` in the substance program.
+The objhect `x` can be of any type but *must* be assigned an `x.textBox : Rectangle` field
+in the style program. This rectangle will be replaced with the HTML tree.
 
 The following additional constants are prepended to the style program:
 ```penrose

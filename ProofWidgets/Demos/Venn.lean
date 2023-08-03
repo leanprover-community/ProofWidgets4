@@ -155,19 +155,9 @@ def SetDisplayPanel : Component PanelWidgetProps where
 
 /-! # Example usage -/
 
-syntax (name := withVennDisplayTacStx) "withVennDisplay " tacticSeq : tactic
-
-open Elab Tactic in
-@[tactic withVennDisplayTacStx]
-def withVennDisplay : Tactic
-  | stx@`(tactic| withVennDisplay $seq) => do
-    savePanelWidgetInfo stx ``SetDisplayPanel (pure .null)
-    evalTacticSeq seq
-  | _ => throwUnsupportedSyntax
-
 example {R S T U : Set Nat} :
     S ⊆ U → T ⊆ U → R ⊆ S → R ⊆ U := by
-  withVennDisplay
+  with_panel_widgets [SetDisplayPanel]
     intro h₁ _ h₃
     -- Place your cursor here.
     exact fun n h => h |> h₃ |> h₁

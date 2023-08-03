@@ -1,0 +1,104 @@
+-- inspired by https://github.com/penrose/penrose/blob/499cd21f39549abd317976f492b803a09ce2277d/packages/examples/src/geometry-domain/euclidean-teaser.style
+
+
+Colors {
+  -- Keenan palette
+  black = #000000
+  white = #fff
+  darkpurple = #8c90c1
+  lightpurple = #d0d3e6
+  purple2 = rgba(0.106, 0.122, 0.54, 0.2)
+  verylightpurple = rgba(0.953, 0.957, 0.977, 1.0)
+  purple3 = rgba(0.557, 0.627, 0.769, 1.0)
+  midnightblue = rgba(0.14, 0.16, 0.52, 1.0)
+  none = none()
+}
+
+
+const {
+  strokeWidth = 1.75
+  textPadding = 0.1
+  repelWeight = 0.3
+  pointRadius = 4.0
+  minLineLength = 200.0
+}
+
+
+-- Point
+forall Point p {
+  p.vec = (?, ?)
+
+  p.icon = Circle {
+    center: p.vec
+    r : const.pointRadius
+    fillColor : Colors.white
+    strokeWidth : const.strokeWidth
+    strokeColor : Colors.black
+  }
+
+  p.textBox = Rectangle {
+    fillColor : Colors.none
+    cornerRadius : 5
+  }
+
+  ensure equal(signedDistance(p.textBox, p.vec), const.textPadding)
+  p.textLayering = p.textBox above p.icon
+}
+
+
+-- Line
+forall Line L {
+  L.color = Colors.black
+
+  L.icon = Line {
+    start : (?, ?)
+    end : (?, ?)
+    strokeColor : L.color
+    strokeWidth : const.strokeWidth
+    style : "solid"
+  }
+
+  L.textBox = Rectangle {
+    fillColor : Colors.none
+    cornerRadius : 5
+  }
+
+  ensure lessThan(const.minLineLength, norm(L.icon.start - L.icon.end))
+  ensure equal(signedDistance(L.textBox, L.icon.start), const.textPadding)
+  ensure disjoint(L.textBox, L.icon)
+}
+
+
+-- Point on Line
+forall Point p; Line L
+where On(p, L) {
+  ensure equal(signedDistance(L.icon, p.vec), 0)
+  ensure disjoint(L.textBox, p.icon)
+}
+
+
+-- Between
+forall Point p, q, r
+where Between(p, q, r) {
+  ensure collinear(p.icon.center, q.icon.center, r.icon.center)
+  ensure inRange(q.icon.center[0], p.icon.center[0], r.icon.center[0])
+  ensure inRange(q.icon.center[1], p.icon.center[1], r.icon.center[1])
+  encourage notTooClose(p.icon, q.icon, const.repelWeight)
+  encourage notTooClose(q.icon, r.icon, const.repelWeight)
+}
+
+
+-- Repelling
+forall Point p; Line L {
+  ensure disjoint(p.textBox, L.textBox)
+  p.icon above L.icon
+}
+
+forall Line L; Line M {
+  ensure disjoint(L.textBox, M.textBox)
+}
+
+forall Point p; Point q {
+  ensure disjoint(p.textBox, q.textBox)
+  encourage notTooClose(p.icon, q.icon, const.repelWeight)
+}
