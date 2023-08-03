@@ -15,16 +15,15 @@ open ProofWidgets
 
 /-! # Minimal definitions of synthetic geometric primitives, inspired by https://github.com/ah1112/synthetic_euclid_4 -/
 
-universe u1 u2 u3
 class IncidenceGeometry where
-Point : Type u1
-Line : Type u2
+  Point : Type u₁
+  Line : Type u₂
 
-between : Point → Point → Point → Prop -- implies colinearity
-onLine : Point → Line → Prop
-ne_23_of_between : ∀ {a b c : Point}, between a b c → b ≠ c
-line_unique_of_pts : ∀ {a b : Point}, ∀ {L M : Line}, a ≠ b → onLine a L → onLine b L → onLine a M → onLine b M → L = M
-onLine_2_of_between : ∀ {a b c : Point}, ∀ {L : Line}, between a b c → onLine a L → onLine c L → onLine b L
+  between : Point → Point → Point → Prop -- implies colinearity
+  onLine : Point → Line → Prop
+  ne_23_of_between : ∀ {a b c : Point}, between a b c → b ≠ c
+  line_unique_of_pts : ∀ {a b : Point}, ∀ {L M : Line}, a ≠ b → onLine a L → onLine b L → onLine a M → onLine b M → L = M
+  onLine_2_of_between : ∀ {a b c : Point}, ∀ {L : Line}, between a b c → onLine a L → onLine c L → onLine b L
 
 variable [i : IncidenceGeometry]
 open IncidenceGeometry
