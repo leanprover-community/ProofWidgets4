@@ -1,5 +1,7 @@
 import ProofWidgets.Component.HtmlDisplay
 
+open Lean
+
 -- See the `Jsx.lean` demo for more about JSX.
 open scoped ProofWidgets.Jsx
 
@@ -23,11 +25,11 @@ def Lean.Syntax.mkInfoCanonical : Syntax → Syntax
 def Lean.TSyntax.mkInfoCanonical : TSyntax k → TSyntax k :=
   (.mk ·.raw.mkInfoCanonical)
 
-def Lean.MacroM.withCanonicalInfo (stx : MacroM <| TSyntax k) : MacroM <| TSyntax k :=
-  .mkInfoCanonical <$> stx
+def withCanonicalInfo [Monad M] : M (TSyntax k) → M (TSyntax k) :=
+  Functor.map .mkInfoCanonical
 
 macro "#browse " src:term : command =>
-  Lean.MacroM.withCanonicalInfo
+  withCanonicalInfo
     `(#html <iframe src={$src} width="100%" height="600px" />)
 
 #browse "https://leanprover-community.github.io/"
