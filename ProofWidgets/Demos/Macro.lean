@@ -20,9 +20,11 @@ def Lean.Syntax.mkInfoCanonical : Syntax → Syntax
   | .atom i v => .atom i.mkCanonical v
   | .ident i r v p => .ident i.mkCanonical r v p
 
-macro "#browse " src:term : command => do
-  let s ← `(#html <iframe src={$src} width="100%" height="600px" />)
-  return ⟨s.raw.mkInfoCanonical⟩
+def Lean.TSyntax.mkInfoCanonical : TSyntax k → TSyntax k :=
+  (.mk ·.raw.mkInfoCanonical)
+
+macro "#browse " src:term : command =>
+  .mkInfoCanonical <$> `(#html <iframe src={$src} width="100%" height="600px" />)
 
 #browse "https://leanprover-community.github.io/"
 -- Do you like recursion?
