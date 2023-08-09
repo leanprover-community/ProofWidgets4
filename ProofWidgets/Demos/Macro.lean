@@ -23,8 +23,12 @@ def Lean.Syntax.mkInfoCanonical : Syntax → Syntax
 def Lean.TSyntax.mkInfoCanonical : TSyntax k → TSyntax k :=
   (.mk ·.raw.mkInfoCanonical)
 
+def Lean.MacroM.withCanonicalInfo (stx : MacroM <| TSyntax k) : MacroM <| TSyntax k :=
+  .mkInfoCanonical <$> stx
+
 macro "#browse " src:term : command =>
-  .mkInfoCanonical <$> `(#html <iframe src={$src} width="100%" height="600px" />)
+  Lean.MacroM.withCanonicalInfo
+    `(#html <iframe src={$src} width="100%" height="600px" />)
 
 #browse "https://leanprover-community.github.io/"
 -- Do you like recursion?
