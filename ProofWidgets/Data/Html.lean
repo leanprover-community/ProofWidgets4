@@ -97,28 +97,29 @@ scoped syntax jsxElement   : jsxChild
 
 scoped syntax:max jsxElement : term
 
-def transformTag (n m : Ident) (ns : Array Ident) (vs : Array (TSyntax `jsxAttrVal))
+def transformTag (n m : Ident) (attrs : Array Ident) (vs : Array (TSyntax `jsxAttrVal))
     (cs : Array (TSyntax `jsxChild)) : MacroM Term := do
-  if n.getId != m.getId then
-    Macro.throwErrorAt m s!"expected </{n.getId}>"
+  let nId := n.getId.eraseMacroScopes
+  let mId := m.getId.eraseMacroScopes
+  if nId != mId then
+    Macro.throwErrorAt m s!"expected </{nId}>"
   let cs ← cs.mapM fun
     | `(jsxChild| $t:jsxText)    => `(THtml.text $(quote <| getJsxText t))
-    | `(jsxChild| { $t })        => return t
+    | `(jsxChild| { $t })        => pure t
     | `(jsxChild| $e:jsxElement) => `(term| $e:jsxElement)
-    | _                          => unreachable!
-  let vs : Array (TSyntax `term) := vs.map fun
-    | `(jsxAttrVal| $s:str) => s
-    | `(jsxAttrVal| { $t:term }) => t
-    | _ => unreachable!
-  let tag := toString n.getId
+    | stx                        => Macro.throwErrorAt stx "unknown syntax"
+  let vs : Array (TSyntax `term) ← vs.mapM fun
+    | `(jsxAttrVal| $s:str)      => pure s
+    | `(jsxAttrVal| { $t:term }) => pure t
+    | stx                        => Macro.throwErrorAt stx "unknown syntax"
+  let tag := toString nId
   -- Uppercase tags are parsed as components
   if tag.get? 0 |>.filter (·.isUpper) |>.isSome then
-    `(THtml.component $n { $[$ns:ident := $vs],* } #[ $[$cs],* ])
+    `(THtml.component $n { $[$attrs:ident := $vs],* } #[ $[$cs],* ])
   -- Lowercase tags are parsed as standard HTML
   else
-    let ns := ns.map (quote <| toString ·.getId)
-    `(THtml.element $(quote tag) #[ $[($ns, $vs)],* ] #[ $[$cs],* ])
-
+    let attrs := attrs.map (quote <| toString ·.getId.eraseMacroScopes)
+    `(THtml.element $(quote tag) #[ $[($attrs, $vs)],* ] #[ $[$cs],* ])
 
 /-- Support for writing HTML trees directly, using XML-like angle bracket syntax. It works very
 similarly to [JSX](https://react.dev/learn/writing-markup-with-jsx) in JavaScript. The syntax is
@@ -127,8 +128,8 @@ enabled using `open scoped ProofWidgets.Jsx`.
 Lowercase tags are interpreted as standard HTML whereas uppercase ones are expected to be
 `ProofWidgets.Component`s. -/
 macro_rules
-  | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* />) => transformTag n n ns vs #[]
-  | `(<$n:ident $[$ns:ident = $vs:jsxAttrVal]* >$cs*</$m>) => transformTag n m ns vs cs
+  | `(<$n:ident $[$attrs:ident = $vs:jsxAttrVal]* />) => transformTag n n attrs vs #[]
+  | `(<$n:ident $[$attrs:ident = $vs:jsxAttrVal]* >$cs*</$m>) => transformTag n m attrs vs cs
 
 open Lean Delaborator SubExpr
 
