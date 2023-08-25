@@ -139,3 +139,29 @@ editing the proof script.
 As a hidden feature, you can also make animated widgets using the `AnimatedHtml` component. This
 works particularly well with libraries that ease between different plots, for example Recharts.
 You can see an example of how to do this in the `Plot.lean` demo.
+
+## Cite
+
+We have written [a paper describing the design of ProofWidgets4](https://drops.dagstuhl.de/opus/volltexte/2023/18399/).
+
+If this work helps you in your own research, you can cite it as follows:
+```bibtex
+@InProceedings{nawrocki_et_al:LIPIcs.ITP.2023.24,
+  author =	{Nawrocki, Wojciech and Ayers, Edward W. and Ebner, Gabriel},
+  title =	{{An Extensible User Interface for Lean 4}},
+  booktitle =	{14th International Conference on Interactive Theorem Proving (ITP 2023)},
+  pages =	{24:1--24:20},
+  series =	{Leibniz International Proceedings in Informatics (LIPIcs)},
+  ISBN =	{978-3-95977-284-6},
+  ISSN =	{1868-8969},
+  year =	{2023},
+  volume =	{268},
+  editor =	{Naumowicz, Adam and Thiemann, Ren\'{e}},
+  publisher =	{Schloss Dagstuhl -- Leibniz-Zentrum f{\"u}r Informatik},
+  address =	{Dagstuhl, Germany},
+  URL =		{https://drops.dagstuhl.de/opus/volltexte/2023/18399},
+  URN =		{urn:nbn:de:0030-drops-183991},
+  doi =		{10.4230/LIPIcs.ITP.2023.24},
+  annote =	{Keywords: user interfaces, human-computer interaction, Lean}
+}
+```
