@@ -7,10 +7,11 @@ open Lean
 structure MakeEditLinkProps where
   /-- The edit to perform on the file. -/
   edit : Lsp.TextDocumentEdit
-  /-- Where to place the cursor after the edit. It is in the same file as `edit`.
+  /-- Where to place the cursor after the edit.
+  This location is interpreted in the file that `edit` applies to.
   If not present, the cursor is not moved. -/
   newCursorPos? : Option Lsp.Position := none
-  /-- The `title` property, if any, to set on `<a>`. -/
+  /-- The `title` property, if any, to set on the displayed `<a>` link. -/
   title? : Option String := none
   deriving FromJson, ToJson
 

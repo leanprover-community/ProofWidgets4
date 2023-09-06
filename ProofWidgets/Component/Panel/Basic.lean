@@ -6,9 +6,9 @@ namespace ProofWidgets
 open Lean Elab Tactic
 
 /-- In the infoview, an **info block** is a top-level collapsible block corresponding to a given
-location in a Lean file (e.g. with the header `Basic.lean:12:34`).
+location in a Lean file (e.g. with the header `▼ Basic.lean:12:34`).
 
-A **panel widget** is a component which can appear as a panel in an info block in the infoview.
+A **panel widget** is a component which can appear as a panel inside an info block in the infoview.
 For example, a tactic state display.
 The type `PanelWidgetProps` represents the props passed to a panel widget.
 The TypeScript version is exported as `PanelWidgetProps` from `@leanprover/infoview`.
@@ -26,7 +26,8 @@ structure PanelWidgetProps : Type where
   termGoal? : Option Widget.InteractiveTermGoal
   /-- Locations currently selected in the goal state. -/
   selectedLocations : Array SubExpr.GoalsLocation
-  deriving Server.RpcEncodable
+
+#mkrpcenc PanelWidgetProps
 
 def processIdent (stx : Syntax) (nmStx : TSyntax `ident) : CoreM Unit := do
   let nm ← resolveGlobalConstNoOverloadWithInfo nmStx

@@ -4,11 +4,21 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Robin Böhne, Wojciech Nawrocki, Patrick Massot
 -/
 import Lean.Meta.ExprLens
-import ProofWidgets.Component.Panel.SelectInsertPanel
+import Std.Lean.Position
+import ProofWidgets.Data.Html
+import ProofWidgets.Component.OfRpcMethod
+import ProofWidgets.Component.MakeEditLink
+import ProofWidgets.Component.Panel.Basic
 
 open Lean Meta Server
+open ProofWidgets
 
-/-! # The conv? example -/
+/-! # The conv? example
+
+This demo defines a `conv?` tactic that displays a widget for point-and-click `conv` insertion.
+Whenever the user selects a subter, of the goal in the tactic state,
+the widget will display a button that, upon being clicked, replaces the `conv?` call
+with a `conv => enter [...]` call zooming in on the selected subterm. -/
 
 private structure SolveReturn where
   expr : Expr
@@ -21,8 +31,8 @@ private def solveLevel (expr : Expr) (path : List Nat) : MetaM SolveReturn := ma
     let mut count := 0
     let mut explicitList := []
 
-    -- we go through the application until we reach the end, counting how many explicit arguments it has and noting whether
-    -- they are explicit or implicit
+    -- we go through the application until we reach the end, counting how many explicit arguments
+    -- it has and noting whether they are explicit or implicit
     while descExp.isApp do
       if (←Lean.Meta.inferType descExp.appFn!).bindingInfo!.isExplicit then
         explicitList := true::explicitList
@@ -69,11 +79,15 @@ private def solveLevel (expr : Expr) (path : List Nat) : MetaM SolveReturn := ma
       | _ => return { expr := b.appFn!.appArg!, val? := none, listRest := path.tail!.tail! }
 
   | _ => do
-    return { expr := ←(Lean.Core.viewSubexpr path.head! expr), val? := toString (path.head! + 1), listRest := path.tail! }
+    return {
+      expr := ←(Lean.Core.viewSubexpr path.head! expr)
+      val? := toString (path.head! + 1)
+      listRest := path.tail!
+    }
 
 open Lean Syntax in
-def insertEnter (subexprPos : Array Lean.SubExpr.GoalsLocation) (goalType : Expr) : MetaM String := do
-  let some pos := subexprPos[0]? | throwError "You must select something."
+def insertEnter (locations : Array Lean.SubExpr.GoalsLocation) (goalType : Expr) : MetaM String := do
+  let some pos := locations[0]? | throwError "You must select something."
   let ⟨_, .target subexprPos⟩ := pos | throwError "You must select something in the goal."
   let mut list := (SubExpr.Pos.toArray subexprPos).toList
     let mut expr := goalType
@@ -94,11 +108,52 @@ def insertEnter (subexprPos : Array Lean.SubExpr.GoalsLocation) (goalType : Expr
   if retList.isEmpty then enterval := ""
   return enterval
 
-mkSelectInsertTactic "conv?" "Conv 🔍"
-    "Use shift-click to select one sub-expression in the goal that you want to zoom on."
-    insertEnter
+def findGoalForLocation (goals : Array Widget.InteractiveGoal) (loc : SubExpr.GoalsLocation) :
+    Option Widget.InteractiveGoal :=
+  goals.find? (·.mvarId == loc.mvarId)
+
+structure ConvSelectionPanelProps extends PanelWidgetProps where
+  /-- The range in the source document where the `conv` command will be inserted. -/
+  replaceRange : Lsp.Range
+  deriving RpcEncodable
+
+open scoped Jsx in
+@[server_rpc_method]
+def ConvSelectionPanel.rpc (props : ConvSelectionPanelProps) : RequestM (RequestTask Html) :=
+  RequestM.asTask do
+    let doc ← RequestM.readDoc
+    let inner : Html ← (do
+      if props.selectedLocations.isEmpty then
+        return <span>Use shift-click to select one sub-expression in the goal that you want to zoom on.</span>
+      let some selectedLoc := props.selectedLocations[0]? | unreachable!
+
+      let some g := findGoalForLocation props.goals selectedLoc
+        | throw $ .invalidParams
+            s!"could not find goal for location {toJson selectedLoc}"
+      g.ctx.val.runMetaM {} do
+        let md ← g.mvarId.getDecl
+        let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
+        Meta.withLCtx lctx md.localInstances do
+          let newCode ← insertEnter props.selectedLocations md.type
+          return .ofComponent
+            MakeEditLink
+            (.ofReplaceRange doc.meta props.replaceRange newCode)
+            #[ .text newCode ])
+    return <details «open»={true}>
+        <summary className="mv2 pointer">Conv 🔍</summary>
+        <div className="ml1">{inner}</div>
+      </details>
+
+@[widget_module]
+def ConvSelectionPanel : Component ConvSelectionPanelProps :=
+  mk_rpc_widget% ConvSelectionPanel.rpc
+
+open scoped Json in
+elab stx:"conv?" : tactic => do
+  let some replaceRange := (← getFileMap).rangeOfStx? stx | return
+  savePanelWidgetInfo stx ``ConvSelectionPanel $ pure $ json% { replaceRange: $(replaceRange) }
 
 example (a : Nat) : a + a - a + a = a := by
-  -- Put your cursor on the next line
   conv?
+  -- Put your cursor on the next line
   all_goals { sorry }

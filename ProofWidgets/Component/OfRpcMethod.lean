@@ -7,10 +7,11 @@ open Lean Server Meta Elab Term
 
 def ofRpcMethodTemplate := include_str ".." / ".." / "build" / "js" / "ofRpcMethod.js"
 
-/-- The elaborator `mk_rpc_widget%` allows implementing a `Component MyProps`
-as an RPC method `MyProps → RequestM (RequestTask Html)`.
+/-- The elaborator `mk_rpc_widget%` allows writing certain widgets in Lean instead of JavaScript.
+Specifically, it translates an RPC method of type `MyProps → RequestM (RequestTask Html)`
+into a widget component of type `Component MyProps`.
 
-Specifically, we can write:
+Even more specifically, we can write:
 ```lean
 open Lean Server
 
