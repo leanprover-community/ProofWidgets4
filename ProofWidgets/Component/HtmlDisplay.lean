@@ -34,7 +34,7 @@ open Elab Command Json in
 def elabHtmlCmd : CommandElab := fun
   | stx@`(#html $t:term) =>
     runTermElabM fun _ => do
-      let ht ← evalHtml <| ← `(ProofWidgets.Html.ofTHtml $t)
+      let ht ← evalHtml t
       savePanelWidgetInfo stx ``HtmlDisplayPanel do
         return json% { html: $(← rpcEncode ht) }
   | stx => throwError "Unexpected syntax {stx}."
@@ -45,7 +45,7 @@ open Elab Tactic Json in
 @[tactic htmlTac]
 def elabHtmlTac : Tactic
   | stx@`(tactic| html! $t:term) => do
-    let ht ← evalHtml <| ← `(ProofWidgets.Html.ofTHtml $t)
+    let ht ← evalHtml t
     savePanelWidgetInfo stx ``HtmlDisplayPanel do
       return json% { html: $(← rpcEncode ht) }
   | stx => throwError "Unexpected syntax {stx}."

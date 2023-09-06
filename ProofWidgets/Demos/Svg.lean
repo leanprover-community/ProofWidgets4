@@ -21,4 +21,4 @@ private def svg : Svg frame :=
 
 -- #eval toJson svg.toHtml
 
-#html svg.toTHtml
+#html svg.toHtml

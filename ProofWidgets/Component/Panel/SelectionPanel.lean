@@ -1,5 +1,5 @@
 import Lean.Meta.ExprLens
-import ProofWidgets.Component.Panel
+import ProofWidgets.Component.Panel.Basic
 import ProofWidgets.Presentation.Expr -- Needed for RPC calls in SelectionPanel
 
 open ProofWidgets in
@@ -50,6 +50,6 @@ presenter should be used to display each of those expressions.
 Expressions can be selected using shift-click. -/
 @[widget_module]
 def SelectionPanel : Component PanelWidgetProps where
-  javascript := include_str ".." / ".." / "build" / "js" / "presentSelection.js"
+  javascript := include_str ".." / ".." / ".." / "build" / "js" / "presentSelection.js"
 
 end ProofWidgets

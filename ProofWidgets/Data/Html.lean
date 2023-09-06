@@ -1,5 +1,5 @@
 /-
- Copyright (c) 2021 Wojciech Nawrocki. All rights reserved.
+ Copyright (c) 2021-2023 Wojciech Nawrocki. All rights reserved.
  Released under Apache 2.0 license as described in the file LICENSE.
  Authors: Wojciech Nawrocki, Sebastian Ullrich
  -/
@@ -15,40 +15,23 @@ import ProofWidgets.Component.Basic
 namespace ProofWidgets
 open Lean Server
 
-/-- A HTML tree which may contain widget components (typed props variant). See also `Html`. -/
-inductive THtml : Type 1 where
-  /-- An `element "tag" attrs children` represents `<tag {...attrs}>{...children}</tag>`. -/
-  | element : String → Array (String × Json) → Array THtml → THtml
-  /-- Raw HTML text.-/
-  | text : String → THtml
-  /-- A `component Foo props children` represents `<Foo {...props}>{...children}</Foo>`,
-  where `Foo : Component Props`. -/
-  -- TODO: The universe lift is unfortunate.
-  | component {Props} [RpcEncodable Props] : Component Props → Props → Array THtml → THtml
-  deriving Inhabited
-
-/-- A HTML tree which may contain widget components (untyped props variant).
-
-Unfortunately we cannot build `RpcEncodable THtml` because `THtml : Type 1` and `RpcEncodable`
-is not universe-polymorphic. Thus we define `Html : Type`, which can be encoded, instead. -/
+/-- A HTML tree which may contain widget components. -/
 inductive Html where
   /-- An `element "tag" attrs children` represents `<tag {...attrs}>{...children}</tag>`. -/
   | element : String → Array (String × Json) → Array Html → Html
-  /-- Raw HTML text.-/
+  /-- Raw HTML text. -/
   | text : String → Html
   /-- A `component h e props children` represents `<Foo {...props}>{...children}</Foo>`,
   where `Foo : Component Props` is some component such that `h = hash Foo.javascript`,
-  `e = Foo.«export»` and `props` corresponds to a value of type `Props`. -/
+  `e = Foo.«export»`, and `props` will produce a JSON-encoded value of type `Props`. -/
   | component : UInt64 → String → LazyEncodable Json → Array Html → Html
   deriving Inhabited
 
-#mkrpcenc Html
+def Html.ofComponent [RpcEncodable Props]
+    (c : Component Props) (props : Props) (children : Array Html) : Html :=
+  .component (hash c.javascript) c.export (rpcEncode props) children
 
-partial def Html.ofTHtml : THtml → Html
-  | .element t as cs => element t as (cs.map ofTHtml)
-  | .text s => text s
-  | @THtml.component _ _ c ps cs =>
-    component (hash c.javascript) c.«export» (rpcEncode ps) (cs.map ofTHtml)
+#mkrpcenc Html
 
 /-- See [MDN docs](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flow_Layout/Block_and_Inline_Layout_in_Normal_Flow). -/
 inductive LayoutKind where
@@ -97,15 +80,15 @@ scoped syntax jsxElement   : jsxChild
 
 scoped syntax:max jsxElement : term
 
-def transformTag (n m : Ident) (attrs : Array Ident) (vs : Array (TSyntax `jsxAttrVal))
+def transformTag (n m : Ident) (ns : Array Ident) (vs : Array (TSyntax `jsxAttrVal))
     (cs : Array (TSyntax `jsxChild)) : MacroM Term := do
   let nId := n.getId.eraseMacroScopes
   let mId := m.getId.eraseMacroScopes
   if nId != mId then
     Macro.throwErrorAt m s!"expected </{nId}>"
   let cs ← cs.mapM fun
-    | `(jsxChild| $t:jsxText)    => `(THtml.text $(quote <| getJsxText t))
-    | `(jsxChild| { $t })        => pure t
+    | `(jsxChild| $t:jsxText)    => `(Html.text $(quote <| getJsxText t))
+    | `(jsxChild| { $t })        => return t
     | `(jsxChild| $e:jsxElement) => `(term| $e:jsxElement)
     | stx                        => Macro.throwErrorAt stx "unknown syntax"
   let vs : Array (TSyntax `term) ← vs.mapM fun
@@ -115,11 +98,11 @@ def transformTag (n m : Ident) (attrs : Array Ident) (vs : Array (TSyntax `jsxAt
   let tag := toString nId
   -- Uppercase tags are parsed as components
   if tag.get? 0 |>.filter (·.isUpper) |>.isSome then
-    `(THtml.component $n { $[$attrs:ident := $vs],* } #[ $[$cs],* ])
+    `(Html.ofComponent $n { $[$ns:ident := $vs],* } #[ $[$cs],* ])
   -- Lowercase tags are parsed as standard HTML
   else
-    let attrs := attrs.map (quote <| toString ·.getId.eraseMacroScopes)
-    `(THtml.element $(quote tag) #[ $[($attrs, $vs)],* ] #[ $[$cs],* ])
+    let ns := ns.map (quote <| toString ·.getId)
+    `(Html.element $(quote tag) #[ $[($ns, $vs)],* ] #[ $[$cs],* ])
 
 /-- Support for writing HTML trees directly, using XML-like angle bracket syntax. It works very
 similarly to [JSX](https://react.dev/learn/writing-markup-with-jsx) in JavaScript. The syntax is
@@ -133,14 +116,24 @@ macro_rules
 
 open Lean Delaborator SubExpr
 
-@[delab app.ProofWidgets.THtml.text]
-def delabTHtmlText : Delab := do
-  withAppArg delab
+def delabJsxChildren : DelabM (Array (TSyntax `jsxChild)) := do
+  let children ← delab
+  let `(term| #[ $cs,* ]) := children | failure
+  (@id (TSyntaxArray `term) cs).mapM fun c => do
+    if let `(term| Html.text $s:str) := c.raw then
+      let txt := mkNode `jsxText #[mkAtom s.getString]
+      `(jsxChild| $txt:jsxText)
+    -- hack.
+    else if c.raw[0].getKind == ``ProofWidgets.Jsx.«jsxElement<__>_</_>» ||
+            c.raw[0].getKind == ``ProofWidgets.Jsx.«jsxElement<__/>» then
+      `(jsxChild| $(⟨c.raw⟩):jsxElement)
+    else
+      `(jsxChild| { $c })
 
-@[delab app.ProofWidgets.THtml.element]
-def delabTHtmlElement : Delab := do
+@[delab app.ProofWidgets.Html.element]
+def delabHtmlElement : Delab := do
   let e ← getExpr
-  -- `THtml.element tag attrs children`
+  -- `Html.element tag attrs children`
   let #[tag, _, _] := e.getAppArgs | failure
 
   let .lit (.strVal s) := tag | failure
@@ -152,18 +145,29 @@ def delabTHtmlElement : Delab := do
     let attr := mkIdent a.getString
     `(jsxAttr| $attr:ident={ $v })
 
-  let children ← withAppArg delab
-  let `(term| #[ $cs,* ]) := children | failure
-  let cs : Array (TSyntax `jsxChild) ← (@id (TSyntaxArray `term) cs).mapM fun c => do
-    if let some s := c.raw.isStrLit? then
-      let txt := mkNode `jsxText #[mkAtom s]
-      `(jsxChild| $txt:jsxText)
-    -- hack.
-    else if c.raw[0].getKind == ``ProofWidgets.Jsx.«jsxElement<__>_</_>» then
-      `(jsxChild| $(⟨c.raw⟩):jsxElement)
-    else
-      `(jsxChild| { $c })
-  `(term| < $tag $[$attrs]* > $[$cs]* </ $tag >)
+  let children ← withAppArg delabJsxChildren
+  if children.isEmpty then
+    `(term| < $tag $[$attrs]* />)
+  else
+    `(term| < $tag $[$attrs]* > $[$children]* </ $tag >)
+
+@[delab app.ProofWidgets.Html.ofComponent]
+def delabHtmlOfComponent : Delab := do
+  -- `Html.ofComponent Props inst c props children`
+  let c ← withNaryArg 2 delab
+  unless c.raw.isIdent do failure
+  let tag : Ident := ⟨c.raw⟩
+
+  let props ← withNaryArg 3 delab
+  let `(term| { $[$ns:ident := $vs],* } ) := props | failure
+  let attrs : Array (TSyntax `jsxAttr) ← ns.zip vs |>.mapM fun (n, v) => do
+    `(jsxAttr| $n:ident={ $v })
+
+  let children ← withNaryArg 4 delabJsxChildren
+  if children.isEmpty then
+    `(term| < $tag $[$attrs]* />)
+  else
+    `(term| < $tag $[$attrs]* > $[$children]* </ $tag >)
 
 end Jsx
 end ProofWidgets

@@ -8,7 +8,7 @@ def fn (t : Float) (x : Float): Float :=
 
 open scoped ProofWidgets.Jsx in
 open scoped ProofWidgets.Json in
-def Plot (fn : Float → Float) (steps := 100) : THtml :=
+def Plot (fn : Float → Float) (steps := 100) : Html :=
   let jsonData : Array Json :=
     Nat.fold (flip Array.push) (steps + 1) #[]
     |> Array.map (fun (x : Nat) => let x : Float := x.toFloat / steps.toFloat;  (x, fn x))
@@ -28,7 +28,7 @@ def Plot (fn : Float → Float) (steps := 100) : THtml :=
 # Bonus demo: animated plots!
 -/
 
-def mkFrames (fn : Float → Float → Float) (steps := 100) : Array THtml:=
+def mkFrames (fn : Float → Float → Float) (steps := 100) : Array Html:=
   List.range (steps + 1) |>.toArray |>.map (fun t => Plot (fn (t.toFloat / steps.toFloat)))
 
 structure AnimatedHtmlProps where
@@ -43,4 +43,4 @@ def AnimatedHtml : Component AnimatedHtmlProps where
 
 open scoped ProofWidgets.Jsx in
 -- put your cursor on the below line to see an animated widget
-#html <AnimatedHtml frames={mkFrames fn |>.map Html.ofTHtml} framesPerSecond?={some 60} />
+#html <AnimatedHtml frames={mkFrames fn} framesPerSecond?={some 60} />

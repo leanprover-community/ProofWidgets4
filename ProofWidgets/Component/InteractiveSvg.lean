@@ -119,9 +119,8 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
 
 
   return RequestTask.pure {
-    html := Html.ofTHtml
-      <div>
-        {svg.toTHtml}
+    html := <div>
+        {svg.toHtml}
       </div>,
     state := svgState,
     callbackTime := some 33,
