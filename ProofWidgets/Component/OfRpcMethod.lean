@@ -35,13 +35,15 @@ compared to ones written natively in TypeScript or JavaScript:
 - It must be pure, i.e. cannot directly store any React state.
   Child components may store state as usual.
 - It cannot pass closures as props to the child components that it returns.
-  For example, it is not possible to write click event handlers in Lean
+  For example, it is not currently possible to write click event handlers in Lean
   and pass them to a `<button onClick={..}>` child.
 - Every time the input props change, the infoview has to send a message to the Lean server
   in order to invoke the RPC method.
-  Thus there can be a noticeable visual delay during updates.
-  Components whose props change at a high frequency should not be implemented using this method
-  as it would incur significant overhead.
+  Thus there can be a noticeable visual delay between the input props changing
+  and the display updating.
+  Consequently, components whose props change at a high frequency
+  (e.g. depending on the mouse position)
+  should not be implemented using this method.
 
 💡 Note that an inverse transformation is already possible.
 Given `MyComponent : Component MyProps`, we can write:
