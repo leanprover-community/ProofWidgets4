@@ -19,7 +19,7 @@ open Lean Server
 inductive Html where
   /-- An `element "tag" attrs children` represents `<tag {...attrs}>{...children}</tag>`. -/
   | element : String → Array (String × Json) → Array Html → Html
-  /-- Raw HTML text.-/
+  /-- Raw HTML text. -/
   | text : String → Html
   /-- A `component h e props children` represents `<Foo {...props}>{...children}</Foo>`,
   where `Foo : Component Props` is some component such that `h = hash Foo.javascript`,
@@ -116,9 +116,19 @@ macro_rules
 
 open Lean Delaborator SubExpr
 
-@[delab app.ProofWidgets.Html.text]
-def delabHtmlText : Delab := do
-  withAppArg delab
+def delabJsxChildren : DelabM (Array (TSyntax `jsxChild)) := do
+  let children ← delab
+  let `(term| #[ $cs,* ]) := children | failure
+  (@id (TSyntaxArray `term) cs).mapM fun c => do
+    if let `(term| Html.text $s:str) := c.raw then
+      let txt := mkNode `jsxText #[mkAtom s.getString]
+      `(jsxChild| $txt:jsxText)
+    -- hack.
+    else if c.raw[0].getKind == ``ProofWidgets.Jsx.«jsxElement<__>_</_>» ||
+            c.raw[0].getKind == ``ProofWidgets.Jsx.«jsxElement<__/>» then
+      `(jsxChild| $(⟨c.raw⟩):jsxElement)
+    else
+      `(jsxChild| { $c })
 
 @[delab app.ProofWidgets.Html.element]
 def delabHtmlElement : Delab := do
@@ -135,22 +145,29 @@ def delabHtmlElement : Delab := do
     let attr := mkIdent a.getString
     `(jsxAttr| $attr:ident={ $v })
 
-  let children ← withAppArg delab
-  let `(term| #[ $cs,* ]) := children | failure
-  let cs : Array (TSyntax `jsxChild) ← (@id (TSyntaxArray `term) cs).mapM fun c => do
-    if let some s := c.raw.isStrLit? then
-      let txt := mkNode `jsxText #[mkAtom s]
-      `(jsxChild| $txt:jsxText)
-    -- hack.
-    else if c.raw[0].getKind == ``ProofWidgets.Jsx.«jsxElement<__>_</_>» then
-      `(jsxChild| $(⟨c.raw⟩):jsxElement)
-    else
-      `(jsxChild| { $c })
-  `(term| < $tag $[$attrs]* > $[$cs]* </ $tag >)
+  let children ← withAppArg delabJsxChildren
+  if children.isEmpty then
+    `(term| < $tag $[$attrs]* />)
+  else
+    `(term| < $tag $[$attrs]* > $[$children]* </ $tag >)
 
--- TODO(WN)
--- @[delab app.ProofWidgets.Html.component]
--- def delabHtmlComponent : Delab := do
+@[delab app.ProofWidgets.Html.ofComponent]
+def delabHtmlOfComponent : Delab := do
+  -- `Html.ofComponent Props inst c props children`
+  let c ← withNaryArg 2 delab
+  unless c.raw.isIdent do failure
+  let tag : Ident := ⟨c.raw⟩
+
+  let props ← withNaryArg 3 delab
+  let `(term| { $[$ns:ident := $vs],* } ) := props | failure
+  let attrs : Array (TSyntax `jsxAttr) ← ns.zip vs |>.mapM fun (n, v) => do
+    `(jsxAttr| $n:ident={ $v })
+
+  let children ← withNaryArg 4 delabJsxChildren
+  if children.isEmpty then
+    `(term| < $tag $[$attrs]* />)
+  else
+    `(term| < $tag $[$attrs]* > $[$children]* </ $tag >)
 
 end Jsx
 end ProofWidgets
