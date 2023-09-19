@@ -27,7 +27,7 @@ open scoped ProofWidgets.Json
 namespace ProofWidgets.Json
 open Lean
 
-declare_syntax_cat jso
+declare_syntax_cat jso (behavior := symbol)
 declare_syntax_cat jso_field
 declare_syntax_cat jso_ident
 
