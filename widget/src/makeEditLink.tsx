@@ -1,10 +1,10 @@
 import * as React from 'react'
 import { EditorContext } from '@leanprover/infoview'
-import { Position, TextDocumentEdit } from 'vscode-languageserver-protocol'
+import { Range, TextDocumentEdit } from 'vscode-languageserver-protocol'
 
 interface MakeEditLinkProps {
   edit : TextDocumentEdit
-  newCursorPos? : Position
+  newSelection? : Range
   title? : string
 }
 
@@ -15,8 +15,8 @@ export default function(props: React.PropsWithChildren<MakeEditLinkProps>) {
       onClick={async () => {
         await ec.api.applyEdit({ documentChanges: [props.edit] })
         // TODO: https://github.com/leanprover/vscode-lean4/issues/225
-        if (props.newCursorPos)
-          await ec.revealPosition({ ...props.newCursorPos, uri: props.edit.textDocument.uri })
+        if (props.newSelection)
+          await ec.revealLocation({ uri: props.edit.textDocument.uri, range: props.newSelection })
       }}
     >
       {props.children}
