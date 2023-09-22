@@ -1,9 +1,10 @@
 /-
  Copyright (c) 2022 E.W.Ayers. All rights reserved.
  Released under Apache 2.0 license as described in the file LICENSE.
- Authors: E.W.Ayers
+ Authors: E.W.Ayers, Wojciech Nawrocki
 -/
 import Lean.Data.Json
+import Lean.Syntax
 
 /-!
 # JSON-like syntax for Lean.
@@ -28,8 +29,6 @@ namespace ProofWidgets.Json
 open Lean
 
 declare_syntax_cat jso (behavior := symbol)
-declare_syntax_cat jso_field
-declare_syntax_cat jso_ident
 
 instance : OfScientific JsonNumber where
   ofScientific mantissa exponentSign decimalExponent :=
@@ -57,23 +56,19 @@ instance : ToJson Float where
       let j := if x < 0.0 then -j else j
       Json.num j
 
-scoped syntax "[" jso,* "]" : jso
-scoped syntax "-"? scientific : jso
-scoped syntax "-"? num : jso
-scoped syntax str : jso
+scoped syntax "null" : jso
 scoped syntax "true" : jso
 scoped syntax "false" : jso
-scoped syntax "null" : jso
-scoped syntax ident : jso_ident
-scoped syntax "$(" term ")" : jso_ident
-scoped syntax str : jso_ident
-scoped syntax jso_ident ": " jso : jso_field
-scoped syntax "{" jso_field,* "}" : jso
-scoped syntax "$(" term ")" : jso
+scoped syntax str : jso
+scoped syntax "-"? num : jso
+scoped syntax "-"? scientific : jso
+scoped syntax "[" jso,* "]" : jso
+syntax jsoIdent := ident <|> str
+syntax jsoField := jsoIdent ": " jso
+scoped syntax "{" jsoField,* "}" : jso
 scoped syntax "json% " jso  : term
 
 macro_rules
-  | `(json% $($t))          => `(Lean.toJson $t)
   | `(json% null)           => `(Lean.Json.null)
   | `(json% true)           => `(Lean.Json.bool Bool.true)
   | `(json% false)          => `(Lean.Json.bool Bool.false)
@@ -83,12 +78,17 @@ macro_rules
   | `(json% -$n:num)        => `(Lean.Json.num (-$n))
   | `(json% -$n:scientific) => `(Lean.Json.num (-$n))
   | `(json% [$[$xs],*])     => `(Lean.Json.arr #[$[json% $xs],*])
-  | `(json% {$[$ks:jso_ident : $vs:jso],*}) =>
-    let ks : Array (TSyntax `term) := ks.map fun
-      | `(jso_ident| $k:ident)   => (k.getId |> toString |> quote)
-      | `(jso_ident| $k:str)     => k
-      | `(jso_ident| $($k:term)) => k
-      | stx                      => panic! s!"unrecognized ident syntax {stx}"
+  | `(json% {$[$ks:jsoIdent : $vs:jso],*}) => do
+    let ks : Array (TSyntax `term) ← ks.mapM fun
+      | `(jsoIdent| $k:ident) => pure (k.getId |> toString |> quote)
+      | `(jsoIdent| $k:str)   => pure k
+      | _                     => Macro.throwUnsupported
     `(Lean.Json.mkObj [$[($ks, json% $vs)],*])
+  | `(json% $stx)           =>
+    if stx.raw.isAntiquot then
+      let stx := ⟨stx.raw.getAntiquotTerm⟩
+      `(Lean.toJson $stx)
+    else
+      Macro.throwUnsupported
 
 end ProofWidgets.Json
