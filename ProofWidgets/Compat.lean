@@ -54,7 +54,7 @@ elab "#mkrpcenc" n:ident : command => do
     end $n
   )
 
-def widgetDefPostfix : Name := `userWidgetDef
+def widgetDefPostfix : Name := `_userWidgetDef
 
 -- NOTE: Compared to core, this is almost like UserWidgetDefinition but with a different "attitude":
 -- the module itself need not be a user widget, i.e. it can also be a support library. It doesn't
@@ -79,9 +79,15 @@ initialize
     -- The implementation is a hack due to the fact that widgetSource is tied to the storage
     -- of user widgets. I think a single widgetModuleRegistry should suffice. TODO fix in core.
     add := fun nm _ _ => do
-      -- The type is not checked; really we just need it to have a `javascript : String` field.
+      let dc : TSyntax ``Parser.Command.docComment :=
+        mkNode ``Parser.Command.docComment #[
+          mkAtom "/--",
+          mkAtom s!"User widget definition for the widget module {nm}. -/"]
+      -- The type of `nm` is not checked,
+      -- so technically any type with a `javascript : String` projection will work.
       let proc : CommandElabM Unit := do
         elabCommand <| ← `(command|
+          $dc:docComment
           @[widget]
           def $(mkIdent <| nm ++ widgetDefPostfix) : Lean.Widget.UserWidgetDefinition where
             name := $(quote nm.toString)
