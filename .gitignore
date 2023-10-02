@@ -1,6 +1,5 @@
 /build
-/lean_packages/*
-!/lean_packages/manifest.json
+/lake-packages/*
 # JavaScript build artefacts.
 /widget/dist
 /widget/node_modules
