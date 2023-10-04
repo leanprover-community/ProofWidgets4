@@ -30,8 +30,7 @@ structure MakeEditLinkProps where
 /-- Replace `range` with `newText`.
 If `newSelection?` is absent, place the cursor at the end of the new text.
 If `newSelection?` is present, make the specified selection instead.
-See also `MakeEditLinkProps.ofReplaceRange` for a version specifying the new selection
-inside `newText`.
+See also `MakeEditLinkProps.ofReplaceRange`.
 -/
 def MakeEditLinkProps.ofReplaceRange' (meta : Server.DocumentMeta) (range : Lsp.Range)
     (newText : String) (newSelection? : Option Lsp.Range := none) : MakeEditLinkProps :=
@@ -45,9 +44,8 @@ def MakeEditLinkProps.ofReplaceRange' (meta : Server.DocumentMeta) (range : Lsp.
 
 /-- Replace `range` with `newText`.
 If `newSelection?` is absent, place the cursor at the end of the new text.
-If `newSelection?` is present, select the text specified within `newText`.
-See also `MakeEditLinkProps.ofReplaceRange` for a version allowing selecting anything in
-the new document. -/
+If `newSelection?` is present, select the range it specifies within `newText`.
+See also `MakeEditLinkProps.ofReplaceRange'`. -/
 def MakeEditLinkProps.ofReplaceRange (meta : Server.DocumentMeta) (range : Lsp.Range)
     (newText : String) (newSelection? : Option (String.Pos × String.Pos) := none) :
     MakeEditLinkProps :=
