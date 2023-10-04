@@ -1,6 +1,17 @@
 import Lean.Server.Utils
 import ProofWidgets.Component.Basic
 
+/-- Assuming that `s` is the content of a file starting at position `p`,
+advance `p` to the end of `s`. -/
+def Lean.Lsp.Position.advance (p : Position) (s : Substring) : Position :=
+  let (nLinesAfter, lastLineUtf16Sz) := s.foldl
+    (init := (0, 0))
+    fun (n, l) c => if c == '\n' then (n + 1, 0) else (n, l + c.utf16Size.toNat)
+  {
+    line := p.line + nLinesAfter
+    character := (if nLinesAfter == 0 then p.character else 0) + lastLineUtf16Sz
+  }
+
 namespace ProofWidgets
 open Lean
 
@@ -18,22 +29,30 @@ structure MakeEditLinkProps where
 
 /-- Replace `range` with `newText`.
 If `newSelection?` is absent, place the cursor at the end of the new text.
-If `newSelection?` is present, make the specified selection instead. -/
-def MakeEditLinkProps.ofReplaceRange (meta : Server.DocumentMeta) (range : Lsp.Range)
+If `newSelection?` is present, make the specified selection instead.
+See also `MakeEditLinkProps.ofReplaceRange`.
+-/
+def MakeEditLinkProps.ofReplaceRange' (meta : Server.DocumentMeta) (range : Lsp.Range)
     (newText : String) (newSelection? : Option Lsp.Range := none) : MakeEditLinkProps :=
   let edit := { textDocument := { uri := meta.uri, version? := meta.version }
                 edits        := #[{ range, newText }] }
   if newSelection?.isSome then
     { edit, newSelection? }
   else
-    let (nLinesAfter, lastLineUtf16Sz) := newText.foldl
-      (init := (0, 0))
-      fun (n, l) c => if c == '\n' then (n + 1, 0) else (n, l + c.utf16Size.toNat)
-    let endPos := {
-      line := range.start.line + nLinesAfter
-      character := (if nLinesAfter == 0 then range.start.character else 0) + lastLineUtf16Sz
-    }
+    let endPos := range.start.advance newText.toSubstring
     { edit, newSelection? := some { start := endPos, «end» := endPos } }
+
+/-- Replace `range` with `newText`.
+If `newSelection?` is absent, place the cursor at the end of the new text.
+If `newSelection?` is present, select the range it specifies within `newText`.
+See also `MakeEditLinkProps.ofReplaceRange'`. -/
+def MakeEditLinkProps.ofReplaceRange (meta : Server.DocumentMeta) (range : Lsp.Range)
+    (newText : String) (newSelection? : Option (String.Pos × String.Pos) := none) :
+    MakeEditLinkProps :=
+  ofReplaceRange' meta range newText (newSelection?.map fun (s, e) =>
+    let ps := range.start.advance (newText.toSubstring.extract 0 s)
+    let pe := ps.advance (newText.toSubstring.extract s e)
+    { start := ps, «end» := pe })
 
 /-- A link that, when clicked, makes the specifies edit
 and potentially moves the cursor
