@@ -1,5 +1,5 @@
-import ProofWidgets.Component.SelectionPanel
-import ProofWidgets.Component.GoalTypePanel
+import ProofWidgets.Component.Panel.SelectionPanel
+import ProofWidgets.Component.Panel.GoalTypePanel
 
 open ProofWidgets Jsx
 
@@ -8,8 +8,7 @@ def presenter : ExprPresenter where
   userName := "With octopodes"
   layoutKind := .inline
   present e :=
-    return Html.ofTHtml
-      <span>
+    return <span>
         {.text "🐙 "}<InteractiveCode fmt={← Lean.Widget.ppExprTagged e} />{.text " 🐙"}
       </span>
 

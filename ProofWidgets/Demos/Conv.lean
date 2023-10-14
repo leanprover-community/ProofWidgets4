@@ -5,7 +5,7 @@ Authors: Robin Böhne, Wojciech Nawrocki
 -/
 
 import Lean.Meta.ExprLens
-import ProofWidgets.Component.Panel
+import ProofWidgets.Component.Panel.Basic
 
 open Lean Server
 

@@ -32,7 +32,7 @@ def get_node_cx (n i : Nat) : Int := 20 + (get_node_pos n i).1 * 40
 
 def get_node_cy (n i : Nat) : Int := 20 + (get_node_pos n i).2 * 40
 
-def get_node_html (n i : Nat) : THtml :=
+def get_node_html (n i : Nat) : Html :=
   <circle
     cx={toString <| get_node_cx n i}
     cy={toString <| get_node_cy n i}
@@ -45,7 +45,7 @@ def get_node_html (n i : Nat) : THtml :=
  * Error if `(A i j, A j i) ∉ [((0 : Int), (0 : Int)), (-1, -1), (-1, -2), (-2, -1), (-1, -3), (-3, -1)]`
  * Render `(A i j) * (A j i)` edges
  * Render arrow on double or triple edge with direction decided by `A i j < A j i` -/
-def get_edge_html : Nat × Nat → List THtml
+def get_edge_html : Nat × Nat → List Html
   | (i, j) => if A.nat_index i j = 0 then [] else
   [<line
      x1={toString <| get_node_cx n i}
@@ -55,19 +55,19 @@ def get_edge_html : Nat × Nat → List THtml
      fill="black"
      stroke="black" />]
 
-def get_nodes_html (n : Nat) : List THtml :=
+def get_nodes_html (n : Nat) : List Html :=
   (List.range n).map (get_node_html n)
 
-def get_edges_html : List THtml := Id.run do
+def get_edges_html : List Html := Id.run do
   let mut out := []
   for j in [:n] do
     for i in [:j] do
       out := A.get_edge_html (i, j) ++ out
   return out
 
-def toTHtml (M : Matrix (Fin n) (Fin n) Int) : THtml :=
+def toHtml (M : Matrix (Fin n) (Fin n) Int) : Html :=
   <div style={json% { height: "100px", width: "300px", background: "grey" }}>
-    {THtml.element "svg" #[] (M.get_edges_html ++ Matrix.get_nodes_html n).toArray}
+    {Html.element "svg" #[] (M.get_edges_html ++ Matrix.get_nodes_html n).toArray}
   </div>
 
 end Matrix
@@ -84,4 +84,4 @@ def cartanMatrix.E₈ : Matrix (Fin 8) (Fin 8) Int :=
      [ 0,  0,  0,  0,  0,  0, -1,  2]].get! i |>.get! j
 
 -- Place your cursor here
-#html cartanMatrix.E₈.toTHtml
+#html cartanMatrix.E₈.toHtml

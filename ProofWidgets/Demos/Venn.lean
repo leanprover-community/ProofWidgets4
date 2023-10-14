@@ -2,7 +2,7 @@ import Lean.Data.HashMap
 import Lean.Elab.Tactic
 import ProofWidgets.Component.PenroseDiagram
 import ProofWidgets.Component.HtmlDisplay
-import ProofWidgets.Component.Panel
+import ProofWidgets.Component.Panel.Basic
 
 open Lean Meta Server
 open ProofWidgets
@@ -58,9 +58,8 @@ abbrev ExprEmbeds := Array (String × Expr)
 open scoped Jsx in
 def mkSetDiag (sub : String) (embeds : ExprEmbeds) : MetaM Html := do
   let embeds ← embeds.mapM fun (s, h) =>
-      return (s, Html.ofTHtml <InteractiveCode fmt={← Widget.ppExprTagged h} />)
-  return Html.ofTHtml
-    <PenroseDiagram
+      return (s, <InteractiveCode fmt={← Widget.ppExprTagged h} />)
+  return <PenroseDiagram
       embeds={embeds}
       dsl={include_str ".."/".."/"widget"/"penrose"/"setTheory.dsl"}
       sty={include_str ".."/".."/"widget"/"penrose"/"venn.sty"}

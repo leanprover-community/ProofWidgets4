@@ -8,7 +8,7 @@ import Lean.Data.HashMap
 import Lean.Elab.Tactic
 import ProofWidgets.Component.PenroseDiagram
 import ProofWidgets.Component.HtmlDisplay
-import ProofWidgets.Component.Panel
+import ProofWidgets.Component.Panel.Basic
 
 open Lean Meta Server
 open ProofWidgets
@@ -46,13 +46,13 @@ abbrev ExprEmbeds := Array (String × Expr)
 open scoped Jsx in
 def mkEuclideanDiag (sub : String) (embeds : ExprEmbeds) : MetaM Html := do
   let embeds ← embeds.mapM fun (s, h) =>
-      return (s, Html.ofTHtml <InteractiveCode fmt={← Widget.ppExprTagged h} />)
-  return Html.ofTHtml
+      return (s, <InteractiveCode fmt={← Widget.ppExprTagged h} />)
+  return (
     <PenroseDiagram
       embeds={embeds}
       dsl={include_str ".."/".."/"widget"/"penrose"/"euclidean.dsl"}
       sty={include_str ".."/".."/"widget"/"penrose"/"euclidean.sty"}
-      sub={sub} />
+      sub={sub} />)
 
 def isEuclideanGoal? (hyps : Array LocalDecl) : MetaM (Option Html) := do
   let mut sub := "AutoLabel All\n"
