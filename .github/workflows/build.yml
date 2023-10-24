@@ -42,9 +42,15 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      # TODO: investigate why `lake build` deadlocks on macOS
+      - name: Build widgets
+        run: npm clean-install && npm run build
+        working-directory: ./widget
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
       - name: Build package
-        if: steps.cache-build.outputs.cache-hit != 'true'
-        run: lake build
+        run: lake build ProofWidgets
 
       - name: Create release for tag
         if: github.ref_type == 'tag'
@@ -53,10 +59,12 @@ jobs:
       # TODO: replace with just `lake upload $RELEASE_TAG` when lean4#2713 is fixed
       # References:
       # https://docs.github.com/en/actions/learn-github-actions/contexts#runner-context
+      # https://stackoverflow.com/questions/8766730/tar-command-in-mac-os-x-adding-hidden-files-why
       - name: Upload release archive
         if: github.ref_type == 'tag'
         # All our runners are 64-bit ¯\_(ツ)_/¯
         run: |
+          export COPYFILE_DISABLE=true
           tar -c -z -f ./${LEAN_OS}-64.tar.gz -C ./build .
           gh release upload ${RELEASE_TAG} ./${LEAN_OS}-64.tar.gz
         env:
