@@ -42,9 +42,13 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      # TODO: investigate why `lake build` deadlocks on macOS
+      - name: Build widgets
+        run: npm clean-install && npm run build
+        working-directory: ./widgets
+
       - name: Build package
-        if: steps.cache-build.outputs.cache-hit != 'true'
-        run: lake build
+        run: lake build ProofWidgets
 
       - name: Create release for tag
         if: github.ref_type == 'tag'
