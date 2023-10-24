@@ -45,7 +45,7 @@ jobs:
       # TODO: investigate why `lake build` deadlocks on macOS
       - name: Build widgets
         run: npm clean-install && npm run build
-        working-directory: ./widgets
+        working-directory: ./widget
 
       - name: Build package
         run: lake build ProofWidgets
