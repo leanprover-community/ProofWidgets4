@@ -1,7 +1,6 @@
 import Lean.Attributes
 import Lean.Widget.UserWidget
-
-import ProofWidgets.Data.Json
+import Std.Data.Json
 
 /-!
 A compatibility layer aimed at redefining the user widget API in terms of modules and components.
