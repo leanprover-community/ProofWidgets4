@@ -96,24 +96,6 @@ open scoped ProofWidgets.Jsx
 
 See the `Jsx.lean` and `ExprPresentation.lean` demos.
 
-### `json%` syntax
-
-JSON-like syntax. Invoke with `json%`, escape with `$( _ )`
-
-```lean
-import ProofWidgets.Data.Json
-open scoped ProofWidgets.Json
-
-#eval json% {
-  hello : "world",
-  cheese : ["edam", "cheddar", {kind : "spicy", rank : 100.2}],
-  lemonCount : 100e30,
-  isCool : true,
-  isBug : null,
-  lookACalc: $(23 + 54 * 2)
-}
-```
-
 ### Support for libraries
 
 We have good support for building diagrams with [Penrose](https://penrose.cs.cmu.edu/), and expose

@@ -1,4 +1,3 @@
-import ProofWidgets.Data.Json
 import ProofWidgets.Data.Html
 
 namespace ProofWidgets
