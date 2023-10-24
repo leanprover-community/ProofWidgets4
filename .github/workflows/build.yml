@@ -46,6 +46,8 @@ jobs:
       - name: Build widgets
         run: npm clean-install && npm run build
         working-directory: ./widget
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Build package
         run: lake build ProofWidgets
