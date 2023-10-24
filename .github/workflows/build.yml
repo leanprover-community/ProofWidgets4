@@ -9,14 +9,26 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - name: install elan
+      - name: Install elan
         run: |
           set -o pipefail
           curl -sSfL https://github.com/leanprover/elan/releases/download/v3.0.0/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
           ./elan-init -y --default-toolchain none
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
           
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: build package
+      - name: Build package
         run: lake build
+
+      - name: Create release for tag
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v1
+
+      - name: Upload release archive
+        if: github.ref_type == 'tag'
+        run: lake upload $RELEASE_TAG
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        
