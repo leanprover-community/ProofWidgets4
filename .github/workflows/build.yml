@@ -6,17 +6,60 @@ name: ci
 
 jobs:
   build:
-    name: Build
-    runs-on: ubuntu-latest
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: ${{ matrix.shell || 'sh' }}
+    strategy:
+      matrix:
+        include:
+        - name: Build on Ubuntu
+          os: ubuntu-latest
+          lean_os: linux
+        - name: Build on macOS
+          os: macos-latest
+          lean_os: macOS
+        - name: Build on Windows
+          os: windows-latest
+          lean_os: windows
+          shell: msys2 {0}
     steps:
-      - name: install elan
-        run: |
-          set -o pipefail
-          curl -sSfL https://github.com/leanprover/elan/releases/download/v3.0.0/elan-x86_64-unknown-linux-gnu.tar.gz | tar xz
-          ./elan-init -y --default-toolchain none
-          echo "$HOME/.elan/bin" >> $GITHUB_PATH
-          
-      - uses: actions/checkout@v2
+      - name: Install MSYS2 (Windows)
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          path-type: inherit
+          install: curl unzip
 
-      - name: build package
+      - name: Install elan
+        shell: bash
+        run: |
+          curl -sSfLO https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh
+          chmod +x elan-init.sh
+          ./elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+
+      - uses: actions/checkout@v4
+
+      - name: Build package
+        if: steps.cache-build.outputs.cache-hit != 'true'
         run: lake build
+
+      - name: Create release for tag
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v1
+
+      # TODO: replace with just `lake upload $RELEASE_TAG` when lean4#2713 is fixed
+      # References:
+      # https://docs.github.com/en/actions/learn-github-actions/contexts#runner-context
+      - name: Upload release archive
+        if: github.ref_type == 'tag'
+        # All our runners are 64-bit ¯\_(ツ)_/¯
+        run: |
+          tar -c -z -f ./${LEAN_OS}-64.tar.gz -C ./build .
+          gh release upload ${RELEASE_TAG} ./${LEAN_OS}-64.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          LEAN_OS: ${{ matrix.lean_os }}
