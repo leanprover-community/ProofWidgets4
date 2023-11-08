@@ -3,6 +3,7 @@ open Lake DSL System
 
 package proofwidgets {
   preferReleaseBuild := true
+  buildDir := "build"
 }
 
 lean_lib ProofWidgets {}
