@@ -19,7 +19,7 @@ export default cliArgs => {
     const configForInput = fname => ({
     input: fname,
     output: {
-        dir: '../build/js',
+        dir: '../.lake/build/js',
         format: 'es',
         // Hax: apparently setting `global` makes some CommonJS modules work ¯\_(ツ)_/¯
         intro: 'const global = window;',

@@ -107,6 +107,6 @@ are used to render the expression when selected. The one with highest precedence
 default. -/
 @[widget_module]
 def ExprPresentation : Component ExprPresentationProps where
-  javascript := include_str ".." / ".." / "build" / "js" / "exprPresentation.js"
+  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "exprPresentation.js"
 
 end ProofWidgets

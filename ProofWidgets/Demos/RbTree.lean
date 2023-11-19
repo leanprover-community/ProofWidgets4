@@ -100,7 +100,7 @@ open ProofWidgets
 
 @[widget_module]
 def RBDisplay : Component RBDisplayProps where
-  javascript := include_str ".." / ".." / "build" / "js" / "rbTree.js"
+  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "rbTree.js"
 
 open scoped Jsx in
 partial def drawTree? (e : Expr) : MetaM (Option Html) := do

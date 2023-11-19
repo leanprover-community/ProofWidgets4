@@ -50,6 +50,6 @@ presenter should be used to display each of those expressions.
 Expressions can be selected using shift-click. -/
 @[widget_module]
 def SelectionPanel : Component PanelWidgetProps where
-  javascript := include_str ".." / ".." / ".." / "build" / "js" / "presentSelection.js"
+  javascript := include_str ".." / ".." / ".." / ".lake" / "build" / "js" / "presentSelection.js"
 
 end ProofWidgets

@@ -5,7 +5,7 @@ import ProofWidgets.Data.Html
 namespace ProofWidgets
 open Lean Server Meta Elab Term
 
-def ofRpcMethodTemplate := include_str ".." / ".." / "build" / "js" / "ofRpcMethod.js"
+def ofRpcMethodTemplate := include_str ".." / ".." / ".lake" / "build" / "js" / "ofRpcMethod.js"
 
 /-- The elaborator `mk_rpc_widget%` allows writing certain widgets in Lean instead of JavaScript.
 Specifically, it translates an RPC method of type `MyProps → RequestM (RequestTask Html)`

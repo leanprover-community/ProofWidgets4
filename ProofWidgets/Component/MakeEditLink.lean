@@ -59,6 +59,6 @@ and potentially moves the cursor
 or makes a selection. -/
 @[widget_module]
 def MakeEditLink : Component MakeEditLinkProps where
-  javascript := include_str ".." / ".." / "build" / "js" / "makeEditLink.js"
+  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "makeEditLink.js"
 
 end ProofWidgets

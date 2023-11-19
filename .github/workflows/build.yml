@@ -65,7 +65,7 @@ jobs:
         # All our runners are 64-bit ¯\_(ツ)_/¯
         run: |
           export COPYFILE_DISABLE=true
-          tar -c -z -f ./${LEAN_OS}-64.tar.gz -C ./build .
+          tar -c -z -f ./${LEAN_OS}-64.tar.gz -C ./.lake/build .
           gh release upload ${RELEASE_TAG} ./${LEAN_OS}-64.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

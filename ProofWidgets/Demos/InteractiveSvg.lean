@@ -46,7 +46,7 @@ def updateSvg (params : UpdateParams State) : RequestM (RequestTask (UpdateResul
 -- TODO: the tsx file is pretty broken
 @[widget_module]
 def SvgWidget : Component (UpdateResult State) where
-  javascript := include_str ".." / ".." / "build" / "js" / "interactiveSvg.js"
+  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "interactiveSvg.js"
 
 def init : UpdateResult State := {
   html := <div>Init!!!</div>,

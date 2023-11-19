@@ -1,6 +1,5 @@
-/build
-/lake-packages/*
+/.lake
 # JavaScript build artefacts.
 /widget/dist
 /widget/node_modules
-lakefile.olean
+/widget/*.hash

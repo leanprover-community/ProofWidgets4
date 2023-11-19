@@ -74,9 +74,9 @@ Outputs of `npm` commands are not always shown by default: use `lake build -v [t
 If this happens, run `npm clean-install` in the `widget/` directory and then try `lake build` again.
 
 ⚠️ We use the `include_str` term elaborator to splice the JavaScript produced by `tsc` into our Lean
-files. The JS is stored in `build/js/`. Note however that due to Lake issue [#86](https://github.com/leanprover/lake/issues/86),
+files. The JS is stored in `.lake/build/js/`. Note however that due to Lake issue [#86](https://github.com/leanprover/lake/issues/86),
 rebuilding the `.js` will *not* rebuild the Lean file that includes it. To ensure freshness you may
-have to resort to hacks such as removing `build/lib/` (this contains the `.olean`s) or adding a
+have to resort to hacks such as removing `.lake/build/lib/` (this contains the `.olean`s) or adding a
 random comment in the Lean file that uses `include_str` in order to ensure it gets rebuilt.
 Alternatively, you can run `lake clean` to delete the entire build directory.
 
