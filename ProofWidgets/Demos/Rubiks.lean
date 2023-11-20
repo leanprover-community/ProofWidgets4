@@ -9,7 +9,7 @@ structure RubiksProps where
 
 @[widget_module]
 def Rubiks : Component RubiksProps where
-  javascript := include_str ".." / ".." / "build" / "js" / "rubiks.js"
+  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "rubiks.js"
 
 def eg := #["L", "L", "D⁻¹", "U⁻¹", "L", "D", "D", "L", "U⁻¹", "R", "D", "F", "F", "D"]
 

@@ -171,7 +171,7 @@ def getPanelWidgets (args : GetPanelWidgetsParams) : RequestM (RequestTask GetPa
 def metaWidget : Lean.Widget.UserWidgetDefinition where
   -- The header is sometimes briefly visible before compat.tsx loads and hides it
   name := "Loading ProofWidgets.."
-  javascript := include_str ".." / "build" / "js" / "compat.js"
+  javascript := include_str ".." / ".lake" / "build" / "js" / "compat.js"
 
 open scoped Json in
 /-- Save the data of a panel widget which will be displayed whenever the text cursor is on `stx`.

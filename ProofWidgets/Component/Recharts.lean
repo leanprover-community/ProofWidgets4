@@ -5,7 +5,7 @@ open Lean
 
 @[widget_module]
 def Recharts : Module where
-  javascript := include_str "../../build/js/recharts.js"
+  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "recharts.js"
 
 inductive LineChartLayout where
   | horizontal

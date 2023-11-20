@@ -1,12 +1,10 @@
 import Lake
 open Lake DSL System
 
-package proofwidgets {
+package proofwidgets where
   preferReleaseBuild := true
-  buildDir := "build"
-}
 
-lean_lib ProofWidgets {}
+lean_lib ProofWidgets
 
 require std from git "https://github.com/leanprover/std4" @ "main"
 
@@ -26,7 +24,7 @@ target widgetPackageLock : FilePath := do
       cwd := some widgetDir
     }
 
-/-- Target to build `build/js/foo.js` from a `widget/src/foo.tsx` widget module.
+/-- Target to build `.lake/build/js/foo.js` from a `widget/src/foo.tsx` widget module.
 Rebuilds whenever the `.tsx` source, or any part of the build configuration, has changed. -/
 def widgetTsxTarget (pkg : NPackage _package.name) (nodeModulesMutex : IO.Mutex Bool)
     (tsxName : String) (deps : Array (BuildJob FilePath)) (isDev : Bool) :
