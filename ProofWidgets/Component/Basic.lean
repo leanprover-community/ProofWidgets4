@@ -18,11 +18,16 @@ All [React contexts](https://react.dev/learn/passing-data-deeply-with-context) e
 ## Lean encoding of props
 
 `Props` is the Lean representation of the type `JsProps` of
-[React props](https://react.dev/learn/passing-props-to-a-component) that the component expects.
+[React props](https://react.dev/learn/passing-props-to-a-component)
+that the component expects.
 The export of the module specified in `«export»` should then have type
-`(props: JsProps & { pos: DocumentPosition }): React.ReactNode` where `DocumentPosition` is
-defined in `@leanprover/infoview`. `Props` is expected to have a `Lean.Server.RpcEncodable` instance
-specifying how to encode props as JSON. -/
+`(props: JsProps & { pos: DocumentPosition }): React.ReactNode`
+where `DocumentPosition` is defined in `@leanprover/infoview`.
+`Props` is expected to have a `Lean.Server.RpcEncodable` instance
+specifying how to encode props as JSON.
+
+Note that by defining a `Component Props` with a specific JS implementation,
+you are *asserting* that `Props` is a correct representation of `JsProps`. -/
 structure Component (Props : Type) extends Module where
   /-- Which export of the module to use as the component function. -/
   «export» : String := "default"
