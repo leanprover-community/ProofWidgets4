@@ -7,7 +7,6 @@ def fn (t : Float) (x : Float): Float :=
    50 * (x - 0.25) * (x - 0.5) * (x - 0.7) + 0.1 * (x * 40 - t * 2 * 3.141).sin
 
 open scoped ProofWidgets.Jsx in
-open scoped ProofWidgets.Json in
 def Plot (fn : Float → Float) (steps := 100) : Html :=
   let jsonData : Array Json :=
     Nat.fold (flip Array.push) (steps + 1) #[]

@@ -12,7 +12,7 @@ def Matrix (n m α : Type) := n → m → α
 namespace Matrix
 
 open ProofWidgets
-open scoped Jsx Json
+open scoped Jsx
 
 variable {n : Nat} (A : Matrix (Fin n) (Fin n) Int)
 
