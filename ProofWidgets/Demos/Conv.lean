@@ -5,7 +5,10 @@ Authors: Robin Böhne, Wojciech Nawrocki
 -/
 
 import Lean.Meta.ExprLens
+import ProofWidgets.Data.Html
 import ProofWidgets.Component.Panel.Basic
+import ProofWidgets.Component.OfRpcMethod
+import ProofWidgets.Component.MakeEditLink
 
 open Lean Server
 
@@ -315,7 +318,7 @@ private def syntaxInsert (stx : Syntax) (pathBeforeConvParam : List Nat) (pathAf
 structure InsertEnterResponse where
   /-- The description of the action to display in the UI. -/
   label : String
-  edit : Lsp.WorkspaceEdit
+  edit : Lsp.TextDocumentEdit
   /-- Where to place the cursor after the edit. We assume that it is always in the same file. -/
   newCursorPos : Lsp.Position
   deriving FromJson, ToJson
@@ -359,86 +362,71 @@ def insertEnter (subexprPos : SubExpr.Pos) (goalType : Expr) (cmdStx : Syntax)
 
   -- insert new syntax into document
   let textEdit : Lsp.TextEdit := { range := { start := text.utf8PosToLspPos range.start, «end» := text.utf8PosToLspPos { byteIdx := range.stop.byteIdx } }, newText := newSyntax }
-  let textDocumentEdit : Lsp.TextDocumentEdit := { textDocument := { uri := doc.meta.uri, version? := doc.meta.version }, edits := [textEdit].toArray }
-  let edit := Lsp.WorkspaceEdit.ofTextDocumentEdit textDocumentEdit
+  let edit : Lsp.TextDocumentEdit := { textDocument := { uri := doc.meta.uri, version? := doc.meta.version }, edits := [textEdit].toArray }
 
-  return { label := enterval, edit := edit, newCursorPos := inserted.newCursorPos }
+  return { label := enterval, edit, newCursorPos := inserted.newCursorPos }
 
 /-! # Conv widget -/
 
-structure MakeConvCommandParams where
-  cursorPos : Lsp.Position
-  ctx : WithRpcRef Elab.ContextInfo
-  loc : SubExpr.GoalsLocation
-  deriving RpcEncodable
-
-@[server_rpc_method]
-def makeConvCommand : MakeConvCommandParams → RequestM (RequestTask (Option InsertEnterResponse))
-  | ⟨cursorPos, ⟨ctx⟩, ⟨mvarId, .target subexprPos⟩⟩ =>
-    RequestM.withWaitFindSnapAtPos cursorPos fun snap => do
-      let doc ← RequestM.readDoc
-      let cursorPos := doc.meta.text.lspPosToUtf8Pos cursorPos
-      ctx.runMetaM {} do
-        let md ← mvarId.getDecl
-        let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
-        Meta.withLCtx lctx md.localInstances do
-          insertEnter subexprPos md.type snap.stx cursorPos doc
-  | _ => pure (RequestTask.pure none)
-
 open ProofWidgets
 
+structure ConvButtonProps where
+  pos : Lsp.Position
+  goal : Widget.InteractiveGoal
+  loc : SubExpr.GoalLocation
+  deriving RpcEncodable
+
+open scoped Jsx in
+@[server_rpc_method]
+def ConvButton.rpc (props : ConvButtonProps) : RequestM (RequestTask Html) :=
+  RequestM.withWaitFindSnapAtPos props.pos fun snap => do
+    if props.goal.goalPrefix != "| " then
+      throw $ .invalidParams s!"The current goal is not a conv goal."
+    let .target subexprPos := props.loc
+      | throw $ .invalidParams s!"Select something in the target type."
+    let doc ← RequestM.readDoc
+    let cursorPos := doc.meta.text.lspPosToUtf8Pos props.pos
+    props.goal.ctx.val.runMetaM {} do
+      let md ← props.goal.mvarId.getDecl
+      let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
+      Meta.withLCtx lctx md.localInstances do
+        let resp ← insertEnter subexprPos md.type snap.stx cursorPos doc
+        return <div><MakeEditLink
+            edit={resp.edit}
+            newSelection?={some ⟨resp.newCursorPos, resp.newCursorPos⟩}
+            title?={resp.label}
+          >
+            {.text resp.label}
+          </MakeEditLink></div>
+
 @[widget_module]
-def ConvPanel : Component PanelWidgetProps where
-  javascript := "
-    import * as React from 'react'
-    import { EditorContext, RpcContext, mapRpcError, useAsync } from '@leanprover/infoview'
-    const e = React.createElement
+def ConvButton : Component ConvButtonProps :=
+  mk_rpc_widget% ConvButton.rpc
 
-    function findGoalForLocation(goals, loc) {
-      for (const g of goals) {
-        if (g.mvarId === loc.mvarId) return g
-      }
-      throw new Error('could not find goal for location', JSON.stringify(loc))
-    }
+def findGoalForLocation (goals : Array Widget.InteractiveGoal) (loc : SubExpr.GoalsLocation) :
+    Option Widget.InteractiveGoal :=
+  goals.find? (·.mvarId == loc.mvarId)
 
-    function ConvButton({pos, goals, loc}) {
-      const rs = React.useContext(RpcContext)
-      const ec = React.useContext(EditorContext)
-      const st = useAsync(async () => {
-        const g = findGoalForLocation(goals, loc)
-        if (g.goalPrefix !== '| ') throw new Error('The current goal is not a conv goal.')
-        return await rs.call('makeConvCommand', { cursorPos: pos, ctx: g.ctx, loc })
-      }, [goals, loc])
+open scoped Jsx in
+@[server_rpc_method]
+def ConvPanel.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
+  RequestM.asTask do
+    let inner : Html ← (do
+      if props.selectedLocations.isEmpty then
+        return <span>No actions available. You can use shift-click to select an expression in the goal state.</span>
+      let buttons : Array Html ← props.selectedLocations.mapM fun loc => do
+        let some g := findGoalForLocation props.goals loc
+          | throw $ .invalidParams s!"could not find goal for location {toJson loc}"
+        return <ConvButton pos={props.pos} goal={g} loc={loc.loc} />
+      return Html.element "div" #[] buttons)
+    return <details «open»={true}>
+        <summary className="mv2 pointer">Conv 🔍</summary>
+        <div className="ml1">{inner}</div>
+      </details>
 
-      const onClick = () => void (async () => {
-        if (st.value) {
-          await ec.api.applyEdit(st.value.edit)
-          await ec.revealPosition({...st.value.newCursorPos, uri: pos.uri})
-        }
-      })()
-
-      const txt = st.value ? st.value.label : 'no conv'
-      const style = st.value ? {} : {pointerEvents: 'none'}
-
-      return st.state === 'resolved' ? e('button', {onClick, style}, txt)
-        : st.state === 'rejected' ? e('button', {style: {color: 'red'}}, mapRpcError(st.error).message)
-        : e('button', null, 'Loading..')
-    }
-
-    export default function(props) {
-      const nLocs = props.selectedLocations.length
-      const buttons = props.selectedLocations.map(loc =>
-        e('div', null,
-          e(ConvButton, {pos: props.pos, goals: props.goals, loc})))
-      const inner = nLocs === 0 ?
-        e('span', null, 'No actions available. You can use shift-click to select an expression in the goal state.') :
-        e(React.Fragment, null, buttons)
-      return e('details', {open: true}, [
-        e('summary', {className: 'mv2 pointer'}, 'Conv 🔍'),
-        e('div', null, inner)
-      ])
-    }
-  "
+@[widget_module]
+def ConvPanel : Component PanelWidgetProps :=
+  mk_rpc_widget% ConvPanel.rpc
 
 /-! # Example usage -/
 

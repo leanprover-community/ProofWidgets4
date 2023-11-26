@@ -1,8 +1,9 @@
 import Lean.Data.HashMap
 import Lean.Elab.Tactic
+import ProofWidgets.Component.Panel.Basic
 import ProofWidgets.Component.PenroseDiagram
 import ProofWidgets.Component.HtmlDisplay
-import ProofWidgets.Component.Panel.Basic
+import ProofWidgets.Component.OfRpcMethod
 
 open Lean Meta Server
 open ProofWidgets
@@ -84,79 +85,49 @@ def isSetGoal? (hyps : Array LocalDecl) : MetaM (Option Html) := do
   if sets.isEmpty then return none
   some <$> mkSetDiag sub sets.toArray
 
-/-! # RPC handler and client-side code for the widget -/
+/-! # Implementation of the widget -/
 
-structure Params where
-  ci : WithRpcRef Elab.ContextInfo
-  mvar : MVarId
-  locs : Array SubExpr.GoalLocation
-
-#mkrpcenc Params
-
-structure Response where
-  html? : Option Html
-
-#mkrpcenc Response
+def findGoalForLocation (goals : Array Widget.InteractiveGoal) (loc : SubExpr.GoalsLocation) :
+    Option Widget.InteractiveGoal :=
+  goals.find? (·.mvarId == loc.mvarId)
 
 open scoped Jsx in
 @[server_rpc_method]
-def getVennGoal (ps : Params) : RequestM (RequestTask Response) := do
+def VennDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
   RequestM.asTask do
-    let html? ← ps.ci.val.runMetaM {} <| ps.mvar.withContext do
-      let locs : Array LocalDecl ← ps.locs.filterMapM fun
-        | .hyp fv => return some (← fv.getDecl)
-        | .hypType fv _ => return some (← fv.getDecl)
-        | _ => return none
-      isSetGoal? locs
-    return { html? }
+    let inner : Html ← (do
+      if props.selectedLocations.isEmpty then
+        return <span>Use shift-click to select hypotheses to include in the diagram.</span>
+      let some selectedLoc := props.selectedLocations[0]? | unreachable!
+
+      let some g := findGoalForLocation props.goals selectedLoc
+        | throw $ .invalidParams
+            s!"could not find goal for location {toJson selectedLoc}"
+      g.ctx.val.runMetaM {} do
+        let md ← g.mvarId.getDecl
+        let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
+        Meta.withLCtx lctx md.localInstances do
+          let locs : Array LocalDecl ← props.selectedLocations.filterMapM fun
+            | ⟨mv, .hyp fv⟩ | ⟨mv, .hypType fv _⟩ =>
+              return if mv == g.mvarId then some (← fv.getDecl) else none
+            | _ => return none
+          match ← isSetGoal? locs with
+          | some html => return html
+          | none => return <span>No set goal.</span>)
+    return <details «open»={true}>
+        <summary className="mv2 pointer">Venn diagram</summary>
+        <div className="ml1">{inner}</div>
+      </details>
 
 @[widget_module]
-def SetDisplayPanel : Component PanelWidgetProps where
-  javascript := s!"
-    import * as React from 'react';
-    import \{ DynamicComponent, useAsync, RpcContext } from '@leanprover/infoview';
-    const e = React.createElement;
-
-    function findGoalForLocation(goals, loc) \{
-      for (const g of goals) \{
-        if (g.mvarId === loc.mvarId) return g
-      }
-      throw new Error(`Could not find goal for location $\{JSON.stringify(loc)}`)
-    }
-
-    export default function(props) \{
-      const rs = React.useContext(RpcContext)
-      const st = useAsync(async () => \{
-        if (props.selectedLocations.length === 0)
-          return \{ html: \{ text: 'Select hypotheses with shift-click.' } }
-        const g = findGoalForLocation(props.goals, props.selectedLocations[0])
-        const locs = props.selectedLocations.map(loc => loc.loc)
-        return rs.call('getVennGoal', \{ ci: g.ctx, mvar: g.mvarId, locs })
-      }, [props.selectedLocations, props.goals, rs])
-      let inner = undefined
-      if (st.state === 'resolved')
-        inner = e(DynamicComponent, \{
-          pos: props.pos,
-          hash: '{hash HtmlDisplay.javascript}',
-          props: \{
-            pos: props.pos,
-            html: st.value.html ?? \{ text: 'No set goal.' }
-          }
-        }, null);
-      else
-        inner = JSON.stringify(st)
-      return e('details', \{open: true}, [
-        e('summary', \{className: 'mv2 pointer'}, 'Venn diagram'),
-        inner
-      ])
-    }
-  "
+def VennDisplay : Component PanelWidgetProps :=
+  mk_rpc_widget% VennDisplay.rpc
 
 /-! # Example usage -/
 
 example {R S T U : Set Nat} :
     S ⊆ U → T ⊆ U → R ⊆ S → R ⊆ U := by
-  with_panel_widgets [SetDisplayPanel]
+  with_panel_widgets [VennDisplay]
     intro h₁ _ h₃
     -- Place your cursor here.
     exact fun n h => h |> h₃ |> h₁
