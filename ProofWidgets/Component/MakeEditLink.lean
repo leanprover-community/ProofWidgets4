@@ -54,7 +54,7 @@ def MakeEditLinkProps.ofReplaceRange (meta : Server.DocumentMeta) (range : Lsp.R
     let pe := ps.advance (newText.toSubstring.extract s e)
     { start := ps, «end» := pe })
 
-/-- A link that, when clicked, makes the specifies edit
+/-- A link that, when clicked, makes the specified edit
 and potentially moves the cursor
 or makes a selection. -/
 @[widget_module]
