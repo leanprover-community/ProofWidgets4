@@ -19,8 +19,11 @@ and substance (`sub`) programs.
 
 The diagram may also contain embedded HTML trees which are specified in `embeds`.
 Each embed is HTML together with the name of an object `x` in the substance program.
-The objhect `x` can be of any type but *must* be assigned an `x.textBox : Rectangle` field
-in the style program. This rectangle will be replaced with the HTML tree.
+The object `x` can be of any type but *must* be assigned an `x.textBox : Rectangle` field
+in the style program.
+This rectangle will be replaced with the HTML tree.
+Its dimensions will be overridden in the style program
+to match those of the HTML node.
 
 The following additional constants are prepended to the style program:
 ```penrose
