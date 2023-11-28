@@ -102,3 +102,7 @@ forall Point p; Point q {
   ensure disjoint(p.textBox, q.textBox)
   encourage notTooClose(p.icon, q.icon, const.repelWeight)
 }
+
+forall Line L where Emphasize(L) {
+  L.color = Colors.darkpurple
+}
