@@ -394,6 +394,9 @@ export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
     })
   }, [containerWidth, embedsData, variation, props.trio.sub, props.trio.sty, props.trio.dsl])
 
+  // `relative` makes the outer `div` a
+  // [containing block](https://developer.mozilla.org/en-US/docs/Web/CSS/Containing_block#identifying_the_containing_block)
+  // for `absolute`ly positioned children.
   let cn = 'relative'
   // Decrease opacity when loading or updating.
   if (state.tag !== 'drawn' && state.tag !== 'error')
@@ -404,13 +407,14 @@ export function PenroseCanvas(props: PenroseCanvasProps): JSX.Element {
   return <div className={cn} ref={containerRef}>
     {diag &&
       <>
-        <a className='fr link pointer dim codicon codicon-refresh'
-          onClick={() => setVariation(Math.random().toString())} />
         <div ref={ref => {
             if (!ref) return
             if (ref.firstChild) ref.replaceChild(diag.svg, ref.firstChild)
             else ref.appendChild(diag.svg)
           }} />
+        {/* `absolute` positioning` relative to the outer `div` */}
+        <a className='absolute top-0 right-0 link pointer dim codicon codicon-refresh'
+          onClick={() => setVariation(Math.random().toString())} />
       </>
       }
     {!diag && state.tag === 'loading' && <>Loading..</>}
