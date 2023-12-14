@@ -1,3 +1,4 @@
+import Std.Data.Json
 import ProofWidgets.Component.HtmlDisplay
 
 /-! Ported from Lean 3 code by Oliver Nash:

@@ -120,7 +120,7 @@ def VennDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
       </details>
 
 @[widget_module]
-def VennDisplay : Component PanelWidgetProps :=
+def VennDisplay : PanelWidget NoProps :=
   mk_rpc_widget% VennDisplay.rpc
 
 /-! # Example usage -/

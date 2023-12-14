@@ -26,13 +26,11 @@ open Lean Server
 
 structure GoalsLocationsToExprsParams where
   locations : Array (WithRpcRef Elab.ContextInfo × SubExpr.GoalsLocation)
-
-#mkrpcenc GoalsLocationsToExprsParams
+  deriving RpcEncodable
 
 structure GoalsLocationsToExprsResponse where
   exprs : Array (WithRpcRef ExprWithCtx)
-
-#mkrpcenc GoalsLocationsToExprsResponse
+  deriving RpcEncodable
 
 /-- Compute expressions corresponding to the given `GoalsLocation`s. -/
 @[server_rpc_method]
@@ -49,7 +47,7 @@ presenter should be used to display each of those expressions.
 
 Expressions can be selected using shift-click. -/
 @[widget_module]
-def SelectionPanel : Component PanelWidgetProps where
+def SelectionPanel : PanelWidget NoProps where
   javascript := include_str ".." / ".." / ".." / ".lake" / "build" / "js" / "presentSelection.js"
 
 end ProofWidgets

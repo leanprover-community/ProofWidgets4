@@ -33,24 +33,21 @@ structure SvgState (State : Type) where
   selected : Option String
   mousePos : Option (Int × Int)
   idToData : List (String × Json)
-deriving ToJson, FromJson
-
-#mkrpcenc SvgState
+deriving Server.RpcEncodable
 
 structure UpdateParams (State : Type) where
   elapsed : Float
   actions : Array Action
   state : SvgState State
   mousePos : Option (Float × Float) -- TODO: change to Option (Int × Int) or do we want to support subpixel precision?
-  deriving ToJson, FromJson
+  deriving Server.RpcEncodable
 
 structure UpdateResult (State : Type) where
   html : Html
   state : SvgState State
   /-- Approximate number of milliseconds to wait before calling again. -/
   callbackTime : Option Float := some 33
-
-#mkrpcenc UpdateResult
+  deriving Server.RpcEncodable
 
 -- maybe add title, refresh rate, initial time?, custom selection rendering
 structure InteractiveSvg (State : Type) where

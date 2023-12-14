@@ -9,9 +9,7 @@ structure PenroseDiagramProps where
   dsl    : String
   sty    : String
   sub    : String
-  deriving Inhabited
-
-#mkrpcenc PenroseDiagramProps
+  deriving Inhabited, RpcEncodable
 
 /-- Displays the given diagram using [Penrose](https://penrose.cs.cmu.edu/).
 The website contains explanations of how to write domain (`dsl`), style (`sty`),

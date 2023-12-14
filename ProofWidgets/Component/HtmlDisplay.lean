@@ -1,5 +1,6 @@
 import Lean.Server.Rpc.Basic
 
+import ProofWidgets.Component.Panel.Basic
 import ProofWidgets.Data.Html
 
 namespace ProofWidgets
@@ -7,15 +8,14 @@ open Lean Server
 
 structure HtmlDisplayProps where
   html : Html
-
-#mkrpcenc HtmlDisplayProps
+  deriving RpcEncodable
 
 @[widget_module]
 def HtmlDisplay : Component HtmlDisplayProps where
   javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "htmlDisplay.js"
 
 @[widget_module]
-def HtmlDisplayPanel : Component HtmlDisplayProps where
+def HtmlDisplayPanel : PanelWidget HtmlDisplayProps where
   javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "htmlDisplayPanel.js"
 
 open Elab in
@@ -35,8 +35,7 @@ def elabHtmlCmd : CommandElab := fun
   | stx@`(#html $t:term) =>
     runTermElabM fun _ => do
       let ht ← evalHtml t
-      savePanelWidgetInfo stx ``HtmlDisplayPanel do
-        return json% { html: $(← rpcEncode ht) }
+      savePanelWidgetInfo' HtmlDisplayPanel ⟨ht⟩ stx
   | stx => throwError "Unexpected syntax {stx}."
 
 syntax (name := htmlTac) "html! " term : tactic
@@ -46,8 +45,7 @@ open Elab Tactic Json in
 def elabHtmlTac : Tactic
   | stx@`(tactic| html! $t:term) => do
     let ht ← evalHtml t
-    savePanelWidgetInfo stx ``HtmlDisplayPanel do
-      return json% { html: $(← rpcEncode ht) }
+    savePanelWidgetInfo' HtmlDisplayPanel ⟨ht⟩ stx
   | stx => throwError "Unexpected syntax {stx}."
 
 end ProofWidgets

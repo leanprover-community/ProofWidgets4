@@ -371,21 +371,23 @@ def insertEnter (subexprPos : SubExpr.Pos) (goalType : Expr) (cmdStx : Syntax)
 open ProofWidgets
 
 structure ConvButtonProps where
-  pos : Lsp.Position
   goal : Widget.InteractiveGoal
   loc : SubExpr.GoalLocation
   deriving RpcEncodable
 
+structure ConvButtonAllProps extends ConvButtonProps, PositionProps
+  deriving RpcEncodable
+
 open scoped Jsx in
 @[server_rpc_method]
-def ConvButton.rpc (props : ConvButtonProps) : RequestM (RequestTask Html) :=
-  RequestM.withWaitFindSnapAtPos props.pos fun snap => do
+def ConvButton.rpc (props : ConvButtonAllProps) : RequestM (RequestTask Html) :=
+  RequestM.withWaitFindSnapAtPos props.pos.toPosition fun snap => do
     if props.goal.goalPrefix != "| " then
       throw $ .invalidParams s!"The current goal is not a conv goal."
     let .target subexprPos := props.loc
       | throw $ .invalidParams s!"Select something in the target type."
     let doc ← RequestM.readDoc
-    let cursorPos := doc.meta.text.lspPosToUtf8Pos props.pos
+    let cursorPos := doc.meta.text.lspPosToUtf8Pos props.pos.toPosition
     props.goal.ctx.val.runMetaM {} do
       let md ← props.goal.mvarId.getDecl
       let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
@@ -417,7 +419,7 @@ def ConvPanel.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
       let buttons : Array Html ← props.selectedLocations.mapM fun loc => do
         let some g := findGoalForLocation props.goals loc
           | throw $ .invalidParams s!"could not find goal for location {toJson loc}"
-        return <ConvButton pos={props.pos} goal={g} loc={loc.loc} />
+        return <ConvButton goal={g} loc={loc.loc} />
       return Html.element "div" #[] buttons)
     return <details «open»={true}>
         <summary className="mv2 pointer">Conv 🔍</summary>
@@ -425,7 +427,7 @@ def ConvPanel.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
       </details>
 
 @[widget_module]
-def ConvPanel : Component PanelWidgetProps :=
+def ConvPanel : PanelWidget NoProps :=
   mk_rpc_widget% ConvPanel.rpc
 
 /-! # Example usage -/

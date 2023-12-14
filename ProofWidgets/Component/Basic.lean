@@ -1,43 +1,60 @@
-import Lean.Widget.InteractiveCode
+import Lean.Widget.UserWidget
 import ProofWidgets.Compat
 
 namespace ProofWidgets
+open Lean
 
-/-- A component is a widget module with a `default` or named export which is a
-[React component](https://react.dev/learn/your-first-component). Every component definition must
-be annotated with `@[widget_module]`. This makes it possible for the infoview to load the component.
+structure DocumentPosition extends Lsp.Position where
+  uri : Lsp.DocumentUri
+  deriving ToJson, FromJson
 
-## Execution environment
+/-- Every widget instance receives the position in the Lean source file
+at which the cursor is currently located. -/
+structure PositionProps where
+  pos : DocumentPosition
+  deriving ToJson, FromJson
 
-The JS environment in which components execute provides a fixed set of libraries accessible via
-direct `import`, notably
-[`@leanprover/infoview`](https://www.npmjs.com/package/@leanprover/infoview).
-All [React contexts](https://react.dev/learn/passing-data-deeply-with-context) exported from
-`@leanprover/infoview` are usable from components.
+/-- The props of a component that expects none. -/
+structure NoProps where
+  deriving ToJson, FromJson
+
+/-- A component is a widget module
+that exports a [React component](https://react.dev/learn/your-first-component).
+
+Every component definition must either be annotated with `@[widget_module]`,
+or use a value of `javascript` identical to that of another definition
+annotated with `@[widget_module]`.
+This makes it possible for the infoview to load the component.
 
 ## Lean encoding of props
 
-`Props` is the Lean representation of the type `JsProps` of
-[React props](https://react.dev/learn/passing-props-to-a-component)
-that the component expects.
-The export of the module specified in `«export»` should then have type
-`(props: JsProps & { pos: DocumentPosition }): React.ReactNode`
-where `DocumentPosition` is defined in `@leanprover/infoview`.
-`Props` is expected to have a `Lean.Server.RpcEncodable` instance
-specifying how to encode props as JSON.
+In general, the [React props](https://react.dev/learn/passing-props-to-a-component)
+received by a widget component are split into two parts:
+data passed to the component by the infoview (`IProps`),
+and data passed to the component from Lean (`LProps`).
 
-Note that by defining a `Component Props` with a specific JS implementation,
-you are *asserting* that `Props` is a correct representation of `JsProps`. -/
-structure Component (Props : Type) extends Module where
+The types `LProps` and `IProps` are both expected
+to have `Lean.Server.RpcEncodable` instances.
+
+Write `TS(α)` for the TypeScript type describing
+the JSON encoding of `α` as per its `RpcEncodable` instance.
+The export of the module specified in `«export»`
+should then be a function `(props: TS(LProps) & TS(IProps)) => React.ReactNode`.
+Note that by defining a `Component L I`,
+you are asserting that this is indeed the type
+of its JS implementation.
+
+Note that it is possible to set `IProps` from Lean
+by also putting the fields in `LProps`: they will take precedence. -/
+structure Component (LProps : Type) (IProps : Type := PositionProps) extends Widget.Module where
   /-- Which export of the module to use as the component function. -/
   «export» : String := "default"
 
-open Lean
+instance : Widget.ToModule (Component LProps IProps) := ⟨Component.toModule⟩
 
 structure InteractiveCodeProps where
   fmt : Widget.CodeWithInfos
-
-#mkrpcenc InteractiveCodeProps
+  deriving Server.RpcEncodable
 
 /-- Present pretty-printed code as interactive text.
 
@@ -54,8 +71,7 @@ def InteractiveCode : Component InteractiveCodeProps where
 
 structure InteractiveExprProps where
   expr : Server.WithRpcRef ExprWithCtx
-
-#mkrpcenc InteractiveExprProps
+  deriving Server.RpcEncodable
 
 @[server_rpc_method]
 def ppExprTagged : InteractiveExprProps → Server.RequestM (Server.RequestTask Widget.CodeWithInfos)

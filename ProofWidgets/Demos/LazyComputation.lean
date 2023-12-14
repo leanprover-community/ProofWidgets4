@@ -1,4 +1,5 @@
 import ProofWidgets.Component.Basic
+import ProofWidgets.Component.Panel.Basic
 
 open ProofWidgets
 open Lean Meta Server Elab Tactic
@@ -14,9 +15,8 @@ structure MetaMStringCont where
 structure RunnerWidgetProps where
   /-- A continuation to run and print the results of when the button is clicked. -/
   k : WithRpcRef MetaMStringCont
-
--- Make it possible for widgets to receive `RunnerWidgetProps`. Uses the `TypeName` instance.
-#mkrpcenc RunnerWidgetProps
+  -- Make it possible for widgets to receive `RunnerWidgetProps`. Uses the `TypeName` instance.
+  deriving RpcEncodable
 
 @[server_rpc_method]
 def runMetaMStringCont : RunnerWidgetProps → RequestM (RequestTask String)
@@ -24,7 +24,7 @@ def runMetaMStringCont : RunnerWidgetProps → RequestM (RequestTask String)
     ci.runMetaM lctx k
 
 @[widget_module]
-def runnerWidget : Component RunnerWidgetProps where
+def runnerWidget : PanelWidget RunnerWidgetProps where
   javascript := "
     import { RpcContext, mapRpcError } from '@leanprover/infoview'
     import * as React from 'react';
@@ -56,7 +56,7 @@ syntax (name := makeRunnerTac) "make_runner" : tactic
         k := x
       }⟩}
     -- Save a widget together with a pointer to `props`.
-    savePanelWidgetInfo tk ``runnerWidget (rpcEncode props)
+    savePanelWidgetInfo' runnerWidget props tk
   | _ => throwUnsupportedSyntax
 
 example : True := by

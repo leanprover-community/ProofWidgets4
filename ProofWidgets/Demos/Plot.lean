@@ -1,3 +1,4 @@
+import Std.Data.Json
 import ProofWidgets.Component.HtmlDisplay
 import ProofWidgets.Component.Recharts
 
@@ -33,8 +34,7 @@ def mkFrames (fn : Float → Float → Float) (steps := 100) : Array Html:=
 structure AnimatedHtmlProps where
   frames : Array Html
   framesPerSecond? : Option Nat := none
-
-#mkrpcenc AnimatedHtmlProps
+  deriving Server.RpcEncodable
 
 @[widget_module]
 def AnimatedHtml : Component AnimatedHtmlProps where

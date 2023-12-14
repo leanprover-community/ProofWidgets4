@@ -25,13 +25,11 @@ inductive Html where
   where `Foo : Component Props` is some component such that `h = hash Foo.javascript`,
   `e = Foo.«export»`, and `props` will produce a JSON-encoded value of type `Props`. -/
   | component : UInt64 → String → LazyEncodable Json → Array Html → Html
-  deriving Inhabited
+  deriving Inhabited, RpcEncodable
 
 def Html.ofComponent [RpcEncodable Props]
     (c : Component Props) (props : Props) (children : Array Html) : Html :=
   .component (hash c.javascript) c.export (rpcEncode props) children
-
-#mkrpcenc Html
 
 /-- See [MDN docs](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flow_Layout/Block_and_Inline_Layout_in_Normal_Flow). -/
 inductive LayoutKind where

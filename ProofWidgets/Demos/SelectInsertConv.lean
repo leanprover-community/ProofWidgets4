@@ -112,14 +112,18 @@ def findGoalForLocation (goals : Array Widget.InteractiveGoal) (loc : SubExpr.Go
     Option Widget.InteractiveGoal :=
   goals.find? (·.mvarId == loc.mvarId)
 
-structure ConvSelectionPanelProps extends PanelWidgetProps where
+structure ConvSelectionPanelProps where
   /-- The range in the source document where the `conv` command will be inserted. -/
   replaceRange : Lsp.Range
   deriving RpcEncodable
 
+structure ConvSelectionPanelAllProps extends ConvSelectionPanelProps, PanelWidgetProps
+  deriving Server.RpcEncodable
+
 open scoped Jsx in
 @[server_rpc_method]
-def ConvSelectionPanel.rpc (props : ConvSelectionPanelProps) : RequestM (RequestTask Html) :=
+def ConvSelectionPanel.rpc (props : ConvSelectionPanelAllProps) :
+    RequestM (RequestTask Html) :=
   RequestM.asTask do
     let doc ← RequestM.readDoc
     let inner : Html ← (do
@@ -145,13 +149,13 @@ def ConvSelectionPanel.rpc (props : ConvSelectionPanelProps) : RequestM (Request
       </details>
 
 @[widget_module]
-def ConvSelectionPanel : Component ConvSelectionPanelProps :=
+def ConvSelectionPanel : PanelWidget ConvSelectionPanelProps :=
   mk_rpc_widget% ConvSelectionPanel.rpc
 
 open scoped Json in
 elab stx:"conv?" : tactic => do
   let some replaceRange := (← getFileMap).rangeOfStx? stx | return
-  savePanelWidgetInfo stx ``ConvSelectionPanel $ pure $ json% { replaceRange: $(replaceRange) }
+  savePanelWidgetInfo' ConvSelectionPanel { replaceRange } stx
 
 example (a : Nat) : a + a - a + a = a := by
   conv?

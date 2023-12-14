@@ -8,28 +8,34 @@ open Lean Server Meta Elab Term
 def ofRpcMethodTemplate := include_str ".." / ".." / ".lake" / "build" / "js" / "ofRpcMethod.js"
 
 /-- The elaborator `mk_rpc_widget%` allows writing certain widgets in Lean instead of JavaScript.
-Specifically, it translates an RPC method of type `MyProps → RequestM (RequestTask Html)`
-into a widget component of type `Component MyProps`.
+Specifically, given an RPC method of type `Props → RequestM (RequestTask Html)`
+(that computes an output HTML tree given input props)
+it produces a widget component of type `Component LProps IProps`.
 
-Even more specifically, we can write:
+For example, we can write:
 ```lean
 open Lean Server
 
-structure MyProps where
-  ...
+-- Assuming `LProps`, `IProps` are structures.
+structure Props extends LProps, IProps
   deriving RpcEncodable
 
 @[server_rpc_method]
-def MyComponent.rpc (ps : MyProps) : RequestM (RequestTask Html) :=
+def MyComponent.rpc (ps : Props) : RequestM (RequestTask Html) :=
   ...
 
 @[widget_module]
-def MyComponent : Component MyProps :=
+def MyComponent : Component LProps IProps :=
   mk_rpc_widget% MyComponent.rpc
 ```
 
-This is convenient because we can program the logic that computes an output HTML tree
-given input props in Lean directly.
+If both `LProps` and `IProps` are structures,
+then `Props` should contain a subset of both structures' fields.
+More generally, writing `TS(α)` for the TypeScript type describing
+the JSON encoding of `α` as per its `RpcEncodable` instance,
+in TypeScript's structural type system
+the intersection type `TS(LProps) & TS(IProps)` should extend `TS(Props)`.
+This condition is assumed, not checked.
 
 ⚠️ However, note that there are several limitations on what such component can do
 compared to ones written natively in TypeScript or JavaScript:
@@ -44,35 +50,25 @@ compared to ones written natively in TypeScript or JavaScript:
   and the display updating.
   Consequently, components whose props change at a high frequency
   (e.g. depending on the mouse position)
-  should not be implemented using this method.
-
-💡 Note that an inverse transformation is already possible.
-Given `MyComponent : Component MyProps`, we can write:
-```lean
-open Lean Server
-
-@[server_rpc_method]
-def MyComponent.rpc (ps : MyProps) : RequestM (RequestTask Html) :=
-  RequestM.asTask do
-    return Html.ofComponent MyComponent ps #[]
-```
--/
+  should not be implemented using this method. -/
 elab "mk_rpc_widget%" fn:term : term <= expectedType => do
   let α ← mkFreshExprMVar (some (.sort levelOne)) (userName := `α)
-  let compT ← mkAppM ``Component #[α]
+  let β ← mkFreshExprMVar (some (.sort levelOne)) (userName := `β)
+  let compT ← mkAppM ``Component #[α, β]
   if !(← isDefEq expectedType compT) then
     throwError "expected type{indentD expectedType}\nis not of the form{indentD compT}"
-  let arr ← mkArrow α (← mkAppM ``RequestM #[← mkAppM ``RequestTask #[.const ``Html []]])
+  let γ ← mkFreshExprMVar (some (.sort levelOne)) (userName := `β)
+  let arr ← mkArrow γ (← mkAppM ``RequestM #[← mkAppM ``RequestTask #[.const ``Html []]])
   let fn ← Term.elabTermEnsuringType fn arr
   let fn ← instantiateMVars fn
-  if let .const nm .. := fn then
-    if !(← builtinRpcProcedures.get).contains nm && !userRpcProcedures.contains (← getEnv) nm then
-      throwError s!"'{nm}' is not a known RPC method. Use `@[server_rpc_method]` to register it."
-    -- https://github.com/leanprover/lean4/issues/1415
-    let code : StrLit := quote $ ofRpcMethodTemplate.replace "$RPC_METHOD" (toString nm)
-    let valStx ← `({ javascript := $code })
-    let ret ← elabTerm valStx expectedType
-    return ret
-  throwError "Expected the name of a constant, got a complex term{indentD fn}"
+  let .const nm .. := fn
+    | throwError "Expected the name of a constant, got a complex term{indentD fn}"
+  if !(← builtinRpcProcedures.get).contains nm && !userRpcProcedures.contains (← getEnv) nm then
+    throwError s!"'{nm}' is not a known RPC method. Use `@[server_rpc_method]` to register it."
+  -- https://github.com/leanprover/lean4/issues/1415
+  let code : StrLit := quote <| ofRpcMethodTemplate.replace "$RPC_METHOD" (toString nm)
+  let valStx ← `({ javascript := $code })
+  let ret ← elabTerm valStx expectedType
+  return ret
 
 end ProofWidgets

@@ -252,7 +252,7 @@ def EuclideanConstructions.rpc (props : PanelWidgetProps) : RequestM (RequestTas
           -- Produce the diagram.
           DiagramBuilderM.run do
             addHypotheses allHyps
-            constructLines selectedHyps doc.meta props.pos
+            constructLines selectedHyps doc.meta props.pos.toPosition
             match ← buildDiagram with
             | some html => return html
             | none => return <span>No Euclidean goal.</span>)
@@ -264,7 +264,7 @@ def EuclideanConstructions.rpc (props : PanelWidgetProps) : RequestM (RequestTas
       </details>
 
 @[widget_module]
-def EuclideanConstructions : Component PanelWidgetProps :=
+def EuclideanConstructions : PanelWidget NoProps :=
   mk_rpc_widget% EuclideanConstructions.rpc
 
 example {a b c d : Point} : ∃ L, onLine a L ∧ onLine b L := by

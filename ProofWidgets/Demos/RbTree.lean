@@ -86,15 +86,13 @@ inductive RBTreeVars where
   | empty : RBTreeVars
   | var : CodeWithInfos → RBTreeVars
   | node (color : RBTreeVarsColour) (l : RBTreeVars) (a : CodeWithInfos) (r : RBTreeVars) : RBTreeVars
-
-#mkrpcenc RBTreeVars
+  deriving Server.RpcEncodable
 
 /-! # `Expr` presenter to display red-black trees -/
 
 structure RBDisplayProps where
   tree : RBTreeVars
-
-#mkrpcenc RBDisplayProps
+  deriving Server.RpcEncodable
 
 open ProofWidgets
 
