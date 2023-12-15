@@ -11,6 +11,7 @@ def ofRpcMethodTemplate := include_str ".." / ".." / ".lake" / "build" / "js" / 
 Specifically, given an RPC method of type `Props → RequestM (RequestTask Html)`
 (that computes an output HTML tree given input props)
 it produces a widget component of type `Component LProps IProps`.
+(See the `Component` docstring for definitions of `LProps`/`IProps`.)
 
 For example, we can write:
 ```lean
