@@ -4,7 +4,7 @@ namespace ProofWidgets.Recharts
 open Lean
 
 @[widget_module]
-def Recharts : Module where
+def Recharts : Widget.Module where
   javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "recharts.js"
 
 inductive LineChartLayout where
