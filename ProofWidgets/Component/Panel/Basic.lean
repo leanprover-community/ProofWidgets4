@@ -29,19 +29,6 @@ structure PanelWidgetProps : Type where
 
 #mkrpcenc PanelWidgetProps
 
-def processIdent (stx : Syntax) (nmStx : TSyntax `ident) : CoreM Unit := do
-  let nm ← resolveGlobalConstNoOverloadWithInfo nmStx
-  let const ← getConstInfo nm
-  if ← (pure (!const.type.isAppOfArity' ``Component 1) <||>
-        pure (!const.type.appArg!'.isConstOf ``PanelWidgetProps)) then
-    let expType := Expr.app (mkConst ``Component) (mkConst ``PanelWidgetProps)
-    logWarningAt nmStx
-      m!"unexpected panel widget type, got{indentExpr const.type}\nbut expected{indentExpr expType}"
-  if !Widget.userWidgetRegistry.contains (← getEnv) (nm ++ widgetDefPostfix) then
-    logWarningAt nmStx
-      m!"panel widget{indentExpr (mkConst nm)}\nwas not registered with `@[widget_module]`"
-  savePanelWidgetInfo stx nm (pure .null)
-
 /-- Display the selected panel widgets in the nested tactic script. For example,
 assuming we have written a `GeometryDisplay` component,
 ```lean
@@ -51,12 +38,16 @@ by with_panel_widgets [GeometryDisplay]
 ```
 will show the geometry display alongside the usual tactic state throughout the proof.
 -/
-syntax (name := withPanelWidgetsTacticStx) "with_panel_widgets" "[" ident,+ "]" tacticSeq : tactic
+syntax (name := withPanelWidgetsTacticStx)
+  "with_panel_widgets" "[" Widget.widgetInstanceSpec,+ "]" tacticSeq : tactic
 
 @[tactic withPanelWidgetsTacticStx]
 def withPanelWidgets : Tactic
-  | stx@`(tactic| with_panel_widgets [ $nms,* ] $seq) => do
-    liftM <| nms.getElems.forM (processIdent stx)
+  | stx@`(tactic| with_panel_widgets [ $specs,* ] $seq) => do
+    specs.getElems.forM fun specStx => do
+      let spec ← Widget.elabWidgetInstanceSpec specStx
+      let wi ← Widget.evalWidgetInstance spec
+      Widget.savePanelWidgetInfo wi.javascriptHash wi.props stx
     evalTacticSeq seq
   | _ => throwUnsupportedSyntax
 

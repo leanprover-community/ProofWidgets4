@@ -1,7 +1,9 @@
 import Lean.Widget.InteractiveCode
+import Lean.Widget.UserWidget
 import ProofWidgets.Compat
 
 namespace ProofWidgets
+open Lean
 
 /-- A component is a widget module with a `default` or named export which is a
 [React component](https://react.dev/learn/your-first-component). Every component definition must
@@ -28,11 +30,11 @@ specifying how to encode props as JSON.
 
 Note that by defining a `Component Props` with a specific JS implementation,
 you are *asserting* that `Props` is a correct representation of `JsProps`. -/
-structure Component (Props : Type) extends Module where
+structure Component (Props : Type) extends Widget.Module where
   /-- Which export of the module to use as the component function. -/
   «export» : String := "default"
 
-open Lean
+instance : Widget.ToModule (Component Props) := ⟨Component.toModule⟩
 
 structure InteractiveCodeProps where
   fmt : Widget.CodeWithInfos

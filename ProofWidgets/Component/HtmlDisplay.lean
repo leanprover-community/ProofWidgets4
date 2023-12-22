@@ -1,4 +1,5 @@
 import Lean.Server.Rpc.Basic
+import Std.Data.Json
 
 import ProofWidgets.Data.Html
 
@@ -35,8 +36,9 @@ def elabHtmlCmd : CommandElab := fun
   | stx@`(#html $t:term) =>
     runTermElabM fun _ => do
       let ht ← evalHtml t
-      savePanelWidgetInfo stx ``HtmlDisplayPanel do
-        return json% { html: $(← rpcEncode ht) }
+      Widget.savePanelWidgetInfo (hash HtmlDisplayPanel.javascript)
+        (return json% { html: $(← rpcEncode ht) }) stx
+
   | stx => throwError "Unexpected syntax {stx}."
 
 syntax (name := htmlTac) "html! " term : tactic
@@ -46,8 +48,8 @@ open Elab Tactic Json in
 def elabHtmlTac : Tactic
   | stx@`(tactic| html! $t:term) => do
     let ht ← evalHtml t
-    savePanelWidgetInfo stx ``HtmlDisplayPanel do
-      return json% { html: $(← rpcEncode ht) }
+    Widget.savePanelWidgetInfo (hash HtmlDisplayPanel.javascript)
+      (return json% { html: $(← rpcEncode ht) }) stx
   | stx => throwError "Unexpected syntax {stx}."
 
 end ProofWidgets
