@@ -52,6 +52,9 @@ jobs:
       - name: Build package
         run: lake build ProofWidgets
 
+      - name: Build demos
+        run: lake build ProofWidgets.Demos
+
       - name: Create release for tag
         if: github.ref_type == 'tag'
         uses: softprops/action-gh-release@v1

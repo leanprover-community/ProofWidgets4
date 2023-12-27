@@ -19,7 +19,7 @@ example : 2 + 2 = 4 ∧ 3 + 3 = 6 := by
     rfl
     rfl
 
-example (h : 2 + 2 = 5) : 2 + 2 = 4 := by
+example (_h : 2 + 2 = 5) : 2 + 2 = 4 := by
   with_panel_widgets [SelectionPanel]
     -- Place cursor here and select subexpressions in the goal with shift-click.
     rfl

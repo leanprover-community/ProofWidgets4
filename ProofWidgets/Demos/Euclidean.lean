@@ -267,8 +267,10 @@ def EuclideanConstructions.rpc (props : PanelWidgetProps) : RequestM (RequestTas
 def EuclideanConstructions : Component PanelWidgetProps :=
   mk_rpc_widget% EuclideanConstructions.rpc
 
-example {a b c d : Point} : ∃ L, onLine a L ∧ onLine b L := by
+axiom test_sorry {α} : α
+
+example {a b _c _d : Point} : ∃ L, onLine a L ∧ onLine b L := by
   with_panel_widgets [EuclideanConstructions]
     -- Place your cursor below.
 
-    sorry
+    exact test_sorry

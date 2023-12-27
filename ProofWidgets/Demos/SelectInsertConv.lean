@@ -5,6 +5,7 @@ Authors: Robin Böhne, Wojciech Nawrocki, Patrick Massot
 -/
 import Lean.Meta.ExprLens
 import Std.Lean.Position
+import Std.Data.Json
 import ProofWidgets.Data.Html
 import ProofWidgets.Component.OfRpcMethod
 import ProofWidgets.Component.MakeEditLink
@@ -151,9 +152,12 @@ def ConvSelectionPanel : Component ConvSelectionPanelProps :=
 open scoped Json in
 elab stx:"conv?" : tactic => do
   let some replaceRange := (← getFileMap).rangeOfStx? stx | return
-  savePanelWidgetInfo stx ``ConvSelectionPanel $ pure $ json% { replaceRange: $(replaceRange) }
+  Widget.savePanelWidgetInfo ConvSelectionPanel.javascriptHash
+    (pure $ json% { replaceRange: $(replaceRange) }) stx
+
+axiom test_sorry {α} : α
 
 example (a : Nat) : a + a - a + a = a := by
   conv?
   -- Put your cursor on the next line
-  all_goals { sorry }
+  all_goals exact test_sorry

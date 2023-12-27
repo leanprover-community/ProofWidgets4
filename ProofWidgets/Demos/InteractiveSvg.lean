@@ -16,12 +16,12 @@ def isvg : InteractiveSvg State where
       width := 400
       height := 400 }
 
-  update time Δt action mouseStart mouseEnd selected getData state :=
+  update _time _Δt _action _mouseStart mouseEnd _selected getData state :=
     match getData Nat, mouseEnd with
     | some id, some p => state.set! id p.toAbsolute
     | _, _ => state
 
-  render time mouseStart mouseEnd state :=
+  render _time mouseStart mouseEnd state :=
     {
       elements :=
         let mousePointer :=

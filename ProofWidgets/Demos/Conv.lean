@@ -430,6 +430,8 @@ def ConvPanel : Component PanelWidgetProps :=
 
 /-! # Example usage -/
 
+axiom test_sorry {α} : α
+
 example [Add α] [Neg α] [OfNat α (nat_lit 0)]
     (h₁ : ∀ (a : α), a + 0 = a)
     (h₂ : ∀ (a b c : α), (a + b) + c = a + (b + c))
@@ -444,3 +446,5 @@ by with_panel_widgets [ConvPanel]
   rw [← h₂]
   conv =>
     -- Place your cursor in the `conv` block
+    skip
+  exact test_sorry
