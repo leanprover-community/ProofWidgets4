@@ -33,8 +33,7 @@ opaque evalExprPresenter (env : Environment) (opts : Options) (constName : Name)
 
 structure GetExprPresentationsParams where
   expr : WithRpcRef ExprWithCtx
-
-#mkrpcenc GetExprPresentationsParams
+  deriving RpcEncodable
 
 structure ExprPresentationData where
   name : Name
@@ -79,8 +78,7 @@ structure GetExprPresentationParams where
   expr : WithRpcRef ExprWithCtx
   /-- Name of the presenter to use. -/
   name : Name
-
-#mkrpcenc GetExprPresentationParams
+  deriving RpcEncodable
 
 @[server_rpc_method]
 def getExprPresentation : GetExprPresentationParams → RequestM (RequestTask Html)
@@ -99,8 +97,7 @@ attribute [deprecated] getExprPresentation
 
 structure ExprPresentationProps where
   expr : WithRpcRef ExprWithCtx
-
-#mkrpcenc ExprPresentationProps
+  deriving RpcEncodable
 
 /-- This component shows a selection of all known and applicable `ProofWidgets.ExprPresenter`s which
 are used to render the expression when selected. The one with highest precedence (TODO) is shown by

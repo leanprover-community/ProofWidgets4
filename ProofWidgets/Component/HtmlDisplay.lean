@@ -8,8 +8,7 @@ open Lean Server
 
 structure HtmlDisplayProps where
   html : Html
-
-#mkrpcenc HtmlDisplayProps
+  deriving RpcEncodable
 
 @[widget_module]
 def HtmlDisplay : Component HtmlDisplayProps where

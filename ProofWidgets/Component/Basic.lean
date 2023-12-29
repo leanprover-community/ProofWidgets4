@@ -38,8 +38,7 @@ instance : Widget.ToModule (Component Props) := ⟨Component.toModule⟩
 
 structure InteractiveCodeProps where
   fmt : Widget.CodeWithInfos
-
-#mkrpcenc InteractiveCodeProps
+  deriving Server.RpcEncodable
 
 /-- Present pretty-printed code as interactive text.
 
@@ -56,8 +55,7 @@ def InteractiveCode : Component InteractiveCodeProps where
 
 structure InteractiveExprProps where
   expr : Server.WithRpcRef ExprWithCtx
-
-#mkrpcenc InteractiveExprProps
+  deriving Server.RpcEncodable
 
 @[server_rpc_method]
 def ppExprTagged : InteractiveExprProps → Server.RequestM (Server.RequestTask Widget.CodeWithInfos)
