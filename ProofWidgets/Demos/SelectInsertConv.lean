@@ -155,6 +155,7 @@ elab stx:"conv?" : tactic => do
   Widget.savePanelWidgetInfo ConvSelectionPanel.javascriptHash
     (pure $ json% { replaceRange: $(replaceRange) }) stx
 
+-- Like `sorry` but avoids a warning for demonstration purposes.
 axiom test_sorry {α} : α
 
 example (a : Nat) : a + a - a + a = a := by

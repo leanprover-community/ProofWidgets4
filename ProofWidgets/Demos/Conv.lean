@@ -430,6 +430,7 @@ def ConvPanel : Component PanelWidgetProps :=
 
 /-! # Example usage -/
 
+-- Like `sorry` but avoids a warning for demonstration purposes.
 axiom test_sorry {α} : α
 
 example [Add α] [Neg α] [OfNat α (nat_lit 0)]
