@@ -50,7 +50,7 @@ syntax (name := makeRunnerTac) "make_runner" : tactic
     -- Store the continuation and monad context.
     let props : RunnerWidgetProps := {
       k := ⟨{
-        ci := (← ContextInfo.save)
+        ci := { ← CommandContextInfo.save with }
         lctx := (← getLCtx)
         k := x
       }⟩}
