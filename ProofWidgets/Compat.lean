@@ -17,7 +17,7 @@ def ExprWithCtx.runMetaM (e : ExprWithCtx) (x : Expr → MetaM α) : IO α :=
 
 def ExprWithCtx.save (e : Expr) : MetaM ExprWithCtx :=
   return {
-    ci := ← ContextInfo.save
+    ci := ← CommandContextInfo.save
     lctx := ← getLCtx
     expr := e
   }
