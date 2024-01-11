@@ -26,13 +26,11 @@ open Lean Server
 
 structure GoalsLocationsToExprsParams where
   locations : Array (WithRpcRef Elab.ContextInfo × SubExpr.GoalsLocation)
-
-#mkrpcenc GoalsLocationsToExprsParams
+  deriving RpcEncodable
 
 structure GoalsLocationsToExprsResponse where
   exprs : Array (WithRpcRef ExprWithCtx)
-
-#mkrpcenc GoalsLocationsToExprsResponse
+  deriving RpcEncodable
 
 /-- Compute expressions corresponding to the given `GoalsLocation`s. -/
 @[server_rpc_method]

@@ -33,9 +33,7 @@ structure SvgState (State : Type) where
   selected : Option String
   mousePos : Option (Int × Int)
   idToData : List (String × Json)
-deriving ToJson, FromJson
-
-#mkrpcenc SvgState
+deriving ToJson, FromJson, Server.RpcEncodable
 
 structure UpdateParams (State : Type) where
   elapsed : Float
@@ -49,8 +47,7 @@ structure UpdateResult (State : Type) where
   state : SvgState State
   /-- Approximate number of milliseconds to wait before calling again. -/
   callbackTime : Option Float := some 33
-
-#mkrpcenc UpdateResult
+  deriving Server.RpcEncodable
 
 -- maybe add title, refresh rate, initial time?, custom selection rendering
 structure InteractiveSvg (State : Type) where

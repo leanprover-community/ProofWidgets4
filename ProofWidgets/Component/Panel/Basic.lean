@@ -26,8 +26,7 @@ structure PanelWidgetProps : Type where
   termGoal? : Option Widget.InteractiveTermGoal
   /-- Locations currently selected in the goal state. -/
   selectedLocations : Array SubExpr.GoalsLocation
-
-#mkrpcenc PanelWidgetProps
+  deriving Server.RpcEncodable
 
 /-- Display the selected panel widgets in the nested tactic script. For example,
 assuming we have written a `GeometryDisplay` component,

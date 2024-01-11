@@ -14,9 +14,8 @@ structure MetaMStringCont where
 structure RunnerWidgetProps where
   /-- A continuation to run and print the results of when the button is clicked. -/
   k : WithRpcRef MetaMStringCont
-
--- Make it possible for widgets to receive `RunnerWidgetProps`. Uses the `TypeName` instance.
-#mkrpcenc RunnerWidgetProps
+  -- Make it possible for widgets to receive `RunnerWidgetProps`. Uses the `TypeName` instance.
+  deriving RpcEncodable
 
 @[server_rpc_method]
 def runMetaMStringCont : RunnerWidgetProps → RequestM (RequestTask String)
@@ -56,7 +55,7 @@ syntax (name := makeRunnerTac) "make_runner" : tactic
         k := x
       }⟩}
     -- Save a widget together with a pointer to `props`.
-    savePanelWidgetInfo tk ``runnerWidget (rpcEncode props)
+    Widget.savePanelWidgetInfo runnerWidget.javascriptHash (rpcEncode props) tk
   | _ => throwUnsupportedSyntax
 
 example : True := by

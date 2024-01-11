@@ -6,6 +6,9 @@ package proofwidgets where
 
 lean_lib ProofWidgets
 
+lean_lib ProofWidgets.Demos where
+  globs := #[.submodules `ProofWidgets.Demos]
+
 require std from git "https://github.com/leanprover/std4" @ "main"
 
 def npmCmd : String :=
