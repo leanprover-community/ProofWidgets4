@@ -73,23 +73,22 @@ def widgetJsAllTarget (pkg : NPackage _package.name) (isDev : Bool) :
   -- Conservatively, every .js build depends on all the .tsx source files.
   let depFiles := tsxs ++ #[ widgetDir / "rollup.config.js", widgetDir / "tsconfig.json" ]
   let deps ← liftM <| depFiles.mapM inputFile
-  let deps := deps.push $ ← fetch (pkg.target ``widgetPackageLock)
+  let deps := deps.push $ ← widgetPackageLock.fetch
   let nodeModulesMutex ← IO.Mutex.new false
   let jobs ← tsxs.mapM fun tsx => widgetTsxTarget pkg nodeModulesMutex tsx.fileStem.get! deps isDev
   BuildJob.collectArray jobs
 
-target widgetJsAll (pkg : NPackage _package.name) : Array FilePath := do
+target widgetJsAll pkg : Array FilePath := do
   widgetJsAllTarget pkg (isDev := false)
 
-target widgetJsAllDev (pkg : NPackage _package.name) : Array FilePath := do
+target widgetJsAllDev pkg : Array FilePath := do
   widgetJsAllTarget pkg (isDev := true)
 
 @[default_target]
-target all (pkg : NPackage _package.name) : Unit := do
-  let some lib := pkg.findLeanLib? ``ProofWidgets |
-    error "cannot find lean_lib target"
-  let job₁ ← fetch (pkg.target ``widgetJsAll)
+target all : Unit := do
+  let lib ← ProofWidgets.get
+  let job₁ ← widgetJsAll.fetch
   let _ ← job₁.await
-  let job₂ ← lib.recBuildLean
+  let job₂ ← lib.leanArts.fetch
   let _ ← job₂.await
   return .nil
