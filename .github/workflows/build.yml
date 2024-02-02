@@ -16,13 +16,10 @@ jobs:
         include:
         - name: Build on Ubuntu
           os: ubuntu-latest
-          lean_os: linux
         - name: Build on macOS
           os: macos-latest
-          lean_os: macOS
         - name: Build on Windows
           os: windows-latest
-          lean_os: windows
           shell: msys2 {0}
     steps:
       - name: Install MSYS2 (Windows)
@@ -55,15 +52,13 @@ jobs:
       - name: Build demos
         run: lake build ProofWidgets.Demos
 
-      - name: Create release for tag
-        if: github.ref_type == 'tag'
+      - name: Create GitHub release for tag (Ubuntu)
+        if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'
         uses: softprops/action-gh-release@v1
 
-      - name: Upload release archive
-        if: github.ref_type == 'tag'
-        run: |
-          lake upload $RELEASE_TAG
+      - name: Upload release archive (Ubuntu)
+        if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'
+        run: lake upload $RELEASE_TAG
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_TAG: ${{ github.ref_name }}
-          LEAN_OS: ${{ matrix.lean_os }}
