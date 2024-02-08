@@ -1,5 +1,4 @@
 import Lean.Server.Rpc.Basic
-import Std.Data.Json
 
 import ProofWidgets.Data.Html
 
