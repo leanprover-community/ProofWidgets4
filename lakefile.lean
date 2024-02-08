@@ -3,7 +3,7 @@ open Lake DSL System
 
 package proofwidgets where
   preferReleaseBuild := true
-  buildArchive := "ProofWidgets4.tar.gz"
+  buildArchive? := "ProofWidgets4.tar.gz"
 
 lean_lib ProofWidgets
 
