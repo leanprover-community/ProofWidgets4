@@ -44,6 +44,7 @@ export default function(props: DiagramData & {pos: DocumentPosition}): JSX.Eleme
         )
 
     const colForeground = getCssColour('--vscode-editor-foreground')
+    const colBackground = getCssColour('--vscode-editor-background')
     const colTooltipBackground = getCssColour('--vscode-editorHoverWidget-background')
     const colTooltipForeground = getCssColour('--vscode-editorHoverWidget-foreground')
     const colTooltipBorder = getCssColour('--vscode-editorHoverWidget-border')
@@ -52,6 +53,7 @@ export default function(props: DiagramData & {pos: DocumentPosition}): JSX.Eleme
 `
 theme {
     color foreground = ${colForeground}
+    color background = ${colBackground}
     color tooltipBackground = ${colTooltipBackground}
     color tooltipForeground = ${colTooltipForeground}
     color tooltipBorder = ${colTooltipBorder}
