@@ -11,7 +11,7 @@ const RPC_METHOD = '$RPC_METHOD'
 // so use a runtime value.
 const RPC_CANCELLABLE = window.toString()
 
-export default function(props: Props) {
+export default React.memo((props: Props) => {
   const rs = React.useContext(RpcContext)
   const cancelRef = React.useRef<Fn>({ fn: () => {} })
   const st = useAsyncPersistent<Html>(async () => {
@@ -36,4 +36,4 @@ export default function(props: Props) {
       <>Loading..</>
     :
       <HtmlDisplay pos={props.pos} html={st.value} />
-}
+})
