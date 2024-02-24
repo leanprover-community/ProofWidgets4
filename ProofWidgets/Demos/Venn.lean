@@ -9,16 +9,6 @@ open Lean Meta Server
 open ProofWidgets
 
 /-! # Minimal definiton of sets copied from Mathlib -/
-
-/-- Notation type class for the subset relation `⊆`. -/
-class HasSubset (α : Type u) where
-  /-- Subset relation: `a ⊆ b`  -/
-  Subset : α → α → Prop
-export HasSubset (Subset)
-
-/-- Subset relation: `a ⊆ b`  -/
-infix:50 " ⊆ " => HasSubset.Subset
-
 def Set (α : Type u) := α → Prop
 
 namespace Set
@@ -50,7 +40,7 @@ end Set
 
 /-- If `e == S ⊆ T` return `some (S, T)`, otherwise `none`. -/
 def isSubsetPred? (e : Expr) : Option (Expr × Expr) := do
-  let some (_, _, S, T) := e.app4? ``Subset | none
+  let some (_, _, S, T) := e.app4? ``HasSubset.Subset | none
   return (S, T)
 
 /-- Expressions to display as labels in a diagram. -/
