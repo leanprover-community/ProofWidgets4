@@ -10,7 +10,7 @@ lean_lib ProofWidgets
 lean_lib ProofWidgets.Demos where
   globs := #[.submodules `ProofWidgets.Demos]
 
-require std from git "https://github.com/leanprover/std4" @ "main"
+require std from git "https://github.com/leanprover/std4" @ "v4.6.0"
 
 def npmCmd : String :=
   if Platform.isWindows then "npm.cmd" else "npm"
