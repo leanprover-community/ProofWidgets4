@@ -5,7 +5,6 @@ Authors: Robin Böhne, Wojciech Nawrocki, Patrick Massot
 -/
 import Lean.Meta.ExprLens
 import Std.Lean.Position
-import Std.Data.Json
 import ProofWidgets.Data.Html
 import ProofWidgets.Component.OfRpcMethod
 import ProofWidgets.Component.MakeEditLink

@@ -12,7 +12,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "dependencies": {
-    "@leanprover/infoview": "~0.4.3",
+    "@leanprover/infoview": "~0.4.5",
     "@penrose/core": "^3.1.0",
     "@react-three/drei": "^9.64.0",
     "@react-three/fiber": "^8.12.0",

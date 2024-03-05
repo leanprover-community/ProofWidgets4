@@ -3,3 +3,4 @@
 /widget/dist
 /widget/node_modules
 /widget/*.hash
+.direnv/
