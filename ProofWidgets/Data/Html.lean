@@ -135,12 +135,12 @@ def delabHtmlElement : Delab := do
   let #[tag, _, _] := e.getAppArgs | failure
 
   let .lit (.strVal s) := tag | failure
-  let tag := mkIdent s
+  let tag := mkIdent (.mkSimple s)
 
   let attrs ← withAppFn (withAppArg delab)
   let `(term| #[ $[($as:str, $vs)],* ] ) := attrs | failure
   let attrs : Array (TSyntax `jsxAttr) ← as.zip vs |>.mapM fun (a, v) => do
-    let attr := mkIdent a.getString
+    let attr := mkIdent (.mkSimple a.getString)
     `(jsxAttr| $attr:ident={ $v })
 
   let children ← withAppArg delabJsxChildren
