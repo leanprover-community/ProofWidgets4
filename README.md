@@ -28,7 +28,7 @@ The easiest way to get started is to clone a **release tag** of ProofWidgets and
 
 ```bash
 # You should replace v0.0.3 with the latest version published under Releases
-git clone https://github.com/EdAyers/ProofWidgets4 --branch v0.0.3
+git clone https://github.com/leanprover-community/ProofWidgets4 --branch v0.0.3
 cd ProofWidgets4/
 lake build :release
 ```
@@ -43,7 +43,7 @@ Put this in your `lakefile.lean`, making sure to reference a **release tag**
 rather than the `main` branch:
 ```lean
 -- You should replace v0.0.3 with the latest version published under Releases
-require proofwidgets from git "https://github.com/EdAyers/ProofWidgets4"@"v0.0.3"
+require proofwidgets from git "https://github.com/leanprover-community/ProofWidgets4"@"v0.0.3"
 ```
 
 Note that [developing ProofWidgets](#developing-proofwidgets) involves building TypeScript code with NPM.
