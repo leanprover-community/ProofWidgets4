@@ -17,7 +17,9 @@ export default function FilterDetails(props: FilterDetailsProps) {
         <summary className="mv2 pointer">
             <HtmlDisplay pos={props.pos} html={props.summary} />
             <span className="fr" onClick={e => { e.preventDefault() }}>
-                <a className="link pointer mh2 dim codicon codicon-filter" title="filter"
+                <a className={"link pointer mh2 dim codicon " +
+                    (isFiltered ? "codicon-filter-filled " : "codicon-filter ")}
+                    title="Show fewer contents"
                     onClick={_ => { setFiltered(s => !s) }} />
             </span>
         </summary>
