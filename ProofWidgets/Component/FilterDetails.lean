@@ -4,8 +4,8 @@ open Lean ProofWidgets
 
 /-- The props for the `FilterDetails` component. -/
 structure FilterDetailsProps where
-  /-- The title -/
-  message : String
+  /-- Contents of the `<summary>` -/
+  summary : Html
   /-- What is shown in the filtered state -/
   filtered : Html
   /-- What is shown in the non-filtered state -/
@@ -14,8 +14,9 @@ structure FilterDetailsProps where
   initiallyFiltered : Bool
 deriving Server.RpcEncodable
 
-/-- the `FilterDetails` component is like a details Html element, but it also has a filter button
-that allows you to switch between a filtered and unfiltered state -/
+/-- The `FilterDetails` component is like a `<details>` HTML element,
+but also has a filter button
+that allows you to switch between filtered and unfiltered states. -/
 @[widget_module]
 def FilterDetails : Component FilterDetailsProps where
   javascript := include_str ".." /  ".." / ".lake" / "build" / "js" / "FilterDetails.js"

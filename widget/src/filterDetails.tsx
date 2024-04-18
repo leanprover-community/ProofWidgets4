@@ -4,7 +4,7 @@ import { DocumentPosition } from '@leanprover/infoview/*';
 
 interface FilterDetailsProps {
     pos : DocumentPosition
-    message : string
+    summary : Html
     filtered : Html
     all : Html
     initiallyFiltered : boolean
@@ -15,7 +15,7 @@ export default function FilterDetails(props: FilterDetailsProps) {
 
     return <details open>
         <summary className="mv2 pointer">
-            {props.message}
+            <HtmlDisplay pos={props.pos} html={props.summary} />
             <span className="fr" onClick={e => { e.preventDefault() }}>
                 <a className="link pointer mh2 dim codicon codicon-filter" title="filter"
                     onClick={_ => { setFiltered(s => !s) }} />
