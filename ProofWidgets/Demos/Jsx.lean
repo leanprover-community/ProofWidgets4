@@ -11,5 +11,6 @@ theorem ghjk : True := by
   -- Put your cursor over any of the `html!` lines
   html! <b>What, HTML in Lean?! </b>
   html! <i>And another!</i>
-  html! <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Parrot_montage.jpg"/>
+  -- attributes and text nodes can be interpolated
+  html! <img src={ "https://" ++ "upload.wikimedia.org/wikipedia/commons/a/a5/Parrot_montage.jpg"} alt="parrots" />
   trivial

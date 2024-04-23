@@ -47,23 +47,25 @@ declare_syntax_cat jsxAttrVal
 -- See https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/expected.20parser.20to.20return.20exactly.20one.20syntax.20object
 -- def jsxAttrVal : Parser := strLit <|> group ("{" >> termParser >> "}")
 scoped syntax str : jsxAttrVal
+/-- Interpolates an expression into a JSX attribute literal -/
 scoped syntax group("{" term "}") : jsxAttrVal
 scoped syntax ident "=" jsxAttrVal : jsxAttr
 
 -- JSXTextCharacter : SourceCharacter but not one of {, <, > or }
+/-- A plain text literal for JSX (notation for `Html.text`). -/
 def jsxText : Parser :=
-  withAntiquot (mkAntiquot "jsxText" `jsxText) {
+  withAntiquot (mkAntiquot "jsxText" `ProofWidgets.Jsx.jsxText) {
     fn := fun c s =>
       let startPos := s.pos
       let s := takeWhile1Fn (not ∘ "{<>}$".contains) "expected JSX text" c s
-      mkNodeToken `jsxText startPos c s }
+      mkNodeToken `ProofWidgets.Jsx.jsxText startPos c s }
 
-def getJsxText : TSyntax `jsxText → String
+def getJsxText : TSyntax ``jsxText → String
   | stx => stx.raw[0].getAtomVal
 
 @[combinator_formatter ProofWidgets.Jsx.jsxText]
 def jsxText.formatter : Formatter :=
-  Formatter.visitAtom `jsxText
+  Formatter.visitAtom ``jsxText
 @[combinator_parenthesizer ProofWidgets.Jsx.jsxText]
 def jsxText.parenthesizer : Parenthesizer :=
   Parenthesizer.visitToken
@@ -73,6 +75,7 @@ scoped syntax "<" ident jsxAttr* ">" jsxChild* "</" ident ">" : jsxElement
 
 scoped syntax jsxText      : jsxChild
 -- TODO(WN): expand `{... $t}` as list of children
+/-- Interpolates an expression into a JSX literal -/
 scoped syntax "{" term "}" : jsxChild
 scoped syntax jsxElement   : jsxChild
 
@@ -119,11 +122,11 @@ def delabJsxChildren : DelabM (Array (TSyntax `jsxChild)) := do
   let `(term| #[ $cs,* ]) := children | failure
   (@id (TSyntaxArray `term) cs).mapM fun c => do
     if let `(term| Html.text $s:str) := c.raw then
-      let txt := mkNode `jsxText #[mkAtom s.getString]
+      let txt := mkNode ``jsxText #[mkAtom s.getString]
       `(jsxChild| $txt:jsxText)
     -- hack.
-    else if c.raw[0].getKind == ``ProofWidgets.Jsx.«jsxElement<__>_</_>» ||
-            c.raw[0].getKind == ``ProofWidgets.Jsx.«jsxElement<__/>» then
+    else if c.raw[0].getKind == ``«jsxElement<__>_</_>» ||
+            c.raw[0].getKind == ``«jsxElement<__/>» then
       `(jsxChild| $(⟨c.raw⟩):jsxElement)
     else
       `(jsxChild| { $c })
