@@ -47,10 +47,12 @@ declare_syntax_cat jsxAttrVal
 -- See https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/expected.20parser.20to.20return.20exactly.20one.20syntax.20object
 -- def jsxAttrVal : Parser := strLit <|> group ("{" >> termParser >> "}")
 scoped syntax str : jsxAttrVal
+/-- Interpolates an expression into a JSX attribute literal -/
 scoped syntax group("{" term "}") : jsxAttrVal
 scoped syntax ident "=" jsxAttrVal : jsxAttr
 
 -- JSXTextCharacter : SourceCharacter but not one of {, <, > or }
+/-- A plain text literal for JSX (notation for `Html.text`). -/
 def jsxText : Parser :=
   withAntiquot (mkAntiquot "jsxText" `ProofWidgets.Jsx.jsxText) {
     fn := fun c s =>
@@ -73,6 +75,7 @@ scoped syntax "<" ident jsxAttr* ">" jsxChild* "</" ident ">" : jsxElement
 
 scoped syntax jsxText      : jsxChild
 -- TODO(WN): expand `{... $t}` as list of children
+/-- Interpolates an expression into a JSX literal -/
 scoped syntax "{" term "}" : jsxChild
 scoped syntax jsxElement   : jsxChild
 
@@ -124,16 +127,28 @@ partial def delabListLiteral {α} (elem : DelabM α) : DelabM (List α) := do
     return (← withNaryArg 1 elem) :: (← withNaryArg 2 (delabListLiteral elem))
   | _ => failure
 
-/-! First delaborate into our non-term `TSyntax`. Note this means we can't call `delab`,
-so we have to add the term annotations ourselves. -/
+
+/-- Delaborate the elements of a list literal separately, calling `elem` on each. -/
+partial def delabArrayLiteral {α} (elem : DelabM α) : DelabM (Array α) := do
+  match_expr ← getExpr with
+  | List.toArray _ _ => List.toArray <$> (withNaryArg 1 <| delabListLiteral elem)
+  | _ => failure
+
+#check annotateTermInfo
+
+/-- A copy of `Delaborator.annotateTermLikeInfo` for other categories. -/
 def annotateTermLikeInfo (stx : TSyntax n) : DelabM (TSyntax n) := do
   let stx ← annotateCurPos ⟨stx⟩
   addTermInfo (← getPos) stx (← getExpr)
   pure ⟨stx⟩
 
+/-- A copy of `Delaborator.withAnnotateTermLikeInfo` for other categories. -/
 def withAnnotateTermLikeInfo (d : DelabM (TSyntax n)) : DelabM (TSyntax n) := do
   let stx ← d
   annotateTermLikeInfo stx
+
+/-! First delaborate into our non-term `TSyntax`. Note this means we can't call `delab`,
+so we have to add the term annotations ourselves. -/
 
 partial def delabHtmlText : DelabM (TSyntax ``jsxText) := do
   let_expr Html.text e := ← getExpr | failure
@@ -146,14 +161,12 @@ partial def delabHtmlText : DelabM (TSyntax ``jsxText) := do
 mutual
 
 partial def delabHtmlElement' : DelabM (TSyntax `jsxElement) := do
-  let e ← getExpr
-  -- `Html.element tag attrs children`
-  let_expr Html.element tag _attrs _children := e | failure
+  let_expr Html.element tag _attrs _children := ← getExpr | failure
 
   let .lit (.strVal s) := tag | failure
-  let tag := mkIdent s
+  let tag ← withNaryArg 0 <| annotateTermLikeInfo <| mkIdent s
 
-  let attrs ← withNaryArg 1 <| withAppArg <| delabListLiteral <| withAnnotateTermLikeInfo do
+  let attrs ← withNaryArg 1 <| delabArrayLiteral <| withAnnotateTermLikeInfo do
     let_expr Prod.mk _ _ a _v := ← getExpr | failure
     let .lit (.strVal a) := a | failure
     let attr ← withNaryArg 2 <| annotateTermLikeInfo <| mkIdent a
@@ -162,18 +175,19 @@ partial def delabHtmlElement' : DelabM (TSyntax `jsxElement) := do
 
   let children ← withAppArg delabJsxChildren
   if children.isEmpty then
-    `(jsxElement| < $tag $[$attrs.toArray]* />)
+    `(jsxElement| < $tag $[$attrs]* />)
   else
-    `(jsxElement| < $tag $[$attrs.toArray]* > $[$children]* </ $tag >)
+    `(jsxElement| < $tag $[$attrs]* > $[$children]* </ $tag >)
 
 partial def delabHtmlOfComponent' : DelabM (TSyntax `jsxElement) := do
-  -- `Html.ofComponent Props inst c props children`
+  let_expr Html.ofComponent _Props _inst _c _props _children := ← getExpr | failure
   let c ← withNaryArg 2 delab
   unless c.raw.isIdent do failure
   let tag : Ident := ⟨c.raw⟩
 
-  let props ← withNaryArg 3 delab
-  let `(term| { $[$ns:ident := $vs],* } ) := props | failure
+  -- TODO: handle `Props` that do not delaborate to `{ }`, such as `Prod`, by parsing the `Expr`
+  -- instead.
+  let `(term| { $[$ns:ident := $vs],* } ) ← withNaryArg 3 delab | failure
   let attrs : Array (TSyntax `jsxAttr) ← ns.zip vs |>.mapM fun (n, v) => do
     `(jsxAttr| $n:ident={ $v })
 
@@ -183,10 +197,8 @@ partial def delabHtmlOfComponent' : DelabM (TSyntax `jsxElement) := do
   else
     `(jsxElement| < $tag $[$attrs]* > $[$children]* </ $tag >)
 
-
 partial def delabJsxChildren : DelabM (Array (TSyntax `jsxChild)) := do
-  let_expr List.toArray _ _ := ← getExpr | failure
-  let cs ← withNaryArg 1 <| delabListLiteral <| withAnnotateTermLikeInfo do
+  delabArrayLiteral <| withAnnotateTermLikeInfo do
     try
       match_expr ← getExpr with
       | Html.text _ =>
@@ -202,10 +214,11 @@ partial def delabJsxChildren : DelabM (Array (TSyntax `jsxChild)) := do
     catch _ =>
       let fallback ← delab
       return ← `(jsxChild| { $fallback })
-  return cs.toArray
+
 end
 
-/-! Now wrap our TSyntax delaborators into `Term` elaborators. -/
+/-! Now wrap our `TSyntax _` delaborators into `Term` elaborators. -/
+
 @[delab app.ProofWidgets.Html.element]
 def delabHtmlElement : Delab := do
   let t ← delabHtmlElement'
