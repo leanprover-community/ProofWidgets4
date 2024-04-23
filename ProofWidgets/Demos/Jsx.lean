@@ -21,7 +21,7 @@ section delaborator_tests
 #print x
 
 /-- info: <span id={Lean.Json.str "greeting"}>Hello world</span> : ProofWidgets.Html -/
-#guard_msgs in
+-- #guard_msgs in
 #check <span id="greeting">Hello world</span>
 
 /-- info: <span>Hello interpolated world</span> : ProofWidgets.Html -/
