@@ -117,43 +117,76 @@ macro_rules
 
 open Lean Delaborator SubExpr
 
-def delabJsxChildren : DelabM (Array (TSyntax `jsxChild)) := do
-  let children ← delab
-  let `(term| #[ $cs,* ]) := children | failure
-  (@id (TSyntaxArray `term) cs).mapM fun c => do
-    if let `(term| Html.text $s:str) := c.raw then
-      let txt := mkNode ``jsxText #[mkAtom s.getString]
-      `(jsxChild| $txt:jsxText)
-    -- hack.
-    else if c.raw[0].getKind == ``«jsxElement<__>_</_>» ||
-            c.raw[0].getKind == ``«jsxElement<__/>» then
-      `(jsxChild| $(⟨c.raw⟩):jsxElement)
-    else
-      `(jsxChild| { $c })
+/-- Delaborate the elements of a list literal separately-/
+partial def delabListLiteral {α} (elem : DelabM α) : DelabM (List α) := do
+  match_expr ← getExpr with
+  | List.nil _ => return []
+  | List.cons _ _ _ =>
+    return (← withNaryArg 1 elem) :: (← withNaryArg 2 (delabListLiteral elem))
+  | _ => failure
 
-@[delab app.ProofWidgets.Html.element]
-def delabHtmlElement : Delab := do
+/-! First delaborate into our non-term `TSyntax`. Note this means we can't call `delab`,
+so we have to add the term annotations ourselves. -/
+def annotateTermLikeInfo (stx : TSyntax n) : DelabM (TSyntax n) := do
+  let stx ← annotateCurPos ⟨stx⟩
+  addTermInfo (← getPos) stx (← getExpr)
+  pure ⟨stx⟩
+
+def withAnnotateTermLikeInfo (d : DelabM (TSyntax n)) : DelabM (TSyntax n) := do
+  let stx ← d
+  annotateTermLikeInfo stx
+
+mutual
+
+partial def delabJsxChildren : DelabM (Array (TSyntax `jsxChild)) := do
+  let_expr List.toArray _ _ := ← getExpr | failure
+  let cs ← withNaryArg 1 <| delabListLiteral <| withAnnotateTermLikeInfo do
+    try
+      match_expr ← getExpr with
+      | Html.text _ =>
+        let html ← delabHtmlText
+        return ← `(jsxChild| $html:jsxText)
+      | Html.element _ _ _ =>
+        let html ← delabHtmlElement'
+        return ← `(jsxChild| $html:jsxElement)
+      | Html.ofComponent _ _ _ _ _ =>
+        let comp ← delabHtmlOfComponent'
+        return ← `(jsxChild| $comp:jsxElement)
+      | _ => failure
+    catch _ =>
+      let fallback ← delab
+      return ← `(jsxChild| { $fallback })
+  return cs.toArray
+
+partial def delabHtmlText : DelabM (TSyntax ``jsxText) := do
+  let_expr Html.text e := ← getExpr | failure
+  let .lit (.strVal s) := e | failure
+  if s.any "{<>}$".contains then
+    failure
+  let txt ←  annotateTermLikeInfo (mkNode ``jsxText #[mkAtom s])
+  return ← `(jsxText| $txt)
+
+partial def delabHtmlElement' : DelabM (TSyntax `jsxElement) := do
   let e ← getExpr
   -- `Html.element tag attrs children`
   let #[tag, _, _] := e.getAppArgs | failure
 
   let .lit (.strVal s) := tag | failure
-  let tag := mkIdent (.mkSimple s)
+  let tag := mkIdent s
 
   let attrs ← withAppFn (withAppArg delab)
   let `(term| #[ $[($as:str, $vs)],* ] ) := attrs | failure
   let attrs : Array (TSyntax `jsxAttr) ← as.zip vs |>.mapM fun (a, v) => do
-    let attr := mkIdent (.mkSimple a.getString)
+    let attr := mkIdent a.getString
     `(jsxAttr| $attr:ident={ $v })
 
   let children ← withAppArg delabJsxChildren
   if children.isEmpty then
-    `(term| < $tag $[$attrs]* />)
+    `(jsxElement| < $tag $[$attrs]* />)
   else
-    `(term| < $tag $[$attrs]* > $[$children]* </ $tag >)
+    `(jsxElement| < $tag $[$attrs]* > $[$children]* </ $tag >)
 
-@[delab app.ProofWidgets.Html.ofComponent]
-def delabHtmlOfComponent : Delab := do
+partial def delabHtmlOfComponent' : DelabM (TSyntax `jsxElement) := do
   -- `Html.ofComponent Props inst c props children`
   let c ← withNaryArg 2 delab
   unless c.raw.isIdent do failure
@@ -166,9 +199,22 @@ def delabHtmlOfComponent : Delab := do
 
   let children ← withNaryArg 4 delabJsxChildren
   if children.isEmpty then
-    `(term| < $tag $[$attrs]* />)
+    `(jsxElement| < $tag $[$attrs]* />)
   else
-    `(term| < $tag $[$attrs]* > $[$children]* </ $tag >)
+    `(jsxElement| < $tag $[$attrs]* > $[$children]* </ $tag >)
+
+end
+
+/-! Now wrap our TSyntax delaborators into `Term` elaborators. -/
+@[delab app.ProofWidgets.Html.element]
+def delabHtmlElement : Delab := do
+  let t ← delabHtmlElement'
+  `(term| $t:jsxElement)
+
+@[delab app.ProofWidgets.Html.ofComponent]
+def delabHtmlOfComponent : Delab := do
+  let t ← delabHtmlOfComponent'
+  `(term| $t:jsxElement)
 
 end Jsx
 end ProofWidgets
