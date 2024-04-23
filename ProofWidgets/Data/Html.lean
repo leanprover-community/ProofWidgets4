@@ -134,8 +134,6 @@ partial def delabArrayLiteral {α} (elem : DelabM α) : DelabM (Array α) := do
   | List.toArray _ _ => List.toArray <$> (withNaryArg 1 <| delabListLiteral elem)
   | _ => failure
 
-#check annotateTermInfo
-
 /-- A copy of `Delaborator.annotateTermLikeInfo` for other categories. -/
 def annotateTermLikeInfo (stx : TSyntax n) : DelabM (TSyntax n) := do
   let stx ← annotateCurPos ⟨stx⟩
