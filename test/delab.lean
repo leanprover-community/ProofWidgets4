@@ -36,10 +36,18 @@ def CustomComponent : ProofWidgets.Component CustomProps where
 def ProdComponent : ProofWidgets.Component (Nat × Nat) where
   javascript := ""
 
--- TODO: fix this
-/-- info: <div>{ofComponent ProdComponent (1, 2) #[]}</div> : ProofWidgets.Html -/
+/-- info: <div><ProdComponent {...(1, 2)}/></div> : ProofWidgets.Html -/
 #guard_msgs in
 #check <div><ProdComponent fst={1} snd={2} /></div>
+/-- info: <div><ProdComponent {...(1, 2)}/></div> : ProofWidgets.Html -/
+#guard_msgs in
+#check <div><ProdComponent {...Prod.mk 1 2}/></div>
+/--
+info: <div><ProdComponent {...let __src := (1, 2);
+          (__src.fst, 3)}/></div> : ProofWidgets.Html
+-/
+#guard_msgs in
+#check <div><ProdComponent {...Prod.mk 1 2} snd={3}/></div>
 
 -- interactive test: check that the hovers in the infoview on subexpressions are correct
-#check <span id="test">Hello {.text "<>"} world<CustomComponent val={2} str="3" /></span>
+#check <span id="test">Hello {.text "<>"} world<CustomComponent val={1} str="3" /></span>
