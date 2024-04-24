@@ -20,6 +20,11 @@ open ProofWidgets.Html Lean
 #guard_msgs in
 #check <hr />
 
+variable (attrs children)
+/-- info: <div {...attrs}>{...children}</div> : ProofWidgets.Html -/
+#guard_msgs in
+#check element "div" attrs children
+
 structure CustomProps where
   val : Nat
   str : String

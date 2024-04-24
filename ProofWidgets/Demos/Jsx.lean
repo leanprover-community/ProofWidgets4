@@ -246,22 +246,27 @@ partial def delabHtmlOfComponent' : DelabM (TSyntax `jsxElement) := do
     `(jsxElement| < $tag $[$attrs]* > $[$children]* </ $tag >)
 
 partial def delabJsxChildren : DelabM (Array (TSyntax `jsxChild)) := do
-  delabArrayLiteral <| withAnnotateTermLikeInfo do
-    try
-      match_expr ← getExpr with
-      | Html.text _ =>
-        let html ← delabHtmlText
-        return ← `(jsxChild| $html:jsxText)
-      | Html.element _ _ _ =>
-        let html ← delabHtmlElement'
-        return ← `(jsxChild| $html:jsxElement)
-      | Html.ofComponent _ _ _ _ _ =>
-        let comp ← delabHtmlOfComponent'
-        return ← `(jsxChild| $comp:jsxElement)
-      | _ => failure
-    catch _ =>
-      let fallback ← delab
-      return ← `(jsxChild| { $fallback })
+  try
+    delabArrayLiteral (withAnnotateTermLikeInfo do
+      try
+        match_expr ← getExpr with
+        | Html.text _ =>
+          let html ← delabHtmlText
+          return ← `(jsxChild| $html:jsxText)
+        | Html.element _ _ _ =>
+          let html ← delabHtmlElement'
+          return ← `(jsxChild| $html:jsxElement)
+        | Html.ofComponent _ _ _ _ _ =>
+          let comp ← delabHtmlOfComponent'
+          return ← `(jsxChild| $comp:jsxElement)
+        | _ => failure
+      catch _ =>
+        let fallback ← delab
+        return ← `(jsxChild| { $fallback }))
+  catch _ =>
+    let fallback ← delab
+    return #[⟨← `(ohno)⟩]
+    -- return #[← `(jsxChild| {... $fallback })]
 
 end
 
