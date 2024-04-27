@@ -90,7 +90,8 @@ def joinArrays {m} [Monad m] [MonadRef m] [MonadQuotation m] (arr : Array Term) 
   else
     `(#[])
 
-/-- Collapse adjacent `inl (_ : α)`s into a `β` using `f`. -/
+/-- Collapse adjacent `inl (_ : α)`s into a `β` using `f`.
+For example, `#[.inl a₁, .inl a₂, .inr b, .inl a₃] ↦ #[← f #[a₁, a₂], b, ← f #[a₃]]`. -/
 def foldInlsM {m} [Monad m] (arr : Array (α ⊕ β)) (f : Array α → m β) : m (Array β) := do
   let mut ret : Array β := #[]
   let mut pending_inls : Array α := #[]
