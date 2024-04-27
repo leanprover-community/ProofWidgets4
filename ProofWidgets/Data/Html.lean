@@ -9,6 +9,7 @@ import Lean.PrettyPrinter.Delaborator.Basic
 import Lean.Server.Rpc.Basic
 
 import ProofWidgets.Component.Basic
+import ProofWidgets.Util
 
 /-! We define a representation of HTML trees together with a JSX-like DSL for writing them. -/
 
@@ -83,29 +84,6 @@ scoped syntax jsxElement   : jsxChild
 
 scoped syntax:max jsxElement : term
 
-/-- Sends `#[a, b, c]` to `` `(term| $a ++ $b ++ $c)``-/
-def joinArrays {m} [Monad m] [MonadRef m] [MonadQuotation m] (arr : Array Term) : m Term := do
-  if h : 0 < arr.size then
-    arr.foldlM (fun x xs => `($x ++ $xs)) arr[0] (start := 1)
-  else
-    `(#[])
-
-/-- Collapse adjacent `inl (_ : α)`s into a `β` using `f`. -/
-def foldInlsM {m} [Monad m] (arr : Array (α ⊕ β)) (f : Array α → m β) : m (Array β) := do
-  let mut ret : Array β := #[]
-  let mut pending_inls : Array α := #[]
-  for c in arr do
-    match c with
-    | .inl ci =>
-      pending_inls := pending_inls.push ci
-    | .inr cis =>
-      if pending_inls.size ≠ 0 then
-        ret := ret.push <| ← f pending_inls
-      pending_inls := #[]
-      ret := ret.push cis
-  if pending_inls.size ≠ 0 then
-    ret := ret.push <| ← f pending_inls
-  return ret
 
 def transformTag (n m : Ident) (vs : Array (TSyntax `jsxAttr))
     (cs : Array (TSyntax `jsxChild)) : MacroM Term := do
