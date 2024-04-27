@@ -84,7 +84,6 @@ scoped syntax jsxElement   : jsxChild
 
 scoped syntax:max jsxElement : term
 
-
 def transformTag (n m : Ident) (vs : Array (TSyntax `jsxAttr))
     (cs : Array (TSyntax `jsxChild)) : MacroM Term := do
   let nId := n.getId.eraseMacroScopes
