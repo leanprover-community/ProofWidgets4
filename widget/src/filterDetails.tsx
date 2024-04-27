@@ -19,7 +19,7 @@ export default function FilterDetails(props: FilterDetailsProps) {
             <span className="fr" onClick={e => { e.preventDefault() }}>
                 <a className={"link pointer mh2 dim codicon " +
                     (isFiltered ? "codicon-filter-filled " : "codicon-filter ")}
-                    title="Show fewer contents"
+                    title={isFiltered ? "Show more content" : "Show less content"}
                     onClick={_ => { setFiltered(s => !s) }} />
             </span>
         </summary>
