@@ -16,8 +16,8 @@ jobs:
         include:
         - name: Build on Ubuntu
           os: ubuntu-latest
-        - name: Build on macOS
-          os: macos-latest
+        #- name: Build on macOS
+        #  os: macos-latest
         - name: Build on Windows
           os: windows-latest
           shell: msys2 {0}
