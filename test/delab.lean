@@ -4,7 +4,7 @@ open scoped ProofWidgets.Jsx
 open ProofWidgets.Html Lean
 
 
-/-- info: <span id={Json.str "greeting"}>Hello world</span> : ProofWidgets.Html -/
+/-- info: <span id="greeting">Hello world</span> : ProofWidgets.Html -/
 #guard_msgs in
 #check <span id="greeting">Hello world</span>
 
@@ -22,14 +22,16 @@ open ProofWidgets.Html Lean
 
 structure CustomProps where
   val : Nat
+  str : String
   deriving Server.RpcEncodable
 
 def CustomComponent : ProofWidgets.Component CustomProps where
   javascript := ""
 
-/-- info: <div><CustomComponent val={2}>Content</CustomComponent></div> : ProofWidgets.Html -/
+-- TODO: spacing between attributes
+/-- info: <div><CustomComponent val={2}str={"3"}>Content</CustomComponent></div> : ProofWidgets.Html -/
 #guard_msgs in
-#check <div><CustomComponent val={2}>Content</CustomComponent></div>
+#check <div><CustomComponent val={2} str="3">Content</CustomComponent></div>
 
 def ProdComponent : ProofWidgets.Component (Nat × Nat) where
   javascript := ""
@@ -40,4 +42,4 @@ def ProdComponent : ProofWidgets.Component (Nat × Nat) where
 #check <div><ProdComponent fst={1} snd={2} /></div>
 
 -- interactive test: check that the hovers in the infoview on subexpressions are correct
-#check <span id="test">Hello {.text "<>"} world<CustomComponent val={2} /></span>
+#check <span id="test">Hello {.text "<>"} world<CustomComponent val={2} str="3" /></span>

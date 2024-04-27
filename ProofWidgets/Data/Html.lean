@@ -44,20 +44,19 @@ declare_syntax_cat jsxChild
 declare_syntax_cat jsxAttr
 declare_syntax_cat jsxAttrVal
 
--- See https://leanprover.zulipchat.com/#narrow/stream/270676-lean4/topic/expected.20parser.20to.20return.20exactly.20one.20syntax.20object
--- def jsxAttrVal : Parser := strLit <|> group ("{" >> termParser >> "}")
 scoped syntax str : jsxAttrVal
 /-- Interpolates an expression into a JSX attribute literal -/
 scoped syntax group("{" term "}") : jsxAttrVal
 scoped syntax ident "=" jsxAttrVal : jsxAttr
 
--- JSXTextCharacter : SourceCharacter but not one of {, <, > or }
+/-- Characters not allowed inside JSX plain text. -/
+def jsxTextForbidden : String := "{<>}$"
 /-- A plain text literal for JSX (notation for `Html.text`). -/
 def jsxText : Parser :=
   withAntiquot (mkAntiquot "jsxText" `ProofWidgets.Jsx.jsxText) {
     fn := fun c s =>
       let startPos := s.pos
-      let s := takeWhile1Fn (not ∘ "{<>}$".contains) "expected JSX text" c s
+      let s := takeWhile1Fn (not ∘ jsxTextForbidden.contains) "expected JSX text" c s
       mkNodeToken `ProofWidgets.Jsx.jsxText startPos c s }
 
 def getJsxText : TSyntax ``jsxText → String
@@ -120,18 +119,21 @@ section delaborator
 open Lean Delaborator SubExpr
 
 /-- Delaborate the elements of a list literal separately, calling `elem` on each. -/
-partial def delabListLiteral {α} (elem : DelabM α) : DelabM (List α) := do
-  match_expr ← getExpr with
-  | List.nil _ => return []
-  | List.cons _ _ _ =>
-    return (← withNaryArg 1 elem) :: (← withNaryArg 2 (delabListLiteral elem))
-  | _ => failure
-
+partial def delabListLiteral {α} (elem : DelabM α) : DelabM (Array α) :=
+  go #[]
+where
+  go (acc : Array α) : DelabM (Array α) := do
+    match_expr ← getExpr with
+    | List.nil _ => return acc
+    | List.cons _ _ _ =>
+      let hd ← withNaryArg 1 elem
+      withNaryArg 2 $ go (acc.push hd)
+    | _ => failure
 
 /-- Delaborate the elements of an array literal separately, calling `elem` on each. -/
 partial def delabArrayLiteral {α} (elem : DelabM α) : DelabM (Array α) := do
   match_expr ← getExpr with
-  | List.toArray _ _ => List.toArray <$> (withNaryArg 1 <| delabListLiteral elem)
+  | List.toArray _ _ => withNaryArg 1 <| delabListLiteral elem
   | _ => failure
 
 /-- A copy of `Delaborator.annotateTermInfo` for other syntactic categories. -/
@@ -151,10 +153,9 @@ so we have to add the term annotations ourselves. -/
 partial def delabHtmlText : DelabM (TSyntax ``jsxText) := do
   let_expr Html.text e := ← getExpr | failure
   let .lit (.strVal s) := e | failure
-  if s.any "{<>}$".contains then
+  if s.any jsxTextForbidden.contains then
     failure
-  let txt ← annotateTermLikeInfo <| mkNode ``jsxText #[mkAtom s]
-  return ← `(jsxText| $txt)
+  annotateTermLikeInfo <| mkNode ``jsxText #[mkAtom s]
 
 mutual
 
@@ -165,11 +166,23 @@ partial def delabHtmlElement' : DelabM (TSyntax `jsxElement) := do
   let tag ← withNaryArg 0 <| annotateTermLikeInfo <| mkIdent s
 
   let attrs ← withNaryArg 1 <| delabArrayLiteral <| withAnnotateTermLikeInfo do
-    let_expr Prod.mk _ _ a _v := ← getExpr | failure
+    let_expr Prod.mk _ _ a _ := ← getExpr | failure
     let .lit (.strVal a) := a | failure
     let attr ← withNaryArg 2 <| annotateTermLikeInfo <| mkIdent a
-    let v ← withNaryArg 3 delab
-    `(jsxAttr| $attr:ident={ $v })
+    withNaryArg 3 do
+      let v ← getExpr
+      -- If the attribute's value is a string literal,
+      -- use `attr="val"` syntax.
+      -- TODO: also do this for `.ofComponent`.
+      -- WN: not sure if matching a string literal is possible with `let_expr`.
+      match v with
+      | .app (.const ``Json.str _) (.lit (.strVal v)) =>
+        -- TODO: this annotation doesn't seem to work in infoview
+        let val ← annotateTermLikeInfo <| Syntax.mkStrLit v
+        `(jsxAttr| $attr:ident=$val:str)
+      | _ =>
+        let val ← delab
+        `(jsxAttr| $attr:ident={ $val })
 
   let children ← withAppArg delabJsxChildren
   if children.isEmpty then
