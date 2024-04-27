@@ -14,7 +14,7 @@ import ProofWidgets.Util
 /-! We define a representation of HTML trees together with a JSX-like DSL for writing them. -/
 
 namespace ProofWidgets
-open Lean Server
+open Lean Server ProofWidgets.Util
 
 /-- A HTML tree which may contain widget components. -/
 inductive Html where
