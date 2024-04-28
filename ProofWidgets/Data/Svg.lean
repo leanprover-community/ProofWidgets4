@@ -170,13 +170,13 @@ structure Svg (f : Svg.Frame) where
 
 namespace Svg
 
+open scoped ProofWidgets.Jsx
+
 def toHtml {f : Frame} (svg : Svg f) : Html :=
-  .element "svg"
-    #[("xmlns", "http://www.w3.org/2000/svg"),
-      ("version", "1.1"),
-      ("width", f.width),
-      ("height", f.height)]
-    (svg.elements.map λ e => e.toHtml)
+  <svg xmlns="http://www.w3.org/2000/svg" version="1.1"
+       width={f.width} height={f.height}>
+    {... svg.elements.map (·.toHtml)}
+  </svg>
 
 def idToDataList {f} (svg : Svg f) : List (String × Json) :=
   svg.elements.foldr (init := []) (λ e l =>

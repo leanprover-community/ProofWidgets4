@@ -9,11 +9,12 @@ import Lean.PrettyPrinter.Delaborator.Basic
 import Lean.Server.Rpc.Basic
 
 import ProofWidgets.Component.Basic
+import ProofWidgets.Util
 
 /-! We define a representation of HTML trees together with a JSX-like DSL for writing them. -/
 
 namespace ProofWidgets
-open Lean Server
+open Lean Server Util
 
 /-- A HTML tree which may contain widget components. -/
 inductive Html where
@@ -48,6 +49,8 @@ scoped syntax str : jsxAttrVal
 /-- Interpolates an expression into a JSX attribute literal -/
 scoped syntax group("{" term "}") : jsxAttrVal
 scoped syntax ident "=" jsxAttrVal : jsxAttr
+/-- Interpolates an array of expressions into a JSX attribute literal -/
+scoped syntax group(" {..." term "}") : jsxAttr
 
 /-- Characters not allowed inside JSX plain text. -/
 def jsxTextForbidden : String := "{<>}$"
@@ -73,36 +76,55 @@ scoped syntax "<" ident jsxAttr* "/>" : jsxElement
 scoped syntax "<" ident jsxAttr* ">" jsxChild* "</" ident ">" : jsxElement
 
 scoped syntax jsxText      : jsxChild
--- TODO(WN): expand `{... $t}` as list of children
+/-- Interpolates an array of elements into a JSX literal -/
+scoped syntax "{..." term "}" : jsxChild
 /-- Interpolates an expression into a JSX literal -/
 scoped syntax "{" term "}" : jsxChild
 scoped syntax jsxElement   : jsxChild
 
 scoped syntax:max jsxElement : term
 
-def transformTag (n m : Ident) (ns : Array Ident) (vs : Array (TSyntax `jsxAttrVal))
+def transformTag (n m : Ident) (vs : Array (TSyntax `jsxAttr))
     (cs : Array (TSyntax `jsxChild)) : MacroM Term := do
   let nId := n.getId.eraseMacroScopes
   let mId := m.getId.eraseMacroScopes
   if nId != mId then
     Macro.throwErrorAt m s!"expected </{nId}>"
   let cs ← cs.mapM fun
-    | `(jsxChild| $t:jsxText)    => `(Html.text $(quote <| getJsxText t))
-    | `(jsxChild| { $t })        => return t
-    | `(jsxChild| $e:jsxElement) => `(term| $e:jsxElement)
+    | `(jsxChild| $t:jsxText)    => Sum.inl <$> `(Html.text $(quote <| getJsxText t))
+    | `(jsxChild| { $t })        => Sum.inl <$> pure t
+    | `(jsxChild| $e:jsxElement) => Sum.inl <$> `(term| $e:jsxElement)
+    | `(jsxChild| {... $t })     => Sum.inr <$> pure t
     | stx                        => Macro.throwErrorAt stx "unknown syntax"
-  let vs : Array (TSyntax `term) ← vs.mapM fun
-    | `(jsxAttrVal| $s:str)      => pure s
-    | `(jsxAttrVal| { $t:term }) => pure t
-    | stx                        => Macro.throwErrorAt stx "unknown syntax"
+  let vs : Array ((Ident × Term) ⊕ Term) ← vs.mapM fun
+    | `(jsxAttr| $attr:ident = $s:str)      => Sum.inl <$> pure (attr, s)
+    | `(jsxAttr| $attr:ident = { $t:term }) => Sum.inl <$> pure (attr, t)
+    | `(jsxAttr| {... $t:term })            => Sum.inr <$> pure t
+    | stx                                   => Macro.throwErrorAt stx "unknown syntax"
   let tag := toString nId
+
+  -- collect the `...`-ed children
+  let children := ← joinArrays <| ← foldInlsM cs (fun cs' => `(term| #[$cs',*]))
   -- Uppercase tags are parsed as components
   if tag.get? 0 |>.filter (·.isUpper) |>.isSome then
-    `(Html.ofComponent $n { $[$ns:ident := $vs],* } #[ $[$cs],* ])
+    let withs : Array Term ← vs.filterMapM fun
+      | .inr e => return some e
+      | .inl _ => return none
+    let vs ← vs.filterMapM fun
+      | .inl (attr, val) => return some <|
+        ← `(Term.structInstField| $attr:ident := $val)
+      | .inr _ => return none
+    let props ← match withs, vs with
+      | #[w], #[] => pure w
+      | _, _ => `({ $withs,* with $vs:structInstField,* })
+    `(Html.ofComponent $n $props $children)
   -- Lowercase tags are parsed as standard HTML
   else
-    let ns := ns.map (quote <| toString ·.getId)
-    `(Html.element $(quote tag) #[ $[($ns, $vs)],* ] #[ $[$cs],* ])
+    let vs := ← joinArrays <| ← foldInlsM vs (fun vs' => do
+      let vs' ← vs'.mapM (fun (k, v) =>
+        `(term| ($(quote <| toString k.getId), $v)))
+      `(term| #[$vs',*]))
+    `(Html.element $(quote tag) $vs $children)
 
 /-- Support for writing HTML trees directly, using XML-like angle bracket syntax. It works very
 similarly to [JSX](https://react.dev/learn/writing-markup-with-jsx) in JavaScript. The syntax is
@@ -111,8 +133,8 @@ enabled using `open scoped ProofWidgets.Jsx`.
 Lowercase tags are interpreted as standard HTML whereas uppercase ones are expected to be
 `ProofWidgets.Component`s. -/
 macro_rules
-  | `(<$n:ident $[$attrs:ident = $vs:jsxAttrVal]* />) => transformTag n n attrs vs #[]
-  | `(<$n:ident $[$attrs:ident = $vs:jsxAttrVal]* >$cs*</$m>) => transformTag n m attrs vs cs
+  | `(<$n:ident $[$attrs:jsxAttr]* />) => transformTag n n attrs #[]
+  | `(<$n:ident $[$attrs:jsxAttr]* >$cs*</$m>) => transformTag n m attrs cs
 
 section delaborator
 
@@ -165,24 +187,29 @@ partial def delabHtmlElement' : DelabM (TSyntax `jsxElement) := do
   let .lit (.strVal s) := tag | failure
   let tag ← withNaryArg 0 <| annotateTermLikeInfo <| mkIdent s
 
-  let attrs ← withNaryArg 1 <| delabArrayLiteral <| withAnnotateTermLikeInfo do
-    let_expr Prod.mk _ _ a _ := ← getExpr | failure
-    let .lit (.strVal a) := a | failure
-    let attr ← withNaryArg 2 <| annotateTermLikeInfo <| mkIdent a
-    withNaryArg 3 do
-      let v ← getExpr
-      -- If the attribute's value is a string literal,
-      -- use `attr="val"` syntax.
-      -- TODO: also do this for `.ofComponent`.
-      -- WN: not sure if matching a string literal is possible with `let_expr`.
-      match v with
-      | .app (.const ``Json.str _) (.lit (.strVal v)) =>
-        -- TODO: this annotation doesn't seem to work in infoview
-        let val ← annotateTermLikeInfo <| Syntax.mkStrLit v
-        `(jsxAttr| $attr:ident=$val:str)
-      | _ =>
-        let val ← delab
-        `(jsxAttr| $attr:ident={ $val })
+  let attrs ← withNaryArg 1 <|
+    try
+      delabArrayLiteral <| withAnnotateTermLikeInfo do
+        let_expr Prod.mk _ _ a _ := ← getExpr | failure
+        let .lit (.strVal a) := a | failure
+        let attr ← withNaryArg 2 <| annotateTermLikeInfo <| mkIdent a
+        withNaryArg 3 do
+          let v ← getExpr
+          -- If the attribute's value is a string literal,
+          -- use `attr="val"` syntax.
+          -- TODO: also do this for `.ofComponent`.
+          -- WN: not sure if matching a string literal is possible with `let_expr`.
+          match v with
+          | .app (.const ``Json.str _) (.lit (.strVal v)) =>
+            -- TODO: this annotation doesn't seem to work in infoview
+            let val ← annotateTermLikeInfo <| Syntax.mkStrLit v
+            `(jsxAttr| $attr:ident=$val:str)
+          | _ =>
+            let val ← delab
+            `(jsxAttr| $attr:ident={ $val })
+    catch _ =>
+      let vs ← delab
+      return #[← `(jsxAttr| {... $vs })]
 
   let children ← withAppArg delabJsxChildren
   if children.isEmpty then
@@ -198,10 +225,12 @@ partial def delabHtmlOfComponent' : DelabM (TSyntax `jsxElement) := do
 
   -- TODO: handle `Props` that do not delaborate to `{ }`, such as `Prod`, by parsing the `Expr`
   -- instead.
-  let `(term| { $[$ns:ident := $vs],* } ) ← withNaryArg 3 delab | failure
-  let attrs : Array (TSyntax `jsxAttr) ← ns.zip vs |>.mapM fun (n, v) => do
-    `(jsxAttr| $n:ident={ $v })
-
+  let attrDelab ← withNaryArg 3 delab
+  let attrs : Array (TSyntax `jsxAttr) ← do
+    let `(term| { $[$ns:ident := $vs],* } ) := attrDelab |
+      pure #[← `(jsxAttr| {...$attrDelab})]
+    ns.zip vs |>.mapM fun (n, v) => do
+      `(jsxAttr| $n:ident={ $v })
   let children ← withNaryArg 4 delabJsxChildren
   if children.isEmpty then
     `(jsxElement| < $tag $[$attrs]* />)
@@ -209,22 +238,26 @@ partial def delabHtmlOfComponent' : DelabM (TSyntax `jsxElement) := do
     `(jsxElement| < $tag $[$attrs]* > $[$children]* </ $tag >)
 
 partial def delabJsxChildren : DelabM (Array (TSyntax `jsxChild)) := do
-  delabArrayLiteral <| withAnnotateTermLikeInfo do
-    try
-      match_expr ← getExpr with
-      | Html.text _ =>
-        let html ← delabHtmlText
-        return ← `(jsxChild| $html:jsxText)
-      | Html.element _ _ _ =>
-        let html ← delabHtmlElement'
-        return ← `(jsxChild| $html:jsxElement)
-      | Html.ofComponent _ _ _ _ _ =>
-        let comp ← delabHtmlOfComponent'
-        return ← `(jsxChild| $comp:jsxElement)
-      | _ => failure
-    catch _ =>
-      let fallback ← delab
-      return ← `(jsxChild| { $fallback })
+  try
+    delabArrayLiteral (withAnnotateTermLikeInfo do
+      try
+        match_expr ← getExpr with
+        | Html.text _ =>
+          let html ← delabHtmlText
+          return ← `(jsxChild| $html:jsxText)
+        | Html.element _ _ _ =>
+          let html ← delabHtmlElement'
+          return ← `(jsxChild| $html:jsxElement)
+        | Html.ofComponent _ _ _ _ _ =>
+          let comp ← delabHtmlOfComponent'
+          return ← `(jsxChild| $comp:jsxElement)
+        | _ => failure
+      catch _ =>
+        let fallback ← delab
+        return ← `(jsxChild| { $fallback }))
+  catch _ =>
+    let vs ← delab
+    return #[← `(jsxChild| {... $vs })]
 
 end
 

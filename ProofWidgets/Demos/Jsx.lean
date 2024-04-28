@@ -2,7 +2,15 @@ import ProofWidgets.Component.HtmlDisplay
 
 open scoped ProofWidgets.Jsx -- ⟵ remember this!
 
-def x := <b>You can use HTML in lean! {.text <| toString <| 4 + 5} <hr/> </b>
+def htmlLetters : Array ProofWidgets.Html :=
+  #[
+    <span style={json% {color: "red"}}>H</span>,
+    <span style={json% {color: "yellow"}}>T</span>,
+    <span style={json% {color: "green"}}>M</span>,
+    <span style={json% {color: "blue"}}>L</span>
+  ]
+
+def x := <b>You can use {...htmlLetters} {.text " "} in lean! {.text <| toString <| 4 + 5} <hr/> </b>
 
 -- Put your cursor over this
 #html x
