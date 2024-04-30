@@ -156,14 +156,14 @@ partial def delabHtmlElement' : DelabM (TSyntax `jsxElement) := do
   let_expr Html.element tag _attrs _children := ← getExpr | failure
 
   let .lit (.strVal s) := tag | failure
-  let tag ← withNaryArg 0 <| annotateTermLikeInfo <| mkIdent s
+  let tag ← withNaryArg 0 <| annotateTermLikeInfo <| mkIdent <| .mkSimple s
 
   let attrs ← withNaryArg 1 <|
     try
       delabArrayLiteral <| withAnnotateTermLikeInfo do
         let_expr Prod.mk _ _ a _ := ← getExpr | failure
         let .lit (.strVal a) := a | failure
-        let attr ← withNaryArg 2 <| annotateTermLikeInfo <| mkIdent a
+        let attr ← withNaryArg 2 <| annotateTermLikeInfo <| mkIdent <| .mkSimple a
         withNaryArg 3 do
           let v ← getExpr
           -- If the attribute's value is a string literal,
