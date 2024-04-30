@@ -10,7 +10,7 @@ lean_lib ProofWidgets
 lean_lib ProofWidgets.Demos where
   globs := #[.submodules `ProofWidgets.Demos]
 
-require std from git "https://github.com/leanprover/std4" @ "v4.7.0"
+require std from git "https://github.com/leanprover/std4" @ "nightly-testing"
 
 def npmCmd : String :=
   if Platform.isWindows then "npm.cmd" else "npm"
@@ -32,7 +32,7 @@ target widgetPackageLock : FilePath := do
 Rebuilds whenever the `.tsx` source, or any part of the build configuration, has changed. -/
 def widgetTsxTarget (pkg : NPackage _package.name) (nodeModulesMutex : IO.Mutex Bool)
     (tsxName : String) (deps : Array (BuildJob FilePath)) (isDev : Bool) :
-    IndexBuildM (BuildJob FilePath) := do
+    FetchM (BuildJob FilePath) := do
   let jsFile := pkg.buildDir / "js" / s!"{tsxName}.js"
   buildFileAfterDepArray jsFile deps fun _srcFile => do
     /-
@@ -67,7 +67,7 @@ def widgetTsxTarget (pkg : NPackage _package.name) (nodeModulesMutex : IO.Mutex 
 
 /-- Target to build all TypeScript widget modules that match `widget/src/*.tsx`. -/
 def widgetJsAllTarget (pkg : NPackage _package.name) (isDev : Bool) :
-    IndexBuildM (BuildJob (Array FilePath)) := do
+    FetchM (BuildJob (Array FilePath)) := do
   let fs ← (widgetDir / "src").readDir
   let tsxs : Array FilePath := fs.filterMap fun f =>
     let p := f.path; if let some "tsx" := p.extension then some p else none
