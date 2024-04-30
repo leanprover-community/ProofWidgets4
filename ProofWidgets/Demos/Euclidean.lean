@@ -245,7 +245,7 @@ def EuclideanConstructions.rpc (props : PanelWidgetProps) : RequestM (RequestTas
           -- Find which hypotheses are selected.
           let selectedHyps ← props.selectedLocations.filterMapM fun
             | ⟨mv, .hyp fv⟩ | ⟨mv, .hypType fv _⟩ =>
-              return if mv == g.mvarId then some (← fv.getDecl) else none
+              if mv == g.mvarId then return some (← fv.getDecl) else return none
             | _ =>
               return none
 
