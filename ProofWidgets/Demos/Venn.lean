@@ -99,7 +99,7 @@ def VennDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
         Meta.withLCtx lctx md.localInstances do
           let locs : Array LocalDecl ← props.selectedLocations.filterMapM fun
             | ⟨mv, .hyp fv⟩ | ⟨mv, .hypType fv _⟩ =>
-              return if mv == g.mvarId then some (← fv.getDecl) else none
+              if mv == g.mvarId then return some (← fv.getDecl) else return none
             | _ => return none
           match ← isSetGoal? locs with
           | some html => return html
