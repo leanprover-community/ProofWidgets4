@@ -1,7 +1,11 @@
-type Point
-type Line
+type Object
+type Point <: Object
+type Line <: Object
+type Circle <: Object
 
 predicate Between(Point a, Point b, Point c)
-predicate On(Point a, Line L)
+predicate OnLine(Point a, Line L)
+predicate OnCircle(Point a, Circle C)
+predicate CenterCircle(Point a, Circle C)
 
-predicate Emphasize(Line L)
+predicate Emphasize(Object o)
