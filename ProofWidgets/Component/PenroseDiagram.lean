@@ -1,10 +1,10 @@
 import ProofWidgets.Component.Basic
 import ProofWidgets.Data.Html
 
-namespace ProofWidgets
+namespace ProofWidgets.Penrose
 open Lean Server
 
-structure PenroseDiagramProps where
+structure DiagramProps where
   embeds : Array (String × Html)
   dsl    : String
   sty    : String
@@ -35,7 +35,73 @@ theme {
 and can be accessed as, for example, `theme.foreground` in the provided `sty` in order to match
 the editor theme. -/
 @[widget_module]
-def PenroseDiagram : Component PenroseDiagramProps where
+def Diagram : Component DiagramProps where
   javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "penroseDisplay.js"
+
+/-! # `PenroseBuilderM` -/
+
+structure DiagramState where
+  /-- The Penrose substance program.
+  Note that `embeds` are added lazily at the end. -/
+  sub : String := ""
+  /-- Components to display as labels in the diagram,
+  stored in the map as name ↦ (type, html). -/
+  embeds : HashMap String (String × Html) := .empty
+
+/-- A monad to easily build Penrose diagrams in. -/
+abbrev DiagramBuilderM := StateT DiagramState MetaM
+
+namespace DiagramBuilderM
+
+open scoped Jsx in
+/-- Assemble the diagram using the provided domain and style programs.
+
+`none` is returned iff nothing was added to the diagram. -/
+def buildDiagram (dsl sty : String) : DiagramBuilderM (Option Html) := do
+  let st ← get
+  if st.sub == "" && st.embeds.isEmpty then
+    return none
+  let mut sub := "AutoLabel All\n"
+  let mut embedHtmls := #[]
+  for (n, (tp, h)) in st.embeds.toArray do
+    sub := sub ++ s!"{tp} {n}\n"
+    embedHtmls := embedHtmls.push (n, h)
+  sub := sub ++ st.sub
+  return <Diagram
+    embeds={embedHtmls}
+    dsl={dsl}
+    sty={sty}
+    sub={sub} />
+
+/-- Add an object `nm` of Penrose type `tp`,
+labelled by `h`, to the substance program. -/
+def addEmbed (nm : String) (tp : String) (h : Html) : DiagramBuilderM Unit := do
+  modify fun st => { st with embeds := st.embeds.insert nm (tp, h) }
+
+open scoped Jsx in
+/-- Add an object of Penrose type `tp`,
+corresponding to (and labelled by) the expression `e`,
+to the substance program.
+Return its Penrose name. -/
+def addExpr (tp : String) (e : Expr) : DiagramBuilderM String := do
+  let nm ← toString <$> Lean.Meta.ppExpr e
+  let h := <InteractiveCode fmt={← Widget.ppExprTagged e} />
+  addEmbed nm tp h
+  return nm
+
+/-- Add an instruction `i` to the substance program. -/
+def addInstruction (i : String) : DiagramBuilderM Unit := do
+  modify fun st => { st with sub := st.sub ++ s!"{i}\n" }
+
+def run (x : DiagramBuilderM α) : MetaM α :=
+  x.run' {}
+
+end DiagramBuilderM
+end Penrose
+
+/-- Abbreviation for backwards-compatibility. -/
+abbrev PenroseDiagramProps := Penrose.DiagramProps
+/-- Abbreviation for backwards-compatibility. -/
+abbrev PenroseDiagram := Penrose.Diagram
 
 end ProofWidgets
