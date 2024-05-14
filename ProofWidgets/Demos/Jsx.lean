@@ -10,15 +10,15 @@ def htmlLetters : Array ProofWidgets.Html :=
     <span style={json% {color: "blue"}}>L</span>
   ]
 
-def x := <b>You can use {...htmlLetters} {.text " "} in lean! {.text <| toString <| 4 + 5} <hr/> </b>
+def x := <b>You can use {...htmlLetters} in Lean {.text s!"{1 + 3}"}! <hr/> </b>
 
 -- Put your cursor over this
 #html x
 
 theorem ghjk : True := by
   -- Put your cursor over any of the `html!` lines
-  html! <b>What, HTML in Lean?! </b>
+  html! <b>What, HTML in Lean?!</b>
   html! <i>And another!</i>
   -- attributes and text nodes can be interpolated
-  html! <img src={ "https://" ++ "upload.wikimedia.org/wikipedia/commons/a/a5/Parrot_montage.jpg"} alt="parrots" />
+  html! <img src={"https://" ++ "upload.wikimedia.org/wikipedia/commons/a/a5/Parrot_montage.jpg"} alt="parrots" />
   trivial
