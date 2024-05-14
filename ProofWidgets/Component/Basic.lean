@@ -72,4 +72,19 @@ needed for the pretty-printing RPC call. -/
 def InteractiveExpr : Component InteractiveExprProps where
   javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "interactiveExpr.js"
 
+structure InteractiveMessageProps where
+  msg : Server.WithRpcRef MessageData
+  deriving Server.RpcEncodable
+
+/-- Present a structured Lean message. -/
+@[widget_module]
+def InteractiveMessage : Component InteractiveMessageProps where
+  javascript := "
+    import { InteractiveMessageData } from '@leanprover/infoview'
+    import * as React from 'react'
+    export default function(props) {
+      return React.createElement(InteractiveMessageData, props)
+    }
+  "
+
 end ProofWidgets
