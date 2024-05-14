@@ -2,6 +2,10 @@ import ProofWidgets.Component.InfoGraph
 import ProofWidgets.Component.MarkdownWithMathjax
 import Lean
 
+/-!
+A simple demo of the `InfoGraph` and `MarkdownWithMathjax` components.
+-/
+
 open ProofWidgets Jsx Lean Server
 
 structure MyProps where
@@ -22,15 +26,15 @@ def elabExprGraphCmd : CommandElab := fun
       let some bb := env.find? b | continue
       if bb.getUsedConstantsAsSet.contains a then
         edges := edges.insert (a, b)
-    let mut nodesWithInfos : Array Node := #[]
+    let mut nodesWithInfos : Array InfoGraph.Node := #[]
     for node in nodes.toArray do
       let some c := env.find? node | continue
       let doc? ← findDocString? env node
       let ee ← Lean.Widget.ppExprTagged c.type
       let us ← Meta.mkFreshLevelMVarsFor c
       let e ← Lean.Widget.ppExprTagged (.const node us)
-      let newNode : Node := {
-        id := s!"{hash node}"
+      let newNode : InfoGraph.Node := {
+        id := s!"{node}"
         html := match doc? with
             | some d =>
               <div>
@@ -47,7 +51,7 @@ def elabExprGraphCmd : CommandElab := fun
     for (a,b) in nodes.toArray.zip nodesWithInfos do
       dot := dot ++ s!" \"{b.id}\" [id=\"{b.id}\", label=\"{a}\"];\n"
     for (a,b) in edges do
-      dot := dot ++ s!"  \"{hash a}\" -> \"{hash b}\";\n"
+      dot := dot ++ s!"  \"{a}\" -> \"{b}\";\n"
     dot := dot ++ "}"
     let defaultHtml : Html :=
       <MarkdownWithMathjax markdown={"# Click on one of the nodes!"}/>
