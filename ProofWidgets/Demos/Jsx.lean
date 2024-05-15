@@ -1,24 +1,31 @@
 import ProofWidgets.Component.HtmlDisplay
 
-open scoped ProofWidgets.Jsx -- ⟵ remember this!
+-- The `ProofWidgets.Jsx` namespace provides JSX-like notation for HTML
+open scoped ProofWidgets.Jsx
 
-def htmlLetters : Array ProofWidgets.Html :=
-  #[
+-- Put your cursor over this
+#html <b>What, HTML in Lean?!</b>
+
+-- String-valued attributes can be written directly, or interpolated with `{ }`
+#html <img src={"https://" ++ "upload.wikimedia.org/wikipedia/commons/a/a5/Parrot_montage.jpg"}
+           alt="Six photos of parrots arranged in a grid." />
+
+def htmlLetters : Array ProofWidgets.Html := #[
     <span style={json% {color: "red"}}>H</span>,
     <span style={json% {color: "yellow"}}>T</span>,
     <span style={json% {color: "green"}}>M</span>,
     <span style={json% {color: "blue"}}>L</span>
   ]
 
+-- HTML children can be interpolated with `{ }` (single node) and `{... }` (multiple nodes)
 def x := <b>You can use {...htmlLetters} in Lean {.text s!"{1 + 3}"}! <hr/> </b>
-
--- Put your cursor over this
 #html x
 
-theorem ghjk : True := by
-  -- Put your cursor over any of the `html!` lines
-  html! <b>What, HTML in Lean?!</b>
-  html! <i>And another!</i>
-  -- attributes and text nodes can be interpolated
-  html! <img src={"https://" ++ "upload.wikimedia.org/wikipedia/commons/a/a5/Parrot_montage.jpg"} alt="parrots" />
-  trivial
+-- HTML trees can also be produced by metaprograms
+open ProofWidgets Lean Elab in
+#html (do
+  let e ← Term.elabTerm (← ``(1 + 3)) (mkConst ``Nat)
+  Term.synthesizeSyntheticMVarsNoPostponing
+  let e ← instantiateMVars e
+  return <InteractiveExpr expr={⟨← ExprWithCtx.save e⟩} />
+    : Term.TermElabM Html)
