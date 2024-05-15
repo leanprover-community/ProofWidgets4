@@ -16,7 +16,7 @@ import ProofWidgets.Component.MakeEditLink
 and another one to make geometric constructions in the UI. -/
 
 open Lean Meta Server
-open ProofWidgets
+open ProofWidgets Penrose
 
 /-! # Minimal definitions of synthetic geometric primitives
 
@@ -25,29 +25,44 @@ Inspired by https://github.com/ah1112/synthetic_euclid_4. -/
 class IncidenceGeometry where
   Point : Type u₁
   Line : Type u₂
+  Circle : Type u₃
+
   between : Point → Point → Point → Prop -- implies colinearity
   onLine : Point → Line → Prop
+  onCircle : Point → Circle → Prop
+  centerCircle : Point → Circle → Prop
   ne_23_of_between : ∀ {a b c : Point}, between a b c → b ≠ c
   line_unique_of_pts : ∀ {a b : Point}, ∀ {L M : Line},
     a ≠ b → onLine a L → onLine b L → onLine a M → onLine b M → L = M
   onLine_2_of_between : ∀ {a b c : Point}, ∀ {L : Line},
     between a b c → onLine a L → onLine c L → onLine b L
   line_of_pts : ∀ a b, ∃ L, onLine a L ∧ onLine b L
+  circle_of_ne : ∀ a b, a ≠ b → ∃ C, centerCircle a C ∧ onCircle b C
 
 variable [i : IncidenceGeometry]
 open IncidenceGeometry
 
 /-! # Metaprogramming utilities to break down expressions -/
 
+/-- If `e == between a b c` return `some (a, b, c)`, otherwise `none`. -/
+def isBetweenPred? (e : Expr) : Option (Expr × Expr × Expr) := do
+  let some (_, a, b, c) := e.app4? ``between | none
+  return (a, b, c)
+
 /-- If `e == onLine a L` return `some (a, L)`, otherwise `none`. -/
 def isOnLinePred? (e : Expr) : Option (Expr × Expr) := do
   let some (_, a, L) := e.app3? ``onLine | none
   return (a, L)
 
-/-- If `e == between a b c` return `some (a, b, c)`, otherwise `none`. -/
-def isBetweenPred? (e : Expr) : Option (Expr × Expr × Expr) := do
-  let some (_, a, b, c) := e.app4? ``between | none
-  return (a, b, c)
+/-- If `e == onCircle a C` return `some (a, C)`, otherwise `none`. -/
+def isOnCirclePred? (e : Expr) : Option (Expr × Expr) := do
+  let some (_, a, C) := e.app3? ``onCircle | none
+  return (a, C)
+
+/-- If `e == centerCircle a C` return `some (a, C)`, otherwise `none`. -/
+def isCenterCirclePred? (e : Expr) : Option (Expr × Expr) := do
+  let some (_, a, C) := e.app3? ``centerCircle | none
+  return (a, C)
 
 def isPoint? (e : Expr) : Bool :=
   e.isAppOf ``Point
@@ -57,77 +72,39 @@ def isLine? (e : Expr) : Bool :=
 
 /-! # Utilities for constructing diagrams -/
 
-structure DiagramState where
-  /-- The Penrose substance program.
-  Note that `embeds` are added lazily at the end. -/
-  sub : String := ""
-  /-- Components to display as labels in the diagram,
-  mapped as name ↦ (type, html). -/
-  embeds : HashMap String (String × Html) := .empty
-
-abbrev DiagramBuilderM := StateT DiagramState MetaM
-
-open scoped Jsx in
-def buildDiagram : DiagramBuilderM (Option Html) := do
-  let st ← get
-  if st.sub == "" && st.embeds.isEmpty then
-    return none
-  let mut sub := "AutoLabel All\n"
-  let mut embedHtmls := #[]
-  for (n, (tp, h)) in st.embeds.toArray do
-    sub := sub ++ s!"{tp} {n}\n"
-    embedHtmls := embedHtmls.push (n, h)
-  sub := sub ++ st.sub
-  return <PenroseDiagram
-    embeds={embedHtmls}
-    dsl={include_str ".."/".."/"widget"/"penrose"/"euclidean.dsl"}
-    sty={include_str ".."/".."/"widget"/"penrose"/"euclidean.sty"}
-    sub={sub} />
-
-/-- Add a substance `nm` of Penrose type `tp`,
-labelled by `h` to the substance program. -/
-def addEmbed (nm : String) (tp : String) (h : Html) : DiagramBuilderM Unit := do
-  modify fun st => { st with embeds := st.embeds.insert nm (tp, h )}
-
-open scoped Jsx in
-/-- Add a substance of Penrose type `tp`,
-corresponding to (and labelled by) the expression `e`,
-to the substance program.
-Return its Penrose name. -/
-def addExpr (tp : String) (e : Expr) : DiagramBuilderM String := do
-  let nm ← toString <$> Lean.Meta.ppExpr e
-  let h := <InteractiveCode fmt={← Widget.ppExprTagged e} />
-  addEmbed nm tp h
-  return nm
-
-def addExpr' (tp : String) (e : Expr) : DiagramBuilderM Unit := do
-  let _ ← addExpr tp e
-
-/-- Add instruction `i` to the substance program. -/
-def addInstruction (i : String) : DiagramBuilderM Unit := do
-  modify fun st => { st with sub := st.sub ++ s!"{i}\n" }
-
+open DiagramBuilderM in
 def addHypotheses (hyps : Array LocalDecl) : DiagramBuilderM Unit := do
   for h in hyps do
     let tp ← instantiateMVars h.type
     if isPoint? tp then
-      addExpr' "Point" h.toExpr
+      discard $ addExpr "Point" h.toExpr
     if isLine? tp then
-      addExpr' "Line" h.toExpr
-    if let some (a, L) := isOnLinePred? tp then
-      let sa ← addExpr "Point" a
-      let sL ← addExpr "Line" L
-      addInstruction s!"On({sa}, {sL})"
+      discard $ addExpr "Line" h.toExpr
     if let some (a, b, c) := isBetweenPred? tp then
       let sa ← addExpr "Point" a
       let sb ← addExpr "Point" b
       let sc ← addExpr "Point" c
       addInstruction s!"Between({sa}, {sb}, {sc})"
-
-def DiagramBuilderM.run (x : DiagramBuilderM α) : MetaM α :=
-  x.run' {}
+    if let some (a, L) := isOnLinePred? tp then
+      let sa ← addExpr "Point" a
+      let sL ← addExpr "Line" L
+      addInstruction s!"OnLine({sa}, {sL})"
+    if let some (a, C) := isOnCirclePred? tp then
+      let sa ← addExpr "Point" a
+      let sC ← addExpr "Circle" C
+      addInstruction s!"OnCircle({sa}, {sC})"
+    if let some (a, C) := isCenterCirclePred? tp then
+      let sa ← addExpr "Point" a
+      let sC ← addExpr "Circle" C
+      addInstruction s!"CenterCircle({sa}, {sC})"
 
 /-! # Implementation of the widget -/
+
+def EuclideanDisplay.dsl :=
+  include_str ".."/".."/"widget"/"penrose"/"euclidean.dsl"
+
+def EuclideanDisplay.sty :=
+  include_str ".."/".."/"widget"/"penrose"/"euclidean.sty"
 
 open scoped Jsx in
 @[server_rpc_method]
@@ -162,7 +139,7 @@ def EuclideanDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html
           -- Produce the diagram.
           DiagramBuilderM.run do
             addHypotheses locs
-            match ← buildDiagram with
+            match ← DiagramBuilderM.buildDiagram dsl sty with
             | some html => return html
             | none => return <span>No Euclidean goal.</span>)
 
@@ -177,8 +154,10 @@ def EuclideanDisplay : Component PanelWidgetProps :=
 
 /-! # Example usage -/
 
-example {a b c : Point} {L M : Line} (Babc : between a b c) (aL : onLine a L) (bM : onLine b M)
-    (cL : onLine c L) (cM : onLine c M) : L = M := by
+example {a b c : Point} {L M : Line} {C D E: Circle} (Babc : between a b c)
+   (aL : onLine a L) (bM : onLine b M) (cL : onLine c L) (cM : onLine c M)
+   (aC : onCircle a C) (aD : onCircle a D) (bC : centerCircle b C) (cE : centerCircle c E) :
+   L = M := by
   with_panel_widgets [EuclideanDisplay]
       -- Place your cursor here.
     have bc := ne_23_of_between Babc
@@ -187,7 +166,7 @@ example {a b c : Point} {L M : Line} (Babc : between a b c) (aL : onLine a L) (b
 
 /-! # Euclidean constructions -/
 
-open scoped Jsx in
+open DiagramBuilderM Jsx in
 /-- Add every possible line between any two points in `hyps`
 to the diagram.
 Lines are labelled with links to insert them into the proof script. -/
@@ -200,27 +179,42 @@ def constructLines (hyps : Array LocalDecl) (meta : Server.DocumentMeta) (cursor
     if isPoint? tp then
       points := points.push h
 
-  -- Construct every possible line.
+  -- Add a plausible construction, labelled with a link that makes the text edit.
+  let addConstruction (nm tp ctr : String) : DiagramBuilderM Unit := do
+    addEmbed nm tp (
+      <span>
+        <b>{.text nm}</b> ({
+          .ofComponent MakeEditLink
+            (MakeEditLinkProps.ofReplaceRange meta ⟨cursorPos, cursorPos⟩ ctr)
+            #[.text "insert"]
+        })
+      </span>)
+    addInstruction s!"Emphasize({nm})"
+
+  -- Construct every possible line and circle.
   for hi : i in [0:points.size] do
+    let p := points[i]
+    let sp ← addExpr "Point" p.toExpr
     for hj : j in [i+1:points.size] do
-      let p := points[i]'hi.upper
-      let q := points[j]'hj.upper
-      let sp ← addExpr "Point" p.toExpr
+      let q := points[j]
       let sq ← addExpr "Point" q.toExpr
+
+      -- Add the line.
       let nm := s!"{sp}{sq}"
-      let ctr := s!"let ⟨{nm}, _, _⟩ := line_of_pts {sp} {sq}"
-      -- Add the line, labelled with a link that makes the text edit.
-      addEmbed nm "Line" (
-        <span>
-          <b>{.text nm}</b> ({
-            .ofComponent MakeEditLink
-              (MakeEditLinkProps.ofReplaceRange meta ⟨cursorPos, cursorPos⟩ ctr)
-              #[.text "insert"]
-          })
-        </span>)
-      addInstruction s!"On({sp}, {nm})"
-      addInstruction s!"On({sq}, {nm})"
-      addInstruction s!"Emphasize({nm})"
+      addConstruction nm "Line" s!"let ⟨{nm}, _, _⟩ := line_of_pts {sp} {sq}"
+      addInstruction s!"OnLine({sp}, {nm})"
+      addInstruction s!"OnLine({sq}, {nm})"
+
+      -- Add two possible circles.
+      let nm := s!"C{sp}{sq}"
+      addConstruction nm "Circle" s!"let ⟨{nm}, _, _⟩ := circle_of_ne {sp} {sq} sorry"
+      addInstruction s!"CenterCircle({sp}, {nm})"
+      addInstruction s!"OnCircle({sq}, {nm})"
+
+      let nm := s!"C{sq}{sp}"
+      addConstruction nm "Circle" s!"let ⟨{nm}, _, _⟩ := circle_of_ne {sq} {sp} sorry"
+      addInstruction s!"CenterCircle({sq}, {nm})"
+      addInstruction s!"OnCircle({sp}, {nm})"
 
 open scoped Jsx in
 @[server_rpc_method]
@@ -253,7 +247,7 @@ def EuclideanConstructions.rpc (props : PanelWidgetProps) : RequestM (RequestTas
           DiagramBuilderM.run do
             addHypotheses allHyps
             constructLines selectedHyps doc.meta props.pos
-            match ← buildDiagram with
+            match ← DiagramBuilderM.buildDiagram EuclideanDisplay.dsl EuclideanDisplay.sty with
             | some html => return html
             | none => return <span>No Euclidean goal.</span>)
 
@@ -269,8 +263,10 @@ def EuclideanConstructions : Component PanelWidgetProps :=
 
 axiom test_sorry {α} : α
 
-example {a b _c _d : Point} : ∃ L, onLine a L ∧ onLine b L := by
+example {a b c d : Point} : ∃ L, onLine a L ∧ onLine b L := by
   with_panel_widgets [EuclideanConstructions]
     -- Place your cursor below.
+    -- Shift-click points in 'Tactic state' to select them.
+    let ⟨Cdb, _, _⟩ := circle_of_ne d b sorry
 
     exact test_sorry

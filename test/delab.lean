@@ -12,7 +12,7 @@ open ProofWidgets.Html Lean
 #guard_msgs in
 #check <span>Hello {.text "interpolated"} world</span>
 
-/-- info: <span>Hello {text "<>"}world</span> : ProofWidgets.Html -/
+/-- info: <span>Hello {text "<>"} world</span> : ProofWidgets.Html -/
 #guard_msgs in
 #check <span>Hello {.text "<>"} world</span>
 
