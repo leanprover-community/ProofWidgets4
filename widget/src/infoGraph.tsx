@@ -6,7 +6,6 @@ import { graphviz } from 'd3-graphviz';
 
 interface Node {
   id : string;
-  pos : DocumentPosition
   html : Html;
 }
 
@@ -19,8 +18,7 @@ interface Graph {
 
 export default ({nodes, dot, pos, defaultHtml} : Graph) => {
   const graphRef = useRef<HTMLDivElement>(null);
-  const [infoState, setInfoState] =
-    useState<{ pos : DocumentPosition, html : Html}>({pos : pos, html : defaultHtml});
+  const [infoState, setInfoState] = useState<Html>(defaultHtml);
 
   useEffect(() => {
     const nodeMap = new Map(nodes.map(node => [node.id, node]))
@@ -57,13 +55,13 @@ export default ({nodes, dot, pos, defaultHtml} : Graph) => {
             const node = nodeMap.get(nodeId);
 
             if (node) {
-              setInfoState({ pos : node.pos, html : node.html });
+              setInfoState(node.html);
             };
           });
         });
         d3.select(graphRef.current)
           .on("click", () => {
-            setInfoState({ pos : pos, html : defaultHtml });
+            setInfoState(defaultHtml);
           });
 
       });
@@ -72,7 +70,7 @@ export default ({nodes, dot, pos, defaultHtml} : Graph) => {
   return (
     <div>
       <div ref={graphRef} />
-      <HtmlDisplay pos={infoState.pos} html={infoState.html} />
+      <HtmlDisplay pos={pos} html={infoState} />
     </div>
   );
 }
