@@ -16,8 +16,8 @@ ProofWidgets relies on the [user widgets](https://leanprover.github.io/lean4/doc
 mechanism built into Lean. User widgets provide the minimum of functionality needed to enable
 custom user interfaces. ProofWidgets builds on top of this with a higher-level component library,
 syntax sugar, and user-friendly abstractions. Stable parts of ProofWidgets may eventually be
-backported into user widgets, but ProofWidgets overall is intended to be kept separate from Lean
-core.
+backported into Lean core, but ProofWidgets overall will remain a separate library
+for the foreseeable future.
 
 ## Usage
 
@@ -48,37 +48,11 @@ require proofwidgets from git "https://github.com/leanprover-community/ProofWidg
 
 Note that [developing ProofWidgets](#developing-proofwidgets) involves building TypeScript code with NPM.
 When depending on `ProofWidgets` but not writing any custom TypeScript yourself,
-you likely want to spare yourself or your users from having to run NPM.
+you likely want to spare yourself and your users from having to run NPM.
 ProofWidgets is configured to use Lake's [cloud releases](https://github.com/leanprover/lake/#cloud-releases) feature
 which will automatically fetch pre-built JavaScript files *as long as* you require a release tag
 rather than the `main` branch.
 In this mode, you don't need to have NPM installed.
-
-### Developing ProofWidgets
-
-Contributions are welcome! Check out issues tagged with "good first issue".
-
-The package consists of widget user interface modules written in TypeScript (under `widget/`),
-and Lean modules (under `ProofWidgets/`).
-To build ProofWidgets from source, you must have NPM (the [Node.js](https://nodejs.org/en) package manager) installed.
-During a build, we first compile the TypeScript widget code using NPM,
-and afterwards build all Lean modules.
-Lean modules may use TypeScript compilation outputs.
-The Lakefile handles all of this, so executing `lake build` should suffice to build the entire package.
-In order to build only the TypeScript, run `lake build widgetJsAll`.
-Widgets can also be built in development mode using `lake build widgetJsAllDev`.
-This makes them easier to inspect in developer tools.
-Outputs of `npm` commands are not always shown by default: use `lake build -v [target]` to see them.
-
-💡 The NPM part of the build process may sometimes fail with missing packages.
-If this happens, run `npm clean-install` in the `widget/` directory and then try `lake build` again.
-
-⚠️ We use the `include_str` term elaborator to splice the JavaScript produced by `tsc` into our Lean
-files. The JS is stored in `.lake/build/js/`. Note however that due to Lake issue [#86](https://github.com/leanprover/lake/issues/86),
-rebuilding the `.js` will *not* rebuild the Lean file that includes it. To ensure freshness you may
-have to resort to hacks such as removing `.lake/build/lib/` (this contains the `.olean`s) or adding a
-random comment in the Lean file that uses `include_str` in order to ensure it gets rebuilt.
-Alternatively, you can run `lake clean` to delete the entire build directory.
 
 ## Features
 
@@ -121,6 +95,38 @@ editing the proof script.
 As a hidden feature, you can also make animated widgets using the `AnimatedHtml` component. This
 works particularly well with libraries that ease between different plots, for example Recharts.
 You can see an example of how to do this in the `Plot.lean` demo.
+
+## Developing ProofWidgets
+
+**Contributions are welcome!** Check out issues tagged with "good first issue".
+
+The package consists of widget user interface modules written in TypeScript (under `widget/`),
+and Lean modules (under `ProofWidgets/`).
+To build ProofWidgets from source,
+you must have NPM (the [Node.js](https://nodejs.org/en) package manager) installed.
+During a build, we first compile the TypeScript widget code using NPM,
+and afterwards build all Lean modules.
+Lean modules may use TypeScript compilation outputs.
+The Lakefile handles all of this, so executing `lake build` should suffice to build the entire package.
+In order to build only the TypeScript, run `lake build widgetJsAll`.
+Widgets can also be built in development mode using `lake build widgetJsAllDev`.
+This makes them easier to inspect in developer tools.
+
+💡 The NPM part of the build process may sometimes fail with missing packages.
+If this happens, run `npm clean-install` in the `widget/` directory and then try `lake build` again.
+
+We use the `include_str` term elaborator
+to splice the minified JavaScript
+produced during the first part of the build (by `tsc` and Rollup)
+into ProofWidgets Lean modules.
+The minifed JS is stored in `.lake/build/js/`.
+Modifying any TypeScript source will trigger a rebuild,
+and should correctly propagate the new minified code
+to where it used in Lean.
+
+⚠️ Note however that due to Lake issue [#86](https://github.com/leanprover/lake/issues/86),
+*all* the widget sources are rebuilt whenever any single one changes,
+which might take a while.
 
 ## Cite
 

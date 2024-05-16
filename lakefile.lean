@@ -5,11 +5,6 @@ package proofwidgets where
   preferReleaseBuild := true
   buildArchive? := "ProofWidgets4.tar.gz"
 
-lean_lib ProofWidgets
-
-lean_lib ProofWidgets.Demos where
-  globs := #[.submodules `ProofWidgets.Demos]
-
 require batteries from git "https://github.com/leanprover-community/batteries" @ "main"
 
 def npmCmd : String :=
@@ -67,7 +62,7 @@ def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
         cwd  := some widgetDir
       }
     if upToDate then
-      Lake.logInfo "JavaScript sources up to date"
+      Lake.logInfo "JavaScript build up to date"
     return (depInfo, depTrace)
 
 target widgetJsAll : Array FilePath :=
@@ -77,10 +72,9 @@ target widgetJsAllDev : Array FilePath :=
   widgetJsAllTarget (isDev := true)
 
 @[default_target]
-target all : Unit := do
-  let lib ← ProofWidgets.get
-  let job₁ ← widgetJsAll.fetch
-  let _ ← job₁.await
-  let job₂ ← lib.leanArts.fetch
-  let _ ← job₂.await
-  return .nil
+lean_lib ProofWidgets where
+  extraDepTargets := #[``widgetJsAll]
+
+lean_lib ProofWidgets.Demos where
+  globs := #[.submodules `ProofWidgets.Demos]
+  extraDepTargets := #[``widgetJsAll]
