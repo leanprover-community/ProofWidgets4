@@ -5,9 +5,8 @@ import { DocumentPosition, RpcContext } from '@leanprover/infoview';
 type State = any
 
 type Action =
-  ( {kind : 'timeout'}
-  | {kind : 'mousedown' | 'mouseup' | 'mousemove', id?: string, data?: string}
-  )
+  {kind : 'timeout'} |
+  {kind : 'mousedown' | 'mouseup' | 'mousemove', id?: string, data?: string}
 
 type MouseButtonState = "pressed" | "released"
 
@@ -25,10 +24,10 @@ interface UpdateResult {
     html : Html
     state : State
     callbackTime? : number
-
 }
 
-function useMousePos(ref : React.MutableRefObject<Element | null>) {
+function useMousePos(ref : React.MutableRefObject<Element | null>):
+        [[number, number] | undefined, MouseButtonState] {
     const [mousePos, setMousePos] = React.useState<[number, number] | undefined>(undefined)
     const [mouseButtonState, setMBS] = React.useState<MouseButtonState>("released")
     React.useEffect(() => {
@@ -102,19 +101,16 @@ export function Svg(props : UpdateResult) {
     //     return {...e, attrs}
     // }
 
-    function handleMouseEvent(e : MouseEvent) {
-        console.log(e)
-        const id = e.target.id || undefined
-        const data = e.target.data || undefined
-        console.log(id)
-        console.log(data)
+    function handleMouseEvent(e : React.MouseEvent) {
+        if (!e.target) return
+        const id = 'id' in e.target ? e.target.id as string : ''
+        const data = 'data' in e.target ? e.target.data as string : ''
         if (e.type === "mouseup" || e.type === "mousedown") {
             increment({kind : e.type, id, data})
         }
         if (e.type === "mousemove" && e.buttons !== 0) {
             increment({kind : e.type, id, data})
         }
-
     }
 
     return <div onMouseDown={handleMouseEvent} onMouseUp={handleMouseEvent} onMouseMove={handleMouseEvent} ref={rootDiv}>
