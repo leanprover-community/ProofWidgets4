@@ -21,7 +21,7 @@ structure Frame where
   (xmin ymin : Float)
   (xSize : Float)
   (width height : Nat)
-deriving ToJson, FromJson
+  deriving ToJson, FromJson
 
 def Frame.ySize (frame : Frame) : Float := frame.height.toFloat * (frame.xSize / frame.width.toFloat)
 
@@ -33,7 +33,7 @@ structure Color where
   (r := 0.0)
   (g := 0.0)
   (b := 0.0)
-deriving ToJson, FromJson
+  deriving ToJson, FromJson
 
 instance : Coe (Float×Float×Float) Color := ⟨λ (r,g,b) => ⟨r,g,b⟩⟩
 
@@ -41,9 +41,9 @@ instance : Coe (Float×Float×Float) Color := ⟨λ (r,g,b) => ⟨r,g,b⟩⟩
 def Color.toStringRGB (c : Color) : String := s!"rgb({255*c.r}, {255*c.g}, {255*c.b})"
 
 inductive Point (f : Frame) where
-| px   (i j : Int)
-| abs  (x y : Float)
-deriving Inhabited, ToJson, FromJson
+  | px   (i j : Int)
+  | abs  (x y : Float)
+  deriving Inhabited, ToJson, FromJson
 
 instance (f) : Coe (Float×Float) (Point f) := ⟨λ (x,y) => .abs x y⟩
 instance (f) : Coe (Int×Int) (Point f) := ⟨λ (i,j) => .px i j⟩
@@ -67,9 +67,9 @@ def Point.toAbsolute {f : Frame} (p : Point f) : Float × Float :=
     (x,y)
 
 inductive Size (f : Frame) where
-| px   (size : Nat)   : Size f
-| abs  (size : Float) : Size f
-deriving ToJson, FromJson
+  | px   (size : Nat)   : Size f
+  | abs  (size : Float) : Size f
+  deriving ToJson, FromJson
 
 def Size.toPixels {f : Frame} (s : Size f) : Nat :=
   match s with
@@ -79,32 +79,31 @@ def Size.toPixels {f : Frame} (s : Size f) : Nat :=
 -- inductive PolylineType
 
 inductive Shape (f : Frame) where
-| line     (src trg : Point f)
-| circle   (center : Point f) (radius : Size f)
-| polyline (points : Array (Point f)) -- (type : PolylineType)
-| polygon  (points : Array (Point f))
-deriving ToJson, FromJson
+  | line     (src trg : Point f)
+  | circle   (center : Point f) (radius : Size f)
+  | polyline (points : Array (Point f)) -- (type : PolylineType)
+  | polygon  (points : Array (Point f))
+  deriving ToJson, FromJson
 
 def Shape.toHtmlData {f : Frame} : Shape f → String × Array (String × Json)
-| .line src trg =>
-  let (x1,y1) := src.toPixels
-  let (x2,y2) := trg.toPixels
-  ("line", #[("x1", x1), ("y1", y1), ("x2", x2), ("y2", y2)])
-| .circle center radius =>
-  let (cx,cy) := center.toPixels
-  let r := radius.toPixels
-  ("circle", #[("cx", cx), ("cy", cy), ("r", r)])
-| .polyline points =>
-  let pts := points
-      |>.map (λ p => let (x,y) := p.toPixels; s!"{x},{y}")
-      |>.foldl (init := "") (λ s p => s ++ " " ++ p)
-  ("polyline", #[("points", pts)])
-| .polygon points =>
-  let pts := points
-      |>.map (λ p => let (x,y) := p.toPixels; s!"{x},{y}")
-      |>.foldl (init := "") (λ s p => s ++ " " ++ p)
-  ("polygon", #[("fillRule", "nonzero"), ("points", pts)])
-
+  | .line src trg =>
+    let (x1,y1) := src.toPixels
+    let (x2,y2) := trg.toPixels
+    ("line", #[("x1", x1), ("y1", y1), ("x2", x2), ("y2", y2)])
+  | .circle center radius =>
+    let (cx,cy) := center.toPixels
+    let r := radius.toPixels
+    ("circle", #[("cx", cx), ("cy", cy), ("r", r)])
+  | .polyline points =>
+    let pts := points
+        |>.map (λ p => let (x,y) := p.toPixels; s!"{x},{y}")
+        |>.foldl (init := "") (λ s p => s ++ " " ++ p)
+    ("polyline", #[("points", pts)])
+  | .polygon points =>
+    let pts := points
+        |>.map (λ p => let (x,y) := p.toPixels; s!"{x},{y}")
+        |>.foldl (init := "") (λ s p => s ++ " " ++ p)
+    ("polygon", #[("fillRule", "nonzero"), ("points", pts)])
 
 structure Element (f : Frame) where
   shape : Shape f
@@ -113,7 +112,7 @@ structure Element (f : Frame) where
   fillColor   := (none : Option Color)
   id          := (none : Option String)
   data        := (none : Option Json)
-deriving ToJson, FromJson
+  deriving ToJson, FromJson
 
 def Element.setStroke {f} (elem : Element f) (color : Color) (width : Size f) :=
   { elem with strokeColor := some color, strokeWidth := some width }
@@ -149,10 +148,10 @@ def Element.toHtml {f : Frame} (e : Element f) : Html := Id.run do
 
   return .element tag args #[]
 
-  def line {f} (p q : Point f) : Element f := { shape := .line p q }
-  def circle {f} (c : Point f) (r : Size f) : Element f := { shape := .circle c r }
-  def polyline {f} (pts : Array (Point f)) : Element f := { shape := .polyline pts }
-  def polygon {f} (pts : Array (Point f)) : Element f := { shape := .polygon pts }
+def line {f} (p q : Point f) : Element f := { shape := .line p q }
+def circle {f} (c : Point f) (r : Size f) : Element f := { shape := .circle c r }
+def polyline {f} (pts : Array (Point f)) : Element f := { shape := .polyline pts }
+def polygon {f} (pts : Array (Point f)) : Element f := { shape := .polygon pts }
 
 end Svg
 
