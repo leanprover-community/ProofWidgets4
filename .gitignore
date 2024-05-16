@@ -2,5 +2,5 @@
 # JavaScript build artefacts.
 /widget/dist
 /widget/node_modules
-/widget/*.hash
+/widget/*.log.json
 .direnv/
