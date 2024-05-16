@@ -5,10 +5,13 @@
     "module": "esnext",
     "moduleResolution": "node",
     "sourceMap": false,
-    "outDir": "../.lake/build/js",
+    "outDir": "./dist/",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "strict": true
-  }
+    "strict": true,
+    "isolatedModules": true,
+    "skipLibCheck": true
+  },
+  "include": ["./src/*.ts", "./src/*.tsx"]
 }

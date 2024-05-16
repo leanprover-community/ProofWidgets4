@@ -1,19 +1,12 @@
-import glob from 'glob';
-import { nodeResolve } from '@rollup/plugin-node-resolve'
-import typescript from '@rollup/plugin-typescript';
+import { glob } from 'glob';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
 import replace from '@rollup/plugin-replace';
 import terser from '@rollup/plugin-terser';
 
 /** @type {(_: any) => import('rollup').RollupOptions} */
-export default cliArgs => {
-    const tsxName = cliArgs.tsxName;
-    if (tsxName !== undefined)
-        // We delete the custom argument so that Rollup does not try to process it and complain.
-        delete cliArgs.tsxName;
-    const inputs = tsxName ?
-        [ `src/${tsxName}.tsx` ] :
-        glob.sync('src/**/*.tsx')
+export default _cliArgs => {
+    const inputs = glob.sync('dist/*.js')
 
     const isProduction = process.env.NODE_ENV && process.env.NODE_ENV === 'production';
     const configForInput = fname => ({
@@ -34,10 +27,6 @@ export default cliArgs => {
         '@leanprover/infoview',
     ],
     plugins: [
-        typescript({
-            tsconfig: './tsconfig.json',
-            outputToFilesystem: false,
-        }),
         nodeResolve({
             browser: true
         }),
@@ -62,8 +51,19 @@ export default cliArgs => {
     ],
     })
 
-    // For why we must return an array of configs rather than use an array in `input`, see
-    // https://github.com/rollup/rollup/issues/2756. This is pretty suboptimal as every build
-    // rechecks all TS files, so the process is quadratic.
+    // We need each widget module to be bundled into a standalone .js file.
+    // By default, when building a number of modules,
+    // Rollup will produce chunk.js files
+    // containing code that is shared between the different modules,
+    // so we do not get standalone files.
+    // This is 'code splitting' and cannot be disabled:
+    // https://github.com/rollup/rollup/issues/2756
+    // The only way to avoid splitting is to return an array of configs
+    // so that Rollup runs on each module separately.
+    // Unfortunately, in conjunction with TS typechecking,
+    // this rechecks all TS files when bundling each module,
+    // resulting in a quadratic build.
+    // Instead, we compile TS first with tsc,
+    // and then bundle the JS outputs with Rollup.
     return inputs.map(configForInput)
 }
