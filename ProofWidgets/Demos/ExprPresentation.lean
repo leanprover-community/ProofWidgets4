@@ -1,15 +1,15 @@
 import ProofWidgets.Component.Panel.SelectionPanel
 import ProofWidgets.Component.Panel.GoalTypePanel
 
-open ProofWidgets Jsx
+open ProofWidgets Jsx Lean Server
 
 structure LatexProps where
-  content : string
+  content : String
   deriving Server.RpcEncodable
 
 @[widget_module]
 def Latex : Component LatexProps where
-  javascript := include_str ".." / ".." / ".." / ".lake" / "build" / "js" / "latexToSvg.js"
+  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "latexToSvg.js"
 
 @[expr_presenter]
 def latex_presenter : ExprPresenter where
@@ -17,9 +17,17 @@ def latex_presenter : ExprPresenter where
   layoutKind := .inline
   present e :=
     return <span>
-        {.text "🐙 "}<Latex content={← Lean.Widget.ppExprTagged e} />{.text " 🐙"}
+        {.text "🐙 "}<Latex content={(← Lean.Meta.ppExpr e).pretty} />{.text " 🐙"}
       </span>
 
+@[expr_presenter]
+def latex_presenter2 : ExprPresenter where
+  userName := "Latex2"
+  layoutKind := .block
+  present e :=
+    return <span>
+        {.text "🐙 "}<Latex content="\\frac{1}{2}\\mbox{hello, we will prove that } \\begin{align}a sdfs&=&sdfsb\\\\c&d&i\\end{align}" />{.text " 🐙"}
+      </span>
 
 @[expr_presenter]
 def presenter : ExprPresenter where

@@ -33,7 +33,7 @@ function get_mathjax_svg(math: string): string {
 
 export function RenderLatex({content}: {content: string}): JSX.Element {
   // For explanation of flow-root see https://stackoverflow.com/a/32301823
-  return <div dangerouslySetInnerHTML={{ __html: get_mathjax_svg(content) }} />}</div>
+  return <div dangerouslySetInnerHTML={{ __html: get_mathjax_svg(content) }} />
 }
 
 type ExprWithCtx = RpcPtr<'ProofWidgets.ExprWithCtx'>
