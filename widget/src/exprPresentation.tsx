@@ -4,6 +4,38 @@ import { RpcContext, RpcSessionAtPos, RpcPtr, Name, DocumentPosition, mapRpcErro
 import HtmlDisplay, { Html } from './htmlDisplay'
 import InteractiveExpr from './interactiveExpr'
 
+import { mathjax } from 'mathjax-full/js/mathjax'
+import { TeX } from 'mathjax-full/js/input/tex'
+import { CHTML } from 'mathjax-full/js/output/chtml'
+import { SVG } from 'mathjax-full/js/output/svg'
+import { AllPackages } from 'mathjax-full/js/input/tex/AllPackages'
+import { liteAdaptor } from 'mathjax-full/js/adaptors/liteAdaptor'
+import { RegisterHTMLHandler } from 'mathjax-full/js/handlers/html'
+
+const adaptor = liteAdaptor()
+RegisterHTMLHandler(adaptor)
+
+const mathjax_document = mathjax.document('', {
+  InputJax: new TeX({ packages: AllPackages }),
+  OutputJax: new SVG({ fontCache: 'local' })
+})
+
+const mathjax_options = {
+  em: 16,
+  ex: 8,
+  containerWidth: 1280
+}
+
+function get_mathjax_svg(math: string): string {
+  const node = mathjax_document.convert(math, mathjax_options)
+  return adaptor.outerHTML(node)
+}
+
+export function RenderLatex({content}: {content: string}): JSX.Element {
+  // For explanation of flow-root see https://stackoverflow.com/a/32301823
+  return <div dangerouslySetInnerHTML={{ __html: get_mathjax_svg(content) }} />}</div>
+}
+
 type ExprWithCtx = RpcPtr<'ProofWidgets.ExprWithCtx'>
 
 interface ExprPresentationData {
