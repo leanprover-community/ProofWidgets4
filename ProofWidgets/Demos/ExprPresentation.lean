@@ -3,6 +3,24 @@ import ProofWidgets.Component.Panel.GoalTypePanel
 
 open ProofWidgets Jsx
 
+structure LatexProps where
+  content : string
+  deriving Server.RpcEncodable
+
+@[widget_module]
+def Latex : Component LatexProps where
+  javascript := include_str ".." / ".." / ".." / ".lake" / "build" / "js" / "latexToSvg.js"
+
+@[expr_presenter]
+def latex_presenter : ExprPresenter where
+  userName := "Latex"
+  layoutKind := .inline
+  present e :=
+    return <span>
+        {.text "🐙 "}<Latex content={← Lean.Widget.ppExprTagged e} />{.text " 🐙"}
+      </span>
+
+
 @[expr_presenter]
 def presenter : ExprPresenter where
   userName := "With octopodes"
