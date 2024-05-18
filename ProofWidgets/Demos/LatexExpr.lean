@@ -1,9 +1,10 @@
 import ProofWidgets.Component.Panel.GoalTypePanel
+import ProofWidgets.Component.Panel.SelectionPanel  -- Needed for GoalTypePanel
 import ProofWidgets.Component.HtmlDisplay
 import ProofWidgets.Component.Latex
-import ProofWidgets.Presentation.Expr
+import ProofWidgets.Demos.Macro
 
-open ProofWidgets Jsx
+open ProofWidgets Jsx Lean
 
 @[expr_presenter]
 def latex_presenter : ExprPresenter where
@@ -21,8 +22,8 @@ example : 2 + 2 = 4 ∧ 3 + 3 = 6 := by
     rfl
     rfl
 
-macro "#latex " text: String : command =>
+macro "#latex " src:term : command =>
   Lean.TSyntax.mkInfoCanonical <$>
-    `(#html <Latex content={$text} />)
+    `(#html <Latex content={$src} />)
 
-#latex "\\mbox{This is Latex: }\\forall x \\in \\mathbb{N}, x\\ge 0,\, \\mbox{ rendered as SVG.}"
+#latex "\\mbox{This is a latex string: }\\forall x \\in \\mathbb{N}, x\\ge 0,\\, \\mbox{ rendered as SVG.}"
