@@ -1,5 +1,5 @@
-import { RenderLatex } from "./exprPresentation";
+import { RenderLatexSvg } from "./exprPresentation";
 
 export default function ({content}: {content: string}) {
-  return <RenderLatex content={content} />
+  return <RenderLatexSvg content={content} />
 }

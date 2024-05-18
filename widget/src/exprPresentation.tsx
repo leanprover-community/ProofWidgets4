@@ -6,7 +6,6 @@ import InteractiveExpr from './interactiveExpr'
 
 import { mathjax } from 'mathjax-full/js/mathjax'
 import { TeX } from 'mathjax-full/js/input/tex'
-import { CHTML } from 'mathjax-full/js/output/chtml'
 import { SVG } from 'mathjax-full/js/output/svg'
 import { AllPackages } from 'mathjax-full/js/input/tex/AllPackages'
 import { liteAdaptor } from 'mathjax-full/js/adaptors/liteAdaptor'
@@ -31,8 +30,7 @@ function get_mathjax_svg(math: string): string {
   return adaptor.outerHTML(node)
 }
 
-export function RenderLatex({content}: {content: string}): JSX.Element {
-  // For explanation of flow-root see https://stackoverflow.com/a/32301823
+export function RenderLatexSvg({content}: {content: string}): JSX.Element {
   return <div dangerouslySetInnerHTML={{ __html: get_mathjax_svg(content) }} />
 }
 
