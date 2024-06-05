@@ -54,13 +54,13 @@ def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
         cmd  := npmCmd
         args := #["clean-install"]
         cwd  := some widgetDir
-      }
+      } (quiet := true) -- use `quiet` here or `lake` will replay the output in downstream projects.
       proc {
         cmd  := npmCmd
         args := if isDev then #["run", "build-dev"]
                 else #["run", "build"]
         cwd  := some widgetDir
-      }
+      } (quiet := true) -- use `quiet` here or `lake` will replay the output in downstream projects.
     -- 2024-06-04 (@semorrison): I've commented this out, as `lake` now replays it in every build
     -- including in downstream projects.
     -- if upToDate then
