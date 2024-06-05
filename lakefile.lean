@@ -61,8 +61,10 @@ def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
                 else #["run", "build"]
         cwd  := some widgetDir
       }
-    if upToDate then
-      Lake.logInfo "JavaScript build up to date"
+    -- 2024-06-04 (@semorrison): I've commented this out, as `lake` now replays it in every build
+    -- including in downstream projects.
+    -- if upToDate then
+    --   Lake.logInfo "JavaScript build up to date"
     return (depInfo, depTrace)
 
 target widgetJsAll : Array FilePath :=
