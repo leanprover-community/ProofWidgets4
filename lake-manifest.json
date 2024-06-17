@@ -1,10 +1,10 @@
-{"version": 7,
+{"version": "1.0.0",
  "packagesDir": ".lake/packages",
  "packages":
  [{"url": "https://github.com/leanprover-community/batteries",
    "type": "git",
    "subDir": null,
-   "rev": "56d2e4ee226603eb6b90b05f6b944bde42672cd5",
+   "rev": "47e4cc5c5800c07d9bf232173c9941fa5bf68589",
    "name": "batteries",
    "manifestFile": "lake-manifest.json",
    "inputRev": "main",
