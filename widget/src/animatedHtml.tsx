@@ -1,9 +1,7 @@
 import * as React from 'react';
 import { Html, default as HtmlDisplay } from './htmlDisplay';
-import { DocumentPosition } from '@leanprover/infoview/*';
 
 interface AnimatedHtmlProps {
-    pos: DocumentPosition
     frames: Html[]
     framesPerSecond?: number
 }
@@ -12,7 +10,7 @@ interface AnimatedHtmlProps {
  * if the frames are related somehow, e.g. are all instances of a single component with slightly
  * different props. */
 export default function AnimatedHtml(props: AnimatedHtmlProps) {
-    const { pos, frames } = props
+    const { frames } = props
     const framesPerSecond = props.framesPerSecond ?? 10
     if (framesPerSecond <= 0 || framesPerSecond > 60) {
         throw new Error(`Invalid fps ${framesPerSecond}. Should be between 0 and 60.`)
@@ -25,5 +23,5 @@ export default function AnimatedHtml(props: AnimatedHtmlProps) {
 
     const frame = frames[t % frames.length]
 
-    return <HtmlDisplay pos={pos} html={frame} />
+    return <HtmlDisplay html={frame} />
 }

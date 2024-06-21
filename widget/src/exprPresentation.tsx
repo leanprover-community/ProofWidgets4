@@ -1,6 +1,6 @@
 import * as React from 'react'
-import { RpcContext, RpcSessionAtPos, RpcPtr, Name, DocumentPosition, mapRpcError,
-  useAsyncPersistent } from '@leanprover/infoview'
+import { RpcSessionAtPos, RpcPtr, Name, mapRpcError, useAsyncPersistent,
+  useRpcSession} from '@leanprover/infoview'
 import HtmlDisplay, { Html } from './htmlDisplay'
 import InteractiveExpr from './interactiveExpr'
 
@@ -21,8 +21,8 @@ async function getExprPresentations(rs: RpcSessionAtPos, expr: ExprWithCtx):
 /** Display the given expression using an `ExprPresenter`. The server is queried for registered
  * `ExprPresenter`s. A dropdown is shown allowing the user to select which of these should be used
  * to display the expression. */
-export default function ({ pos, expr }: { pos: DocumentPosition, expr: ExprWithCtx }): JSX.Element {
-  const rs = React.useContext(RpcContext)
+export default function ({ expr }: { expr: ExprWithCtx }): JSX.Element {
+  const rs = useRpcSession()
   type Selection =
     { tag: 'auto' } |
     // Here `none` means use the default, that is `InteractiveExpr`.
@@ -55,7 +55,7 @@ export default function ({ pos, expr }: { pos: DocumentPosition, expr: ExprWithC
     // For explanation of flow-root see https://stackoverflow.com/a/32301823
     return <div style={{ display: 'flow-root' }}>
       {selectionName !== 'none' &&
-        <HtmlDisplay pos={pos} html={st.value.get(selectionName)!.html} />}
+        <HtmlDisplay html={st.value.get(selectionName)!.html} />}
       {selectionName === 'none' &&
         <InteractiveExpr expr={expr} />}
       <select

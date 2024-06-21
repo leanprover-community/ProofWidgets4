@@ -6,7 +6,6 @@ Authors: Wojciech Nawrocki
 import * as React from 'react';
 
 import { PenroseCanvas } from './penroseCanvas';
-import { DocumentPosition } from '@leanprover/infoview/infoview/util';
 import { Html, default as HtmlDisplay } from './htmlDisplay';
 
 interface DiagramData {
@@ -17,11 +16,11 @@ interface DiagramData {
     maxOptSteps: number,
 }
 
-export default function(props: DiagramData & {pos: DocumentPosition}): JSX.Element {
+export default function(props: DiagramData): JSX.Element {
     const {embeds, dsl, sub} = props
     const mkElt = (html: Html): JSX.Element =>
         <div className="pv1 ph2">
-            <HtmlDisplay pos={props.pos} html={html} />
+            <HtmlDisplay html={html} />
         </div>
 
     const embedNodes =

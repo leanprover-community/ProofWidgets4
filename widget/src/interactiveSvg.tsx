@@ -1,6 +1,6 @@
 import HtmlDisplay, { Html } from './htmlDisplay';
 import * as React from 'react';
-import { DocumentPosition, RpcContext } from '@leanprover/infoview';
+import { DocumentPosition, useRpcSession } from '@leanprover/infoview';
 
 type State = any
 
@@ -48,7 +48,7 @@ function useMousePos(ref : React.MutableRefObject<Element | null>):
 }
 
 export function Svg(props : UpdateResult) {
-    const rs = React.useContext(RpcContext)
+    const rs = useRpcSession()
     const state = React.useRef(props)
     const startTime = React.useRef(new Date())
     const pending = React.useRef<Action[]>([])
@@ -114,7 +114,7 @@ export function Svg(props : UpdateResult) {
     }
 
     return <div onMouseDown={handleMouseEvent} onMouseUp={handleMouseEvent} onMouseMove={handleMouseEvent} ref={rootDiv}>
-        <HtmlDisplay pos={props.pos} html={html} />
+        <HtmlDisplay html={html} />
         <div>frame: {frame}. state: {asyncState.current}, mousePos: {mousePos ? mousePos.join(", ") : "none"}, mouseButtonState: {mouseButtonState}</div>
     </div>
 }
