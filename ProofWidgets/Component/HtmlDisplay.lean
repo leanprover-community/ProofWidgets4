@@ -83,3 +83,9 @@ def elabHtmlTac : Tactic | _ => pure ()
 
 end HtmlCommand
 end ProofWidgets
+
+/-- Construct a structured message from ProofWidgets HTML.
+
+For the meaning of `alt`, see `MessageData.ofWidget`. -/
+def Lean.MessageData.ofHtml (h : ProofWidgets.Html) (alt : String) : CoreM MessageData :=
+  MessageData.ofComponent ProofWidgets.HtmlDisplay ⟨h⟩ alt

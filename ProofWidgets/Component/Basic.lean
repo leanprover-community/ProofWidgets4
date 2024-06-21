@@ -88,3 +88,12 @@ def InteractiveMessage : Component InteractiveMessageProps where
   "
 
 end ProofWidgets
+
+/-- Construct a structured message from a ProofWidgets component.
+
+For the meaning of `alt`, see `MessageData.ofWidget`. -/
+def Lean.MessageData.ofComponent [Server.RpcEncodable Props]
+    (c : ProofWidgets.Component Props) (p : Props) (alt : String) : CoreM MessageData := do
+  let wi ← Widget.WidgetInstance.ofHash c.javascriptHash
+    (Server.RpcEncodable.rpcEncode p)
+  return .ofWidget wi alt
