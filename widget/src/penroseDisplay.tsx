@@ -14,6 +14,7 @@ interface DiagramData {
     dsl: string,
     sty: string,
     sub: string,
+    maxOptSteps: number,
 }
 
 export default function(props: DiagramData & {pos: DocumentPosition}): JSX.Element {
@@ -62,6 +63,6 @@ theme {
 
     return <PenroseCanvas
         trio={{dsl, sty, sub}}
-        embedNodes={embedNodes} maxOptSteps={500}
+        embedNodes={embedNodes} maxOptSteps={props.maxOptSteps}
     />
 }

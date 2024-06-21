@@ -5,10 +5,13 @@ namespace ProofWidgets.Penrose
 open Lean Server
 
 structure DiagramProps where
-  embeds : Array (String × Html)
-  dsl    : String
-  sty    : String
-  sub    : String
+  embeds      : Array (String × Html)
+  dsl         : String
+  sty         : String
+  sub         : String
+  /-- Maximum number of optimization steps to take before showing the diagram.
+  Optimization may converge earlier, before taking this many steps. -/
+  maxOptSteps : Nat := 500
   deriving Inhabited, RpcEncodable
 
 /-- Displays the given diagram using [Penrose](https://penrose.cs.cmu.edu/).
@@ -38,7 +41,7 @@ the editor theme. -/
 def Diagram : Component DiagramProps where
   javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "penroseDisplay.js"
 
-/-! # `PenroseBuilderM` -/
+/-! # `DiagramBuilderM` -/
 
 structure DiagramState where
   /-- The Penrose substance program.
@@ -57,7 +60,7 @@ open scoped Jsx in
 /-- Assemble the diagram using the provided domain and style programs.
 
 `none` is returned iff nothing was added to the diagram. -/
-def buildDiagram (dsl sty : String) : DiagramBuilderM (Option Html) := do
+def buildDiagram (dsl sty : String) (maxOptSteps : Nat := 500) : DiagramBuilderM (Option Html) := do
   let st ← get
   if st.sub == "" && st.embeds.isEmpty then
     return none
@@ -66,12 +69,12 @@ def buildDiagram (dsl sty : String) : DiagramBuilderM (Option Html) := do
   for (n, (tp, h)) in st.embeds.toArray do
     sub := sub ++ s!"{tp} {n}\n"
     embedHtmls := embedHtmls.push (n, h)
+  -- Note: order matters here, embed variables are declared first.
   sub := sub ++ st.sub
   return <Diagram
     embeds={embedHtmls}
-    dsl={dsl}
-    sty={sty}
-    sub={sub} />
+    dsl={dsl} sty={sty} sub={sub}
+    maxOptSteps={maxOptSteps} />
 
 /-- Add an object `nm` of Penrose type `tp`,
 labelled by `h`, to the substance program. -/
