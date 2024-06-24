@@ -38,7 +38,7 @@ def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
   let deps ← BuildJob.collectArray deps
   deps.bindSync fun depInfo depTrace => do
     let traceFile := buildDir / "js" / "lake.trace"
-    let upToDate ← buildUnlessUpToDate? traceFile depTrace traceFile do
+    let _ ← buildUnlessUpToDate? traceFile depTrace traceFile do
        /- HACK: Ensure that NPM modules are installed before building TypeScript,
        *if* we are building Typescript.
        It would probably be better to have a proper target for `node_modules`
@@ -54,15 +54,17 @@ def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
         cmd  := npmCmd
         args := #["clean-install"]
         cwd  := some widgetDir
-      }
+      } (quiet := true) -- use `quiet` here or `lake` will replay the output in downstream projects.
       proc {
         cmd  := npmCmd
         args := if isDev then #["run", "build-dev"]
                 else #["run", "build"]
         cwd  := some widgetDir
-      }
-    if upToDate then
-      Lake.logInfo "JavaScript build up to date"
+      } (quiet := true) -- use `quiet` here or `lake` will replay the output in downstream projects.
+    -- 2024-06-04 (@semorrison): I've commented this out, as `lake` now replays it in every build
+    -- including in downstream projects.
+    -- if upToDate then
+    --   Lake.logInfo "JavaScript build up to date"
     return (depInfo, depTrace)
 
 target widgetJsAll : Array FilePath :=
