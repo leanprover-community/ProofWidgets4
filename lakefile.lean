@@ -17,11 +17,44 @@ def buildDir := __dir__ / ".lake" / "build"
 def inputTextFile' (path : FilePath) : SpawnM (BuildJob FilePath) :=
   Job.async do (path, ·) <$> computeTrace (TextFilePath.mk path)
 
+def fetchTextFileHash (file : FilePath) : JobM Hash := do
+  let hashFile := FilePath.mk <| file.toString ++ ".hash"
+  if (← getTrustHash) then
+    if let some hash ← Hash.load? hashFile then
+      return hash
+  let hash ← computeHash (TextFilePath.mk file)
+  createParentDirs hashFile
+  IO.FS.writeFile hashFile hash.toString
+  return hash
+
+def fetchTextFileTrace (file : FilePath) : JobM BuildTrace := do
+  return .mk (← fetchTextFileHash file) (← getMTime file)
+
+def buildTextFileUnlessUpToDate
+  (file : FilePath) (depTrace : BuildTrace) (build : JobM PUnit)
+: JobM BuildTrace := do
+  let traceFile := FilePath.mk <| file.toString ++ ".trace"
+  buildUnlessUpToDate file depTrace traceFile do
+    build
+    clearFileHash file
+  fetchTextFileTrace file
+
+/-- Like `buildFileAfterDep` but interprets `file` as a text file
+so that line ending differences across platform do not impact the hash. -/
+@[inline] def buildTextFileAfterDep
+  (file : FilePath) (dep : BuildJob α) (build : α → JobM PUnit)
+  (extraDepTrace : JobM _ := pure BuildTrace.nil)
+: SpawnM (BuildJob FilePath) :=
+  dep.bindSync fun depInfo depTrace => do
+    let depTrace := depTrace.mix (← extraDepTrace)
+    let trace ← buildTextFileUnlessUpToDate file depTrace <| build depInfo
+    return (file, trace)
+
 /-- Target to update `package-lock.json` whenever `package.json` has changed. -/
 target widgetPackageLock : FilePath := do
   let packageFile ← inputTextFile' <| widgetDir / "package.json"
   let packageLockFile := widgetDir / "package-lock.json"
-  buildFileAfterDep packageLockFile packageFile fun _srcFile => do
+  buildTextFileAfterDep packageLockFile packageFile fun _srcFile => do
     proc {
       cmd := npmCmd
       args := #["install"]
