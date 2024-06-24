@@ -13,9 +13,13 @@ def npmCmd : String :=
 def widgetDir := __dir__ / "widget"
 def buildDir := __dir__ / ".lake" / "build"
 
+-- TODO: rm this and use the Lake version when it becomes available in a Lean release
+def inputTextFile' (path : FilePath) : SpawnM (BuildJob FilePath) :=
+  Job.async do (path, ·) <$> computeTrace (TextFilePath.mk path)
+
 /-- Target to update `package-lock.json` whenever `package.json` has changed. -/
 target widgetPackageLock : FilePath := do
-  let packageFile ← inputFile <| widgetDir / "package.json"
+  let packageFile ← inputTextFile' <| widgetDir / "package.json"
   let packageLockFile := widgetDir / "package-lock.json"
   buildFileAfterDep packageLockFile packageFile fun _srcFile => do
     proc {
@@ -32,8 +36,10 @@ def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
     match p.extension with
     | some "ts" | some "tsx" | some "js" | some "jsx" => some p
     | _ => none
+  -- See https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/ProofWidgets.20v0.2E0.2E36.20and.20v0.2E0.2E39/near/446602029
+  let srcs := srcs.qsort (toString · < toString ·)
   let depFiles := srcs ++ #[ widgetDir / "rollup.config.js", widgetDir / "tsconfig.json" ]
-  let deps ← liftM <| depFiles.mapM inputFile
+  let deps ← liftM <| depFiles.mapM inputTextFile'
   let deps := deps.push <| ← widgetPackageLock.fetch
   let deps ← BuildJob.collectArray deps
   deps.bindSync fun depInfo depTrace => do
