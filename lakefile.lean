@@ -77,6 +77,7 @@ def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
   let deps ← BuildJob.collectArray deps
   deps.bindSync fun depInfo depTrace => do
     let traceFile := buildDir / "js" / "lake.trace"
+    logInfo s!"final hash: {depTrace.hash}"
     let _ ← buildUnlessUpToDate? traceFile depTrace traceFile do
        /- HACK: Ensure that NPM modules are installed before building TypeScript,
        *if* we are building Typescript.
