@@ -5,8 +5,8 @@ Authors: E.W.Ayers, Wojciech Nawrocki
 */
 
 import * as React from 'react';
-import { DocumentPosition, RpcContext, RpcSessionAtPos, importWidgetModule, mapRpcError,
-    useAsyncPersistent } from '@leanprover/infoview';
+import { DocumentPosition, EnvPosContext, RpcSessionAtPos, importWidgetModule, mapRpcError,
+    useAsyncPersistent, useRpcSession } from '@leanprover/infoview';
 import type { DynamicComponent } from '@leanprover/infoview';
 
 type HtmlAttribute = [string, any]
@@ -59,9 +59,9 @@ async function renderHtml(rs: RpcSessionAtPos, pos: DocumentPosition, html: Html
     }
 }
 
-export default function HtmlDisplay({pos, html} : {pos: DocumentPosition, html: Html}):
-        JSX.Element {
-    const rs = React.useContext(RpcContext)
+export default function HtmlDisplay({html} : {html: Html}): JSX.Element {
+    const rs = useRpcSession()
+    const pos = React.useContext(EnvPosContext)!
     const state = useAsyncPersistent(() => renderHtml(rs, pos, html), [rs, pos, html])
     if (state.state === 'resolved')
         return state.value

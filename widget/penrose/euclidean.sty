@@ -45,7 +45,6 @@ forall Point p {
 
   p.textBox = Rectangle {
     fillColor : Colors.none
-    cornerRadius : 5
   }
 
   ensure signedDistance(p.textBox, p.vec) == const.textPadding - const.labelOffset in label
@@ -65,7 +64,6 @@ forall Line L {
 
   L.textBox = Rectangle {
     fillColor : Colors.none
-    cornerRadius : 5
   }
 
   ensure touching(L.textBox, L.icon) in label
@@ -87,7 +85,6 @@ forall Circle C {
 
   C.textBox = Rectangle {
     fillColor : Colors.none
-    cornerRadius : 5
   }
 
   encourage const.minCircleRadius < C.radius in shape
@@ -149,11 +146,23 @@ where OnCircle(p, C) {
   ensure norm(C.center - p.vec) == C.radius in shape
 }
 
+-- Point in Circle
+forall Point p; Circle C
+where InCircle(p, C) {
+  ensure norm(C.center - p.vec) < C.radius in shape
+}
+
 -- Point as Circle center
 forall Point p; Circle C
 where CenterCircle(p, C) {
   ensure equal(C.center[0], p.vec[0]) in shape
   ensure equal(C.center[1], p.vec[1]) in shape
+}
+
+-- Circles intersect
+forall Circle C; Circle D
+where CirclesInter(C, D) {
+  ensure norm(C.center - D.center) < C.radius in shape
 }
 
 -- Repelling

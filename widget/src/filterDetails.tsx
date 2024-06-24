@@ -1,9 +1,7 @@
 import * as React from 'react';
 import HtmlDisplay, { Html } from './htmlDisplay';
-import { DocumentPosition } from '@leanprover/infoview/*';
 
 interface FilterDetailsProps {
-    pos : DocumentPosition
     summary : Html
     filtered : Html
     all : Html
@@ -15,7 +13,7 @@ export default function FilterDetails(props: FilterDetailsProps) {
 
     return <details open>
         <summary className="mv2 pointer">
-            <HtmlDisplay pos={props.pos} html={props.summary} />
+            <HtmlDisplay html={props.summary} />
             <span className="fr" onClick={e => { e.preventDefault() }}>
                 <a className={"link pointer mh2 dim codicon " +
                     (isFiltered ? "codicon-filter-filled " : "codicon-filter ")}
@@ -23,6 +21,6 @@ export default function FilterDetails(props: FilterDetailsProps) {
                     onClick={_ => { setFiltered(s => !s) }} />
             </span>
         </summary>
-        <HtmlDisplay pos={props.pos} html={isFiltered ? props.filtered : props.all}/>
+        <HtmlDisplay html={isFiltered ? props.filtered : props.all}/>
     </details>
 }
