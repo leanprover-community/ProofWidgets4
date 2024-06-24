@@ -26,7 +26,7 @@ target widgetPackageLock : FilePath := do
       cmd := npmCmd
       args := #["install"]
       cwd := some widgetDir
-    }
+    } (quiet := true)
 
 /-- Target to build all TypeScript widget modules that match `widget/src/*.tsx`. -/
 def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
