@@ -16,6 +16,7 @@ jobs:
         include:
         - name: Build on Ubuntu
           os: ubuntu-latest
+        # TODO: investigate why `lake build` deadlocks on macOS (issue #33)
         #- name: Build on macOS
         #  os: macos-latest
         - name: Build on Windows
@@ -38,13 +39,6 @@ jobs:
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
       - uses: actions/checkout@v4
-
-      # TODO: investigate why `lake build` deadlocks on macOS
-      - name: Build widgets
-        run: npm clean-install && npm run build
-        working-directory: ./widget
-        env:
-          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Build package
         run: lake build ProofWidgets
