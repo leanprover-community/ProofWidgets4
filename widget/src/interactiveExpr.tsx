@@ -1,11 +1,10 @@
-import { mapRpcError, InteractiveCode, RpcContext, RpcPtr, useAsyncPersistent }
+import { mapRpcError, InteractiveCode, RpcPtr, useAsyncPersistent, useRpcSession }
   from '@leanprover/infoview'
-import * as React from 'react'
 
 type ExprWithCtx = RpcPtr<'ProofWidgets.ExprWithCtx'>
 
 export default function ({ expr }: { expr: ExprWithCtx }): JSX.Element {
-  const rs = React.useContext(RpcContext)
+  const rs = useRpcSession()
   const st = useAsyncPersistent(() => rs.call('ProofWidgets.ppExprTagged', { expr }), [expr])
   if (st.state === 'resolved')
     return <InteractiveCode fmt={st.value as any} />

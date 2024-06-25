@@ -1,7 +1,7 @@
-import * as  React from "react";
 import {
   DocumentPosition, GoalsLocation, InteractiveGoal, mapRpcError, PanelWidgetProps,
-  RpcContext, RpcPtr, useAsyncPersistent
+  RpcPtr, useAsyncPersistent,
+  useRpcSession
 } from "@leanprover/infoview";
 import ExprPresentation from "./exprPresentation";
 
@@ -23,7 +23,7 @@ interface GoalsLocationsToExprsResponse {
  */
 export function GoalsLocationPresentation({ pos, goals, loc }:
   { pos: DocumentPosition, goals: InteractiveGoal[], loc: GoalsLocation }) {
-  const rs = React.useContext(RpcContext)
+  const rs = useRpcSession()
   const st = useAsyncPersistent<ExprWithCtx>(async () => {
     const g = findGoalForLocation(goals, loc)
     if (g.ctx === undefined) throw new Error(`Lean server 1.1.2 or newer is required.`)
@@ -37,7 +37,7 @@ export function GoalsLocationPresentation({ pos, goals, loc }:
   else if (st.state === 'rejected')
     return <>Error: {mapRpcError(st.error).message}</>
   else
-    return <ExprPresentation pos={pos} expr={st.value} />
+    return <ExprPresentation expr={st.value} />
 }
 
 export default function (props: PanelWidgetProps) {

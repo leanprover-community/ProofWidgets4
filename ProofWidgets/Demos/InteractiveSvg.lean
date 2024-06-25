@@ -38,12 +38,10 @@ def isvg : InteractiveSvg State where
         mousePointer.append circles
     }
 
-
 open Server RequestM in
 @[server_rpc_method]
 def updateSvg (params : UpdateParams State) : RequestM (RequestTask (UpdateResult State)) := isvg.serverRpcMethod params
 
--- TODO: the tsx file is pretty broken
 @[widget_module]
 def SvgWidget : Component (UpdateResult State) where
   javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "interactiveSvg.js"

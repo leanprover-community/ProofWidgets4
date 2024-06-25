@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Robin Böhne, Wojciech Nawrocki, Patrick Massot
 -/
 import Lean.Meta.ExprLens
-import Std.Lean.Position
+import Batteries.Lean.Position
 import ProofWidgets.Data.Html
 import ProofWidgets.Component.OfRpcMethod
 import ProofWidgets.Component.MakeEditLink

@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { DocumentPosition, RpcContext, mapRpcError, useAsyncPersistent } from '@leanprover/infoview'
+import { DocumentPosition, mapRpcError, useAsyncPersistent, useRpcSession } from '@leanprover/infoview'
 import { Html, default as HtmlDisplay } from './htmlDisplay'
 import { Fn, callCancellable } from './cancellable'
 
@@ -12,7 +12,7 @@ const RPC_METHOD = '$RPC_METHOD'
 const RPC_CANCELLABLE = window.toString()
 
 export default React.memo((props: Props) => {
-  const rs = React.useContext(RpcContext)
+  const rs = useRpcSession()
   const cancelRef = React.useRef<Fn>({ fn: () => {} })
   const st = useAsyncPersistent<Html>(async () => {
     if (RPC_CANCELLABLE === 'true') {
@@ -35,5 +35,5 @@ export default React.memo((props: Props) => {
     : st.state === 'loading' ?
       <>Loading..</>
     :
-      <HtmlDisplay pos={props.pos} html={st.value} />
+      <HtmlDisplay html={st.value} />
 })

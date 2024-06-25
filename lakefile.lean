@@ -5,91 +5,117 @@ package proofwidgets where
   preferReleaseBuild := true
   buildArchive? := "ProofWidgets4.tar.gz"
 
-lean_lib ProofWidgets
-
-lean_lib ProofWidgets.Demos where
-  globs := #[.submodules `ProofWidgets.Demos]
-
-require std from git "https://github.com/leanprover/std4" @ "main"
+require batteries from git "https://github.com/leanprover-community/batteries" @ "main"
 
 def npmCmd : String :=
   if Platform.isWindows then "npm.cmd" else "npm"
 
 def widgetDir := __dir__ / "widget"
+def buildDir := __dir__ / ".lake" / "build"
+
+-- TODO: rm this and use the Lake version when it becomes available in a Lean release
+def inputTextFile' (path : FilePath) : SpawnM (BuildJob FilePath) :=
+  Job.async do (path, ·) <$> computeTrace (TextFilePath.mk path)
+
+def fetchTextFileHash (file : FilePath) : JobM Hash := do
+  let hashFile := FilePath.mk <| file.toString ++ ".hash"
+  if (← getTrustHash) then
+    if let some hash ← Hash.load? hashFile then
+      return hash
+  let hash ← computeHash (TextFilePath.mk file)
+  createParentDirs hashFile
+  IO.FS.writeFile hashFile hash.toString
+  return hash
+
+def fetchTextFileTrace (file : FilePath) : JobM BuildTrace := do
+  return .mk (← fetchTextFileHash file) (← getMTime file)
+
+def buildTextFileUnlessUpToDate
+  (file : FilePath) (depTrace : BuildTrace) (build : JobM PUnit)
+: JobM BuildTrace := do
+  let traceFile := FilePath.mk <| file.toString ++ ".trace"
+  buildUnlessUpToDate file depTrace traceFile do
+    build
+    clearFileHash file
+  fetchTextFileTrace file
+
+/-- Like `buildFileAfterDep` but interprets `file` as a text file
+so that line ending differences across platform do not impact the hash. -/
+@[inline] def buildTextFileAfterDep
+  (file : FilePath) (dep : BuildJob α) (build : α → JobM PUnit)
+  (extraDepTrace : JobM _ := pure BuildTrace.nil)
+: SpawnM (BuildJob FilePath) :=
+  dep.bindSync fun depInfo depTrace => do
+    let depTrace := depTrace.mix (← extraDepTrace)
+    let trace ← buildTextFileUnlessUpToDate file depTrace <| build depInfo
+    return (file, trace)
 
 /-- Target to update `package-lock.json` whenever `package.json` has changed. -/
 target widgetPackageLock : FilePath := do
-  let packageFile ← inputFile <| widgetDir / "package.json"
+  let packageFile ← inputTextFile' <| widgetDir / "package.json"
   let packageLockFile := widgetDir / "package-lock.json"
-  buildFileAfterDep packageLockFile packageFile fun _srcFile => do
+  buildTextFileAfterDep packageLockFile packageFile fun _srcFile => do
     proc {
       cmd := npmCmd
       args := #["install"]
       cwd := some widgetDir
-    }
-
-/-- Target to build `.lake/build/js/foo.js` from a `widget/src/foo.tsx` widget module.
-Rebuilds whenever the `.tsx` source, or any part of the build configuration, has changed. -/
-def widgetTsxTarget (pkg : NPackage _package.name) (nodeModulesMutex : IO.Mutex Bool)
-    (tsxName : String) (deps : Array (BuildJob FilePath)) (isDev : Bool) :
-    FetchM (BuildJob FilePath) := do
-  let jsFile := pkg.buildDir / "js" / s!"{tsxName}.js"
-  buildFileAfterDepArray jsFile deps fun _srcFile => do
-    /-
-    HACK: Ensure that NPM modules are installed before building TypeScript, *if* we are building it.
-    It would probably be better to have a proper target for `node_modules`
-    that all the `.tsx` modules depend on.
-    BUT when we are being built as a dependency of another package using the cloud releases feature,
-    we wouldn't want that target to trigger since in that case NPM is not necessarily installed.
-    Hence we put this block inside the build process for any `.tsx` file
-    rather than as a top-level target.
-    This only runs when some TypeScript needs building.
-    It has to be guarded by a mutex to avoid multiple `.tsx` builds trampling on each other
-    with multiple `npm clean-install`s.
-    -/
-    nodeModulesMutex.atomically (m := IO) do
-      if (← get) then return
-      let _ ← IO.Process.run {
-        cmd := npmCmd
-        args := #["clean-install"]
-        cwd := some widgetDir
-      }
-      set true
-    proc {
-      cmd := npmCmd
-      args :=
-        if isDev then
-          #["run", "build-dev", "--", "--tsxName", tsxName]
-        else
-          #["run", "build", "--", "--tsxName", tsxName]
-      cwd := some widgetDir
-    }
+    } (quiet := true)
 
 /-- Target to build all TypeScript widget modules that match `widget/src/*.tsx`. -/
-def widgetJsAllTarget (pkg : NPackage _package.name) (isDev : Bool) :
-    FetchM (BuildJob (Array FilePath)) := do
+def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
   let fs ← (widgetDir / "src").readDir
-  let tsxs : Array FilePath := fs.filterMap fun f =>
-    let p := f.path; if let some "tsx" := p.extension then some p else none
-  -- Conservatively, every .js build depends on all the .tsx source files.
-  let depFiles := tsxs ++ #[ widgetDir / "rollup.config.js", widgetDir / "tsconfig.json" ]
-  let deps ← liftM <| depFiles.mapM inputFile
-  let deps := deps.push $ ← widgetPackageLock.fetch
-  let nodeModulesMutex ← IO.Mutex.new false
-  let jobs ← tsxs.mapM fun tsx => widgetTsxTarget pkg nodeModulesMutex tsx.fileStem.get! deps isDev
-  BuildJob.collectArray jobs
+  let srcs : Array FilePath := fs.filterMap fun f =>
+    let p := f.path
+    match p.extension with
+    | some "ts" | some "tsx" | some "js" | some "jsx" => some p
+    | _ => none
+  -- See https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/ProofWidgets.20v0.2E0.2E36.20and.20v0.2E0.2E39/near/446602029
+  let srcs := srcs.qsort (toString · < toString ·)
+  let depFiles := srcs ++ #[ widgetDir / "rollup.config.js", widgetDir / "tsconfig.json" ]
+  let deps ← liftM <| depFiles.mapM inputTextFile'
+  let deps := deps.push <| ← widgetPackageLock.fetch
+  let deps ← BuildJob.collectArray deps
+  deps.bindSync fun depInfo depTrace => do
+    let traceFile := buildDir / "js" / "lake.trace"
+    let _ ← buildUnlessUpToDate? traceFile depTrace traceFile do
+       /- HACK: Ensure that NPM modules are installed before building TypeScript,
+       *if* we are building Typescript.
+       It would probably be better to have a proper target for `node_modules`
+       that all the JS/TS modules depend on.
+       BUT when we are being built as a dependency of another package
+       using the cloud releases feature,
+       we wouldn't want that target to trigger
+       since in that case NPM is not necessarily installed.
+       Hence, we put this block inside the build process for JS/TS files
+       rather than as a top-level target.
+       This only runs when some TypeScript needs building. -/
+      proc {
+        cmd  := npmCmd
+        args := #["clean-install"]
+        cwd  := some widgetDir
+      } (quiet := true) -- use `quiet` here or `lake` will replay the output in downstream projects.
+      proc {
+        cmd  := npmCmd
+        args := if isDev then #["run", "build-dev"]
+                else #["run", "build"]
+        cwd  := some widgetDir
+      } (quiet := true) -- use `quiet` here or `lake` will replay the output in downstream projects.
+    -- 2024-06-04 (@semorrison): I've commented this out, as `lake` now replays it in every build
+    -- including in downstream projects.
+    -- if upToDate then
+    --   Lake.logInfo "JavaScript build up to date"
+    return (depInfo, depTrace)
 
-target widgetJsAll pkg : Array FilePath := do
-  widgetJsAllTarget pkg (isDev := false)
+target widgetJsAll : Array FilePath :=
+  widgetJsAllTarget (isDev := false)
 
-target widgetJsAllDev pkg : Array FilePath := do
-  widgetJsAllTarget pkg (isDev := true)
+target widgetJsAllDev : Array FilePath :=
+  widgetJsAllTarget (isDev := true)
 
 @[default_target]
-target all : Unit := do
-  let lib ← ProofWidgets.get
-  let job₁ ← widgetJsAll.fetch
-  let _ ← job₁.await
-  let job₂ ← lib.leanArts.fetch
-  let _ ← job₂.await
-  return .nil
+lean_lib ProofWidgets where
+  extraDepTargets := #[``widgetJsAll]
+
+lean_lib ProofWidgets.Demos where
+  globs := #[.submodules `ProofWidgets.Demos]
+  extraDepTargets := #[``widgetJsAll]

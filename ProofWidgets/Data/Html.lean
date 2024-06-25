@@ -84,18 +84,46 @@ scoped syntax jsxElement   : jsxChild
 
 scoped syntax:max jsxElement : term
 
-def transformTag (n m : Ident) (vs : Array (TSyntax `jsxAttr))
+def transformTag (tk : Syntax) (n m : Ident) (vs : Array (TSyntax `jsxAttr))
     (cs : Array (TSyntax `jsxChild)) : MacroM Term := do
   let nId := n.getId.eraseMacroScopes
   let mId := m.getId.eraseMacroScopes
   if nId != mId then
     Macro.throwErrorAt m s!"expected </{nId}>"
-  let cs ← cs.mapM fun
-    | `(jsxChild| $t:jsxText)    => Sum.inl <$> `(Html.text $(quote <| getJsxText t))
-    | `(jsxChild| { $t })        => Sum.inl <$> pure t
-    | `(jsxChild| $e:jsxElement) => Sum.inl <$> `(term| $e:jsxElement)
-    | `(jsxChild| {... $t })     => Sum.inr <$> pure t
-    | stx                        => Macro.throwErrorAt stx "unknown syntax"
+
+  let trailingWs (stx : Syntax) :=
+    if let .original _ _ trailing _ := stx.getTailInfo then
+      trailing.toString
+    else ""
+
+  -- Whitespace appearing before the current child.
+  let mut wsBefore := trailingWs tk
+  -- This loop transforms (for example) `` `(jsxChild*| {a} text {...cs} {d})``
+  -- into ``children ← `(term| #[a, Html.text " text "] ++ cs ++ #[d])``.
+  let mut csArrs := #[]
+  let mut csArr := #[]
+  for c in cs do
+    match c with
+    | `(jsxChild| $t:jsxText) =>
+      csArr ← csArr.push <$> `(Html.text $(quote <| wsBefore ++ getJsxText t))
+      wsBefore := ""
+    | `(jsxChild| { $t }%$tk) =>
+      csArr := csArr.push t
+      wsBefore := trailingWs tk
+    | `(jsxChild| $e:jsxElement) =>
+      csArr ← csArr.push <$> `(term| $e:jsxElement)
+      wsBefore := trailingWs e
+    | `(jsxChild| {... $t }%$tk) =>
+      if !csArr.isEmpty then
+        csArrs ← csArrs.push <$> `(term| #[$csArr,*])
+      csArr := #[]
+      csArrs := csArrs.push t
+      wsBefore := trailingWs tk
+    | stx => Macro.throwErrorAt stx "unknown syntax"
+  if !csArr.isEmpty then
+    csArrs ← csArrs.push <$> `(term| #[$csArr,*])
+  let children ← joinArrays csArrs
+
   let vs : Array ((Ident × Term) ⊕ Term) ← vs.mapM fun
     | `(jsxAttr| $attr:ident = $s:str)      => Sum.inl <$> pure (attr, s)
     | `(jsxAttr| $attr:ident = { $t:term }) => Sum.inl <$> pure (attr, t)
@@ -103,8 +131,6 @@ def transformTag (n m : Ident) (vs : Array (TSyntax `jsxAttr))
     | stx                                   => Macro.throwErrorAt stx "unknown syntax"
   let tag := toString nId
 
-  -- collect the `...`-ed children
-  let children := ← joinArrays <| ← foldInlsM cs (fun cs' => `(term| #[$cs',*]))
   -- Uppercase tags are parsed as components
   if tag.get? 0 |>.filter (·.isUpper) |>.isSome then
     let withs : Array Term ← vs.filterMapM fun
@@ -120,7 +146,7 @@ def transformTag (n m : Ident) (vs : Array (TSyntax `jsxAttr))
     `(Html.ofComponent $n $props $children)
   -- Lowercase tags are parsed as standard HTML
   else
-    let vs := ← joinArrays <| ← foldInlsM vs (fun vs' => do
+    let vs ← joinArrays <| ← foldInlsM vs (fun vs' => do
       let vs' ← vs'.mapM (fun (k, v) =>
         `(term| ($(quote <| toString k.getId), $v)))
       `(term| #[$vs',*]))
@@ -133,8 +159,8 @@ enabled using `open scoped ProofWidgets.Jsx`.
 Lowercase tags are interpreted as standard HTML whereas uppercase ones are expected to be
 `ProofWidgets.Component`s. -/
 macro_rules
-  | `(<$n:ident $[$attrs:jsxAttr]* />) => transformTag n n attrs #[]
-  | `(<$n:ident $[$attrs:jsxAttr]* >$cs*</$m>) => transformTag n m attrs cs
+  | `(<$n:ident $[$attrs:jsxAttr]* />%$tk) => transformTag tk n n attrs #[]
+  | `(<$n:ident $[$attrs:jsxAttr]* >%$tk $cs*</$m>) => transformTag tk n m attrs cs
 
 section delaborator
 

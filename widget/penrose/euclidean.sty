@@ -1,5 +1,6 @@
 -- inspired by https://github.com/penrose/penrose/blob/499cd21f39549abd317976f492b803a09ce2277d/packages/examples/src/geometry-domain/euclidean-teaser.style
 
+layout = [shape, label]
 
 Colors {
   -- Keenan palette
@@ -14,45 +15,48 @@ Colors {
   none = none()
 }
 
-
 const {
   strokeWidth = 1.75
   textPadding = 0.1
+  labelOffset = 15
   repelWeight = 0.3
   pointRadius = 4.0
-  minLineLength = 200.0
+  minCircleRadius = 50.0
+  maxCircleRadius = 250.0
+  lineOffset = 10.0
 }
 
+forall Object o {
+  o.color = Colors.none
+}
 
--- Point
 forall Point p {
-  p.vec = (?, ?)
+  p.color = theme.tooltipBorder
+
+  p.vec = (? in shape, ? in shape)
 
   p.icon = Circle {
-    center: p.vec
+    center : p.vec
     r : const.pointRadius
-    fillColor : Colors.white
+    fillColor : theme.foreground
     strokeWidth : const.strokeWidth
-    strokeColor : Colors.black
+    strokeColor : p.color
   }
 
   p.textBox = Rectangle {
     fillColor : Colors.none
-    cornerRadius : 5
   }
 
-  ensure equal(signedDistance(p.textBox, p.vec), const.textPadding)
-  p.textLayering = p.textBox above p.icon
+  ensure signedDistance(p.textBox, p.vec) == const.textPadding - const.labelOffset in label
+  ensure disjoint(p.textBox, p.icon) in label
 }
 
-
--- Line
 forall Line L {
-  L.color = Colors.black
+  L.color = theme.foreground
 
   L.icon = Line {
-    start : (?, ?)
-    end : (?, ?)
+    start : (? in shape, ? in shape)
+    end : (? in shape, ? in shape)
     strokeColor : L.color
     strokeWidth : const.strokeWidth
     style : "solid"
@@ -60,49 +64,150 @@ forall Line L {
 
   L.textBox = Rectangle {
     fillColor : Colors.none
-    cornerRadius : 5
   }
 
-  ensure lessThan(const.minLineLength, norm(L.icon.start - L.icon.end))
-  ensure equal(signedDistance(L.textBox, L.icon.start), const.textPadding)
-  ensure disjoint(L.textBox, L.icon)
+  ensure touching(L.textBox, L.icon) in label
 }
 
+forall Circle C {
+  C.color = theme.foreground
+
+  C.radius = ? in shape
+  C.center = (? in shape, ? in shape)
+
+  C.icon = Circle {
+    center : C.center
+    r : C.radius
+    strokeWidth : const.strokeWidth
+    strokeColor : C.color
+    fillColor : Colors.none
+  }
+
+  C.textBox = Rectangle {
+    fillColor : Colors.none
+  }
+
+  encourage const.minCircleRadius < C.radius in shape
+  encourage C.radius < const.maxCircleRadius in shape
+  ensure touching(C.textBox, C.icon) in label
+}
 
 -- Point on Line
 forall Point p; Line L
-where On(p, L) {
-  ensure equal(signedDistance(L.icon, p.vec), 0)
-  ensure disjoint(L.textBox, p.icon)
+where OnLine(p, L) {
+  ensure signedDistance(L.icon, p.vec) == 0 in shape
 }
 
+-- Line uniqueness
+forall Point p; Point q; Line L; Line M
+where OnLine(p, L); OnLine(p, M); OnLine(q, L); OnLine(q, M) {
+  ensure L.icon.start[0] == M.icon.start[0] in shape
+  ensure L.icon.start[1] == M.icon.start[1] in shape
+  ensure L.icon.end[0] == M.icon.end[0] in shape
+  ensure L.icon.end[1] == M.icon.end[1] in shape
+}
+
+-- Line uniqueness v1
+forall Point p; Point q; Point r; Line L; Line M
+where Between(p, q, r); OnLine(p, L); OnLine(q, M); OnLine(r, L); OnLine(r, M) {
+  ensure L.icon.start[0] == M.icon.start[0] in shape
+  ensure L.icon.start[1] == M.icon.start[1] in shape
+  ensure L.icon.end[0] == M.icon.end[0] in shape
+  ensure L.icon.end[1] == M.icon.end[1] in shape
+}
+
+-- Line uniqueness v2
+forall Point p; Point q; Point r; Line L; Line M
+where Between(p, r, q); OnLine(p, L); OnLine(q, M); OnLine(r, L); OnLine(r, M) {
+  ensure L.icon.start[0] == M.icon.start[0] in shape
+  ensure L.icon.start[1] == M.icon.start[1] in shape
+  ensure L.icon.end[0] == M.icon.end[0] in shape
+  ensure L.icon.end[1] == M.icon.end[1] in shape
+}
+
+-- Line uniqueness v3
+forall Point p; Point q; Point r; Line L; Line M
+where Between(r, p, q); OnLine(p, L); OnLine(q, M); OnLine(r, L); OnLine(r, M) {
+  ensure L.icon.start[0] == M.icon.start[0] in shape
+  ensure L.icon.start[1] == M.icon.start[1] in shape
+  ensure L.icon.end[0] == M.icon.end[0] in shape
+  ensure L.icon.end[1] == M.icon.end[1] in shape
+}
 
 -- Between
 forall Point p, q, r
 where Between(p, q, r) {
-  ensure collinear(p.icon.center, q.icon.center, r.icon.center)
-  ensure inRange(q.icon.center[0], p.icon.center[0], r.icon.center[0])
-  ensure inRange(q.icon.center[1], p.icon.center[1], r.icon.center[1])
-  encourage notTooClose(p.icon, q.icon, const.repelWeight)
-  encourage notTooClose(q.icon, r.icon, const.repelWeight)
+  ensure collinearOrdered(p.vec, q.vec, r.vec) in shape
 }
 
+-- Point on Circle
+forall Point p; Circle C
+where OnCircle(p, C) {
+  ensure norm(C.center - p.vec) == C.radius in shape
+}
+
+-- Point in Circle
+forall Point p; Circle C
+where InCircle(p, C) {
+  ensure norm(C.center - p.vec) < C.radius in shape
+}
+
+-- Point as Circle center
+forall Point p; Circle C
+where CenterCircle(p, C) {
+  ensure equal(C.center[0], p.vec[0]) in shape
+  ensure equal(C.center[1], p.vec[1]) in shape
+}
+
+-- Circles intersect
+forall Circle C; Circle D
+where CirclesInter(C, D) {
+  ensure norm(C.center - D.center) < C.radius in shape
+}
 
 -- Repelling
-forall Point p; Line L {
-  ensure disjoint(p.textBox, L.textBox)
-  p.icon above L.icon
+forall Point p; Point q {
+  encourage notTooClose(p.icon, q.icon, const.repelWeight) in shape
+  ensure disjoint(p.textBox, q.textBox) in label
+  ensure disjoint(p.textBox, q.icon) in label
+  ensure disjoint(p.icon, q.textBox) in label
 }
 
 forall Line L; Line M {
-  ensure disjoint(L.textBox, M.textBox)
+  ensure disjoint(L.textBox, M.textBox) in label
+  ensure disjoint(L.textBox, M.icon) in label
+  ensure disjoint(L.icon, M.textBox) in label
 }
 
-forall Point p; Point q {
-  ensure disjoint(p.textBox, q.textBox)
-  encourage notTooClose(p.icon, q.icon, const.repelWeight)
+forall Circle C; Circle D {
+  ensure disjoint(C.textBox, D.textBox) in label
+  ensure disjoint(C.textBox, D.icon) in label
+  ensure disjoint(C.icon, D.textBox) in label
 }
 
-forall Line L where Emphasize(L) {
-  L.color = Colors.darkpurple
+forall Point p; Line L {
+  ensure disjoint(p.textBox, L.textBox) in label
+  ensure disjoint(p.textBox, L.icon) in label
+  ensure disjoint(p.icon, L.textBox) in label
+  encourage norm(p.vec - L.icon.start) > const.lineOffset in shape
+  encourage norm(p.vec - L.icon.end) > const.lineOffset in shape
+  p.icon above L.icon
+}
+
+forall Point p; Circle C {
+  ensure disjoint(p.textBox, C.textBox) in label
+  --encourage notTooClose(p.textBox, C.icon, 0.01) in label
+  ensure disjoint(p.icon, C.textBox) in label
+  p.icon above C.icon
+  p.textBox above C.icon
+}
+
+forall Line L; Circle C {
+  ensure disjoint(L.textBox, C.textBox) in label
+  encourage notTooClose(L.textBox, C.icon, const.repelWeight) in label
+  ensure disjoint(L.icon, C.textBox) in label
+}
+
+forall Object o where Emphasize(o) {
+  o.color = Colors.darkpurple
 }
