@@ -188,9 +188,13 @@ def idToData {f} (svg : Svg f) : HashMap String Json :=
 
 instance {f} : GetElem (Svg f) Nat (Svg.Element f) (λ svg idx => idx < svg.elements.size) where
   getElem svg i h := svg.elements[i]
+  getElem? svg i := svg.elements[i]?
+  getElem! svg i := svg.elements[i]!
 
 instance {f} : GetElem (Svg f) String (Option (Svg.Element f)) (λ _ _ => True) where
   getElem svg id _ := svg.idToIdx[id].map (λ idx => svg.elements[idx])
+  getElem? svg id := svg.idToIdx[id].map (λ idx => svg.elements[idx]?)
+  getElem! svg id := svg.idToIdx[id].map (λ idx => svg.elements[idx])
 
 def getData {f} (svg : Svg f) (id : String) : Option Json :=
   match svg[id] with
