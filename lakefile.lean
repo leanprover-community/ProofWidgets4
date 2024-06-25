@@ -5,7 +5,7 @@ package proofwidgets where
   preferReleaseBuild := true
   buildArchive? := "ProofWidgets4.tar.gz"
 
-require batteries from git "https://github.com/leanprover-community/batteries" @ "main"
+require batteries from git "https://github.com/leanprover-community/batteries" @ "nightly-testing"
 
 def npmCmd : String :=
   if Platform.isWindows then "npm.cmd" else "npm"
