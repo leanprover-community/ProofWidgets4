@@ -62,7 +62,7 @@ target widgetPackageLock : FilePath := do
     } (quiet := true)
 
 /-- Target to build all TypeScript widget modules that match `widget/src/*.tsx`. -/
-def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
+def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
   let fs ← (widgetDir / "src").readDir
   let srcs : Array FilePath := fs.filterMap fun f =>
     let p := f.path
@@ -75,7 +75,12 @@ def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
   let deps ← liftM <| depFiles.mapM inputTextFile'
   let deps := deps.push <| ← widgetPackageLock.fetch
   let deps ← BuildJob.collectArray deps
-  deps.bindSync fun depInfo depTrace => do
+  /- `widgetJsAll` is an `extraDepTarget`,
+  and Lake's default build order is `extraDepTargets -> cloud release -> main build`.
+  We must instead ensure that the cloud release is fetched first
+  so that this target does not build from scratch unnecessarily.
+  `afterReleaseAsync` guarantees this. -/
+  pkg.afterReleaseAsync $ deps.bindSync fun depInfo depTrace => do
     let traceFile := buildDir / "js" / "lake.trace"
     let _ ← buildUnlessUpToDate? traceFile depTrace traceFile do
        /- HACK: Ensure that NPM modules are installed before building TypeScript,
@@ -106,11 +111,11 @@ def widgetJsAllTarget (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
     --   Lake.logInfo "JavaScript build up to date"
     return (depInfo, depTrace)
 
-target widgetJsAll : Array FilePath :=
-  widgetJsAllTarget (isDev := false)
+target widgetJsAll pkg : Array FilePath :=
+  widgetJsAllTarget pkg (isDev := false)
 
-target widgetJsAllDev : Array FilePath :=
-  widgetJsAllTarget (isDev := true)
+target widgetJsAllDev pkg : Array FilePath :=
+  widgetJsAllTarget pkg (isDev := true)
 
 @[default_target]
 lean_lib ProofWidgets where
