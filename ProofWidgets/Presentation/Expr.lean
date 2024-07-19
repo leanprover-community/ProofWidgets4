@@ -14,6 +14,7 @@ structure ExprPresenter where
   layoutKind : LayoutKind := .block
   present : Expr → MetaM Html
 
+/-- Register an Expr presenter. It must have the type `ProofWidgets.ExprPresenter`. -/
 initialize exprPresenters : TagAttribute ←
   registerTagAttribute `expr_presenter
     "Register an Expr presenter. It must have the type `ProofWidgets.ExprPresenter`."

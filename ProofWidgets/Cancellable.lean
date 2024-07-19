@@ -80,6 +80,10 @@ def checkRequest (rid : RequestId) : RequestM (RequestTask CheckRequestResponse)
 
 def cancellableSuffix : Name := `_cancellable
 
+/-- Like `server_rpc_method`, but requests for this method can be cancelled.
+The method should check for that using `IO.checkCanceled`.
+Cancellable methods are invoked differently from JavaScript:
+see `callCancellable` in `cancellable.ts`. -/
 initialize
   registerBuiltinAttribute {
     name := `server_rpc_method_cancellable
