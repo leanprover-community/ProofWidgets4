@@ -9,16 +9,19 @@ abbrev LazyEncodable α := StateM RpcObjectStore α
 structure ExprWithCtx where
   ci : Elab.ContextInfo
   lctx : LocalContext
+  linsts : LocalInstances
   expr : Expr
   deriving TypeName
 
 def ExprWithCtx.runMetaM (e : ExprWithCtx) (x : Expr → MetaM α) : IO α :=
-  e.ci.runMetaM e.lctx (x e.expr)
+  e.ci.runMetaM {} $
+    Meta.withLCtx e.lctx e.linsts (x e.expr)
 
 def ExprWithCtx.save (e : Expr) : MetaM ExprWithCtx :=
   return {
     ci := { ← CommandContextInfo.save with }
     lctx := ← getLCtx
+    linsts := ← Meta.getLocalInstances
     expr := e
   }
 
