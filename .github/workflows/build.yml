@@ -28,7 +28,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           path-type: inherit
-          install: curl unzip mingw-w64-nodejs
+          install: curl unzip
 
       - name: Install elan
         shell: bash
@@ -39,6 +39,12 @@ jobs:
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
       - uses: actions/checkout@v4
+
+      - name: Update NPM (Windows)
+        shell: bash
+        if: matrix.os == 'windows-latest'
+        # See https://github.com/nodejs/node/issues/52682
+        run: cd widget/ && npm install npm
 
       - name: Build package
         run: lake build ProofWidgets
