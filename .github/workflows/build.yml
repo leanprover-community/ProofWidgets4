@@ -30,6 +30,11 @@ jobs:
           path-type: inherit
           install: curl unzip
 
+      - name: Update NPM
+        # See https://github.com/nodejs/node/issues/52682
+        shell: bash
+        run: npm install -g npm
+
       - name: Install elan
         shell: bash
         run: |
