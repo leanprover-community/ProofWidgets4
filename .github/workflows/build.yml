@@ -28,12 +28,7 @@ jobs:
         uses: msys2/setup-msys2@v2
         with:
           path-type: inherit
-          install: curl unzip
-
-      - name: Update NPM
-        # See https://github.com/nodejs/node/issues/52682
-        shell: bash
-        run: npm install -g npm
+          install: curl unzip mingw-w64-nodejs
 
       - name: Install elan
         shell: bash
