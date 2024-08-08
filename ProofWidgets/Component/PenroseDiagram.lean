@@ -2,7 +2,7 @@ import ProofWidgets.Component.Basic
 import ProofWidgets.Data.Html
 
 namespace ProofWidgets.Penrose
-open Lean Server
+open Lean Server Std
 
 structure DiagramProps where
   embeds      : Array (String × Html)

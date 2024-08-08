@@ -1,7 +1,7 @@
 import ProofWidgets.Data.Svg
 
 namespace ProofWidgets
-open Lean
+open Lean Std
 
 private def _root_.Float.toInt (x : Float) : Int :=
   if x >= 0 then
@@ -75,7 +75,7 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
 
   let getData := λ (α : Type) [FromJson α] => do
     let id ← selected;
-    let data ← idToData[id]
+    let data ← idToData[id]?
     match fromJson? (α:=α) data with
     | .error _ => none
     | .ok val => some val
@@ -111,7 +111,7 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
 
   -- highlight selection
   if let some id := selected then
-    if let some idx := svg.idToIdx[id] then
+    if let some idx := svg.idToIdx[id]? then
       svg := { elements := svg.elements.modify idx λ e => e.setStroke (1.,1.,0.) (.px 5) }
 
 
