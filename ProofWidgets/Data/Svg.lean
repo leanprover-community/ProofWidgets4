@@ -1,7 +1,7 @@
 import ProofWidgets.Data.Html
 
 namespace ProofWidgets
-open Lean
+open Lean Std
 
 private def _root_.Float.toInt (x : Float) : Int :=
   if x >= 0 then
@@ -190,7 +190,7 @@ instance {f} : GetElem (Svg f) Nat (Svg.Element f) (λ svg idx => idx < svg.elem
   getElem svg i h := svg.elements[i]
 
 instance {f} : GetElem (Svg f) String (Option (Svg.Element f)) (λ _ _ => True) where
-  getElem svg id _ := svg.idToIdx[id].map (λ idx => svg.elements[idx])
+  getElem svg id _ := svg.idToIdx[id]?.map (λ idx => svg.elements[idx])
 
 def getData {f} (svg : Svg f) (id : String) : Option Json :=
   match svg[id] with
