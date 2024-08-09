@@ -20,8 +20,8 @@ structure CancellableTask where
 
 /-- Maps the ID of each currently executing request to its task. -/
 initialize runningRequests :
-    IO.Ref (RequestId × HashMap RequestId CancellableTask) ←
-  IO.mkRef (0, HashMap.empty)
+    IO.Ref (RequestId × Std.HashMap RequestId CancellableTask) ←
+  IO.mkRef (0, Std.HashMap.empty)
 
 /-- Transforms a request handler returning `β`
 into one that returns immediately with a `RequestId`.
