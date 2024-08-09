@@ -155,12 +155,12 @@ def polygon {f} (pts : Array (Point f)) : Element f := { shape := .polygon pts }
 
 end Svg
 
-def mkIdToIdx {f} (elements : Array (Svg.Element f)) : HashMap String (Fin elements.size) :=
+def mkIdToIdx {f} (elements : Array (Svg.Element f)) : Std.HashMap String (Fin elements.size) :=
   let idToIdx := (elements
     |>.mapIdx (λ idx el => (idx,el))) -- zip with index
     |>.filterMap (λ (idx,el) => el.id.map (λ id => (id,idx))) -- keep only elements with specified id
     |>.toList
-    |> HashMap.ofList
+    |> Std.HashMap.ofList
   idToIdx
 
 structure Svg (f : Svg.Frame) where
@@ -183,7 +183,7 @@ def idToDataList {f} (svg : Svg f) : List (String × Json) :=
     | some id, some data => (id,data)::l
     | _, _ => l)
 
-def idToData {f} (svg : Svg f) : HashMap String Json :=
+def idToData {f} (svg : Svg f) : Std.HashMap String Json :=
   HashMap.ofList svg.idToDataList
 
 instance {f} : GetElem (Svg f) Nat (Svg.Element f) (λ svg idx => idx < svg.elements.size) where
