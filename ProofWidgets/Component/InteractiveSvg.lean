@@ -67,7 +67,7 @@ def InteractiveSvg.serverRpcMethod {State : Type} (isvg : InteractiveSvg State) 
   -- right now we just assume that all actions are uqually spaced within the frame
   let Δt := (params.elapsed - params.state.time) / params.actions.size.toFloat
 
-  let idToData : HashMap String Json := HashMap.ofList params.state.idToData
+  let idToData : Std.HashMap String Json := HashMap.ofList params.state.idToData
 
   let mut time := params.state.time
   let mut state := params.state.state
