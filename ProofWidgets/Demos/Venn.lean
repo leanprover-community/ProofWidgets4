@@ -14,7 +14,7 @@ def Set (α : Type u) := α → Prop
 namespace Set
 
 /-- Membership in a set -/
-protected def Mem (a : α) (s : Set α) : Prop :=
+protected def Mem (s : Set α) (a : α) : Prop :=
   s a
 
 instance : Membership α (Set α) :=
@@ -58,14 +58,14 @@ def mkSetDiag (sub : String) (embeds : ExprEmbeds) : MetaM Html := do
 
 def isSetGoal? (hyps : Array LocalDecl) : MetaM (Option Html) := do
   let mut sub := "AutoLabel All\n"
-  let mut sets : HashMap String Expr := .empty
+  let mut sets : Std.HashMap String Expr := .empty
   for assm in hyps do
     let tp ← instantiateMVars assm.type
     if let some (S, T) := isSubsetPred? tp then
       let sS ← toString <$> Lean.Meta.ppExpr S
       let sT ← toString <$> Lean.Meta.ppExpr T
-      let (sets', cS) := sets.insert' sS S
-      let (sets', cT) := sets'.insert' sT T
+      let (cS, sets') := sets.containsThenInsert sS S
+      let (cT, sets') := sets'.containsThenInsert sT T
       sets := sets'
       if !cS then
         sub := sub ++ s!"Set {sS}\n"
