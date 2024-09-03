@@ -1,4 +1,5 @@
 import ProofWidgets.Data.Html
+import Std.Data.HashMap
 
 namespace ProofWidgets
 open Lean Std

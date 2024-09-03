@@ -1,5 +1,6 @@
 import ProofWidgets.Component.Basic
 import ProofWidgets.Data.Html
+import Std.Data.HashMap
 
 namespace ProofWidgets.Penrose
 open Lean Server Std
