@@ -1,5 +1,6 @@
 import Lean.Data.Json.FromToJson
 import Lean.Server.Rpc.RequestHandling
+import Std.Data.HashMap
 import ProofWidgets.Compat
 
 /-! Experimental support for cancellable RPC requests.
@@ -9,7 +10,7 @@ and the requests map should be stored in `RequestM`,
 or somewhere in the server anyway. -/
 
 namespace ProofWidgets
-open Lean Server Meta
+open Lean Server Meta Std
 
 abbrev RequestId := Nat
 structure CancellableTask where
@@ -20,8 +21,8 @@ structure CancellableTask where
 
 /-- Maps the ID of each currently executing request to its task. -/
 initialize runningRequests :
-    IO.Ref (RequestId × HashMap RequestId CancellableTask) ←
-  IO.mkRef (0, HashMap.empty)
+    IO.Ref (RequestId × Std.HashMap RequestId CancellableTask) ←
+  IO.mkRef (0, Std.HashMap.empty)
 
 /-- Transforms a request handler returning `β`
 into one that returns immediately with a `RequestId`.
@@ -42,7 +43,7 @@ Does nothing if `rid` is invalid. -/
 @[server_rpc_method]
 def cancelRequest (rid : RequestId) : RequestM (RequestTask String) := do
   RequestM.asTask do
-    let t? ← runningRequests.modifyGet fun (id, m) => (m.find? rid, (id, m.erase rid))
+    let t? ← runningRequests.modifyGet fun (id, m) => (m[rid]?, (id, m.erase rid))
     if let some t := t? then
       t.cancel
     return "ok"
@@ -66,7 +67,7 @@ another possible addition to the RPC protocol? -/
 def checkRequest (rid : RequestId) : RequestM (RequestTask CheckRequestResponse) := do
   RequestM.asTask do
     let (_, m) ← runningRequests.get
-    match m.find? rid with
+    match m[rid]? with
     | none =>
       throw $ RequestError.invalidParams
         s!"Request '{rid}' has already finished, or the ID is invalid."

@@ -1,8 +1,9 @@
 import ProofWidgets.Component.Basic
 import ProofWidgets.Data.Html
+import Std.Data.HashMap
 
 namespace ProofWidgets.Penrose
-open Lean Server
+open Lean Server Std
 
 structure DiagramProps where
   embeds      : Array (String × Html)
@@ -49,7 +50,7 @@ structure DiagramState where
   sub : String := ""
   /-- Components to display as labels in the diagram,
   stored in the map as name ↦ (type, html). -/
-  embeds : HashMap String (String × Html) := .empty
+  embeds : Std.HashMap String (String × Html) := .empty
 
 /-- A monad to easily build Penrose diagrams in. -/
 abbrev DiagramBuilderM := StateT DiagramState MetaM
