@@ -149,7 +149,7 @@ def EuclideanDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html
         Meta.withLCtx lctx md.localInstances do
           -- Which hypotheses have been selected in the UI,
           -- meaning they should *not* be shown in the display.
-          let mut hiddenLocs : HashSet FVarId := mkHashSet props.selectedLocations.size
+          let mut hiddenLocs : Std.HashSet FVarId := .empty props.selectedLocations.size
           for l in props.selectedLocations do
             match l with
             | ⟨mv, .hyp fv⟩ | ⟨mv, .hypType fv _⟩ =>
@@ -311,7 +311,7 @@ show_panel_widgets [local EuclideanConstructions]
 
 -- Try constructing an equilateral triangle abc
 -- with line segment ab as the base.
-example {a b : Point} (hab : a ≠ b) :
+example {a b : Point} (_hab : a ≠ b) :
     ∃ L M c, onLine a L ∧ onLine b M ∧ onLine c M ∧ onLine c L := by
   -- Place your cursor below.
   -- Shift-click hypotheses in 'Tactic state' to select them.
