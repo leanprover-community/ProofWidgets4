@@ -309,11 +309,32 @@ axiom test_sorry {α} : α
 
 show_panel_widgets [local EuclideanConstructions]
 
--- Try constructing an equilateral triangle abc
--- with line segment ab as the base.
+/-! # Example construction -/
+
+/- Try constructing an equilateral triangle abc
+with line segment ab as the base.
+
+Place your cursor in the proof below.
+To make a construction involving objects `x, y, z`,
+shift-click their names in 'Tactic state'
+in order to select them.
+Due to a limitation of the widget,
+you can only click-to-select in 'Tactic state',
+and not in the diagram.
+
+- To construct a line on two points,
+  select `a` and `b` in `a b : Point`.
+- To construct a circle with center `a` passing through `b`,
+  select `a` and `b` in `a b : Point`.
+  You may have to prove that `a ≠ b`.
+- To construct an interesection point of two circles `C` and `D`,
+  you first have to provide a local proof
+  of `have h : circlesInter C D := ...`
+  (i.e., show that the circles intersect)
+  using the axioms of `IncidenceGeometry` above.
+  Then select `h` in `h : circlesInter C D`. -/
 example {a b : Point} (_hab : a ≠ b) :
     ∃ L M c, onLine a L ∧ onLine b M ∧ onLine c M ∧ onLine c L := by
-  -- Place your cursor below.
-  -- Shift-click hypotheses in 'Tactic state' to select them.
+  -- Place your cursor here.
 
   exact test_sorry
