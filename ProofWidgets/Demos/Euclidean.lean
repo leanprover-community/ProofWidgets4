@@ -327,7 +327,7 @@ and not in the diagram.
 - To construct a circle with center `a` passing through `b`,
   select `a` and `b` in `a b : Point`.
   You may have to prove that `a ≠ b`.
-- To construct an interesection point of two circles `C` and `D`,
+- To construct an intersection point of two circles `C` and `D`,
   you first have to provide a local proof
   of `have h : circlesInter C D := ...`
   (i.e., show that the circles intersect)
