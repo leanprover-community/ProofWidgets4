@@ -80,7 +80,7 @@ def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (BuildJob (Array F
   We must instead ensure that the cloud release is fetched first
   so that this target does not build from scratch unnecessarily.
   `afterReleaseAsync` guarantees this. -/
-  pkg.afterReleaseAsync $ deps.bindSync fun depInfo depTrace => do
+  pkg.afterBuildCacheAsync $ deps.bindSync fun depInfo depTrace => do
     let traceFile := buildDir / "js" / "lake.trace"
     let _ ← buildUnlessUpToDate? traceFile depTrace traceFile do
        /- HACK: Ensure that NPM modules are installed before building TypeScript,
