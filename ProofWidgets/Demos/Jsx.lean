@@ -21,6 +21,14 @@ def htmlLetters : Array ProofWidgets.Html := #[
 def x := <b>You can use {...htmlLetters} in Lean {.text s!"{1 + 3}"}! <hr/> </b>
 #html x
 
+-- Use `MarkdownDisplay` to render Markdown
+open ProofWidgets in
+#html <MarkdownDisplay contents={"
+  ## Hello, Markdown
+  We have **bold text**, _italic text_, `example : True := by trivial`,
+  and $3×19 = \\int\\limits_0^{57}1~dx$.
+"} />
+
 -- HTML trees can also be produced by metaprograms
 open ProofWidgets Lean Elab in
 #html (do
