@@ -4,6 +4,7 @@ open Lake DSL System
 package proofwidgets where
   preferReleaseBuild := true
   buildArchive? := "ProofWidgets4.tar.gz"
+  releaseRepo := "https://github.com/leanprover-community/ProofWidgets4"
 
 require batteries from git "https://github.com/leanprover-community/batteries" @ "main"
 
