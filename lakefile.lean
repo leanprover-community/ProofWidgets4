@@ -37,7 +37,6 @@ def buildTextFileUnlessUpToDate
     build
     clearFileHash file
   fetchTextFileTrace file
-end
 
 /-- Like `buildFileAfterDep` but interprets `file` as a text file
 so that line ending differences across platform do not impact the hash. -/
@@ -49,6 +48,7 @@ so that line ending differences across platform do not impact the hash. -/
     let depTrace := depTrace.mix (← extraDepTrace)
     let trace ← buildTextFileUnlessUpToDate file depTrace <| build depInfo
     return (file, trace)
+end
 
 /-- Target to update `package-lock.json` whenever `package.json` has changed. -/
 target widgetPackageLock : FilePath := do
