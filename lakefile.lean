@@ -4,8 +4,9 @@ open Lake DSL System
 package proofwidgets where
   preferReleaseBuild := true
   buildArchive? := "ProofWidgets4.tar.gz"
+  releaseRepo := "https://github.com/leanprover-community/ProofWidgets4"
 
-require batteries from git "https://github.com/leanprover-community/batteries" @ "main"
+require "leanprover-community" / "batteries"
 
 def npmCmd : String :=
   if Platform.isWindows then "npm.cmd" else "npm"
@@ -13,10 +14,8 @@ def npmCmd : String :=
 def widgetDir := __dir__ / "widget"
 def buildDir := __dir__ / ".lake" / "build"
 
--- TODO: rm this and use the Lake version when it becomes available in a Lean release
-def inputTextFile' (path : FilePath) : SpawnM (BuildJob FilePath) :=
-  Job.async do (path, ·) <$> computeTrace (TextFilePath.mk path)
-
+-- TODO: Replace this section with Lake versions when there are ones
+section
 def fetchTextFileHash (file : FilePath) : JobM Hash := do
   let hashFile := FilePath.mk <| file.toString ++ ".hash"
   if (← getTrustHash) then
@@ -49,10 +48,11 @@ so that line ending differences across platform do not impact the hash. -/
     let depTrace := depTrace.mix (← extraDepTrace)
     let trace ← buildTextFileUnlessUpToDate file depTrace <| build depInfo
     return (file, trace)
+end
 
 /-- Target to update `package-lock.json` whenever `package.json` has changed. -/
 target widgetPackageLock : FilePath := do
-  let packageFile ← inputTextFile' <| widgetDir / "package.json"
+  let packageFile ← inputTextFile <| widgetDir / "package.json"
   let packageLockFile := widgetDir / "package-lock.json"
   buildTextFileAfterDep packageLockFile packageFile fun _srcFile => do
     proc {
@@ -72,7 +72,7 @@ def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (BuildJob (Array F
   -- See https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/ProofWidgets.20v0.2E0.2E36.20and.20v0.2E0.2E39/near/446602029
   let srcs := srcs.qsort (toString · < toString ·)
   let depFiles := srcs ++ #[ widgetDir / "rollup.config.js", widgetDir / "tsconfig.json" ]
-  let deps ← liftM <| depFiles.mapM inputTextFile'
+  let deps ← liftM <| depFiles.mapM inputTextFile
   let deps := deps.push <| ← widgetPackageLock.fetch
   let deps ← BuildJob.collectArray deps
   /- `widgetJsAll` is an `extraDepTarget`,
