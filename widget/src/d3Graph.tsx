@@ -1,18 +1,17 @@
 import * as React from 'react'
 import * as d3 from 'd3'
 import useResizeObserver from 'use-resize-observer'
-import { Html } from './htmlDisplay'
+import HtmlDisplay, { Html } from './htmlDisplay'
 
 interface Vertex {
   id: string
-  label?: Html
+  label: Html
   details?: Html
 }
 
 interface Edge {
   source: string
   target: string
-  label?: Html
   details?: Html
 }
 
@@ -63,8 +62,7 @@ export function ofGraph(g: Graph): SimGraph {
 
 /**
  * Merge an input graph into an existing simulated graph.
- *
- * Returns a new `SimGraph`.
+ * Mutates `newG`.
  *
  * Reference identity of existing vertex/edge objects is preserved,
  * in that they are the same objects in the new graph as in the old,
@@ -74,8 +72,7 @@ export function ofGraph(g: Graph): SimGraph {
  * in the sense that an object was added or removed
  * (this entails needing to update `d3-force` simulation arrays).
  */
-export function updateFrom(g: SimGraph, newG_: Graph): [SimGraph, boolean] {
-  const newG = ofGraph(newG_)
+export function updateFrom(g: SimGraph, newG: SimGraph): [SimGraph, boolean] {
   let changed = false
   for (const [vId, v] of newG.vertices) {
     const oldV = g.vertices.get(vId)
@@ -94,7 +91,7 @@ export function updateFrom(g: SimGraph, newG_: Graph): [SimGraph, boolean] {
     } else {
       oldE.label = e.label
       oldE.details = e.details
-      newG.vertices.set(eId, oldE)
+      newG.edges.set(eId, oldE)
     }
   }
   for (const vId of g.vertices.keys()) {
@@ -109,7 +106,8 @@ export function updateFrom(g: SimGraph, newG_: Graph): [SimGraph, boolean] {
 }
 }
 
-export default (graph: Graph) => {
+export default (graph0: Graph) => {
+  const graph = React.useMemo(() => SimGraph.ofGraph(graph0), [graph0])
   const svgRef = React.useRef<SVGSVGElement>(null)
   const { ref: setRef, width, height } = useResizeObserver<HTMLDivElement>({
     round: Math.floor,
@@ -128,7 +126,7 @@ export default (graph: Graph) => {
   }
   const state = React.useRef<State>({
     g: SimGraph.empty(),
-    sim: d3.forceSimulation<SimVertex, SimEdge>().force('charge', d3.forceManyBody()),
+    sim: d3.forceSimulation<SimVertex, SimEdge>().force('charge', d3.forceManyBody()).stop(),
     tickCallbacks: new Map(),
   })
   // Stop the simulation on unmount
@@ -138,7 +136,18 @@ export default (graph: Graph) => {
   /** Runs on every tick of the simulation. */
   const onTick = () => { for (const c of state.current.tickCallbacks.values()) c() }
 
-  /* Update simulation state given new input graph. */
+  /** A selected element in the graph. */
+  type Selection =
+    { type: 'none' } |
+    { type: 'vertex', id: string } |
+    { type: 'edge', id: string }
+  const [selection, setSelection] = React.useState<Selection>({ type: 'none' })
+  if ((selection.type === 'vertex' && !graph.vertices.has(selection.id)) ||
+    (selection.type === 'edge' && !graph.edges.has(selection.id))) {
+    setSelection({ type: 'none' })
+  }
+
+  /* Update simulation state and selection given new input graph. */
   React.useEffect(() => {
     const [g, changed] = SimGraph.updateFrom(state.current.g, graph)
     state.current.g = g
@@ -148,6 +157,7 @@ export default (graph: Graph) => {
         d3.forceLink<SimVertex, SimEdge>(Array.from(g.edges.values()))
         .id(d => d.id))
       .on('tick', () => { onTick() })
+    simRestart()
   }, [graph])
 
   /* Update simulation targets given new dimensions. */
@@ -166,9 +176,10 @@ export default (graph: Graph) => {
     React.useEffect(() => {
       const cb = () => {
         if (!ref.current) return
+        const x = state.current.g.vertices.get(v.id)?.x || 0
+        const y = state.current.g.vertices.get(v.id)?.y || 0
         d3.select<SVGSVGElement, unknown>(ref.current)
-          .attr('x', state.current.g.vertices.get(v.id)?.x || 0)
-          .attr('y', state.current.g.vertices.get(v.id)?.y || 0)
+          .attr('transform', `translate(${x}, ${y})`)
           .call(
             d3.drag<SVGSVGElement, unknown>()
               .on('start', (ev: d3.D3DragEvent<SVGSVGElement, unknown, unknown>) => {
@@ -200,12 +211,14 @@ export default (graph: Graph) => {
           state.current.tickCallbacks.delete(v.id)
       }
     }, [])
-    return <svg
+    // https://stackoverflow.com/a/479643
+    return <g
       ref={ref}
       key={v.id}
+      onClick={() => { setSelection({ type: 'vertex', id: v.id }) }}
     >
-      <circle r={5} fill='#ffff00' />
-    </svg>
+      <HtmlDisplay html={v.label} />
+    </g>
   }
 
   const EmbedEdge = ({e}: {e: Edge}) => {
@@ -229,8 +242,9 @@ export default (graph: Graph) => {
     return <line
       ref={ref}
       key={Edge.calcId(e)}
-    >
-    </line>
+      className='dim'
+      onClick={() => { setSelection({ type: 'edge', id: eId }) }}
+    />
   }
 
   return (
@@ -240,16 +254,26 @@ export default (graph: Graph) => {
       <svg
         ref={svgRef}
         width={width || 400}
+        // TODO: adaptive height
         height={400}
         viewBox={`0 0 ${width || 400} ${400}`}
       >
-        <g stroke='#888' strokeWidth={1.5}>
-          {graph.edges.map(e => <EmbedEdge e={e} />)}
+        <g stroke='var(--vscode-editor-foreground)' strokeWidth={2}>
+          {graph0.edges.map(e => <EmbedEdge e={e} />)}
         </g>
-        <g stroke='#999' strokeOpacity={0.6}>
-          {graph.vertices.map(v => <EmbedVert v={v} />)}
+        <g>
+          {graph0.vertices.map(v => <EmbedVert v={v} />)}
         </g>
       </svg>
+      <div className="pa1 ba bw1">
+        {selection.type === 'none' ?
+          'Click a vertex or an edge to learn more about it.' :
+          selection.type === 'vertex' ?
+          <HtmlDisplay html={state.current.g.vertices.get(selection.id)?.details ||
+            {text: `Vertex '${selection.id}' has no details.`}} /> :
+          <HtmlDisplay html={state.current.g.edges.get(selection.id)?.details ||
+            {text: `Edge '${selection.id}' has no details.`}} />}
+      </div>
     </div>
   )
 }
