@@ -3,7 +3,7 @@ import * as d3 from 'd3'
 import useResizeObserver from 'use-resize-observer'
 import { Html } from './htmlDisplay'
 
-interface Vertex extends d3.SimulationNodeDatum {
+interface Vertex {
   id: string
   label?: Html
   details?: Html
@@ -16,18 +16,21 @@ interface Edge {
   details?: Html
 }
 
+namespace Edge {
+export const calcId = (e: Edge): string => `${e.source} ${e.target}`
+}
+
 /** The input to this component. */
 interface Graph {
   vertices: Vertex[]
   edges: Edge[]
 }
 
-function calcEdgeId(e: Edge): string {
-  return `${e.source} ${e.target}`
-}
+/** An extension of {@link Vertex} with simulation-related data. */
+interface SimVertex extends Vertex, d3.SimulationNodeDatum {}
 
 /** An extension of {@link Edge} with simulation-related data. */
-interface SimEdge extends d3.SimulationLinkDatum<Vertex> {
+interface SimEdge extends d3.SimulationLinkDatum<SimVertex> {
   id: string
   source: Vertex | string | number
   target: Vertex | string | number
@@ -37,137 +40,198 @@ interface SimEdge extends d3.SimulationLinkDatum<Vertex> {
 
 /** An extension of {@link Graph} with simulation-related data. */
 interface SimGraph {
-  vertices: Vertex[]
-  edges: SimEdge[]
+  vertices: Map<string, SimVertex>
+  edges: Map<string, SimEdge>
 }
 
-function getVertex(g: SimGraph, v: Vertex | string | number): Vertex {
-  if (typeof v === 'object') return v
-  if (typeof v === 'string') return g.vertices.find(w => w.id === v)!
-  return g.vertices[v]
+namespace SimGraph {
+export const empty = (): SimGraph =>
+  ({ vertices: new Map(), edges: new Map() })
+
+/**
+ * Build graph simulation data from an input graph.
+ * This makes a copy of the input graph
+ * (though `Html` objects are not copied: they are never mutated)
+ * that the force simulation will be able to mutate.
+ */
+export function ofGraph(g: Graph): SimGraph {
+  return {
+    vertices: new Map(g.vertices.map(v => [v.id, {...v}])),
+    edges: new Map(g.edges.map(e => [Edge.calcId(e), {...e, id: Edge.calcId(e)}]))
+  }
+}
+
+/**
+ * Merge an input graph into an existing simulated graph.
+ *
+ * Returns a new `SimGraph`.
+ *
+ * Reference identity of existing vertex/edge objects is preserved,
+ * in that they are the same objects in the new graph as in the old,
+ * only with their properties overwritten by those in the input graph.
+ *
+ * Returns `true` iff `vertices` or `edges` has grown or shrunk
+ * in the sense that an object was added or removed
+ * (this entails needing to update `d3-force` simulation arrays).
+ */
+export function updateFrom(g: SimGraph, newG_: Graph): [SimGraph, boolean] {
+  const newG = ofGraph(newG_)
+  let changed = false
+  for (const [vId, v] of newG.vertices) {
+    const oldV = g.vertices.get(vId)
+    if (!oldV) {
+      changed = true
+    } else {
+      oldV.label = v.label
+      oldV.details = v.details
+      newG.vertices.set(vId, oldV)
+    }
+  }
+  for (const [eId, e] of newG.edges) {
+    const oldE = g.edges.get(eId)
+    if (!oldE) {
+      changed = true
+    } else {
+      oldE.label = e.label
+      oldE.details = e.details
+      newG.vertices.set(eId, oldE)
+    }
+  }
+  for (const vId of g.vertices.keys()) {
+    if (!newG.vertices.has(vId))
+      changed = true
+  }
+  for (const eId of g.edges.keys()) {
+    if (!newG.edges.has(eId))
+      changed = true
+  }
+  return [newG, changed]
+}
 }
 
 export default (graph: Graph) => {
+  const svgRef = React.useRef<SVGSVGElement>(null)
   const { ref: setRef, width, height } = useResizeObserver<HTMLDivElement>({
     round: Math.floor,
   })
 
-  const svgRef = React.useRef<SVGSVGElement>(null)
-  const sim = React.useRef(
-    d3.forceSimulation<Vertex, SimEdge>()
-      .force('charge', d3.forceManyBody())
-  )
-  // Stop the simulation on unmount
-  React.useEffect(() => { return () => { sim.current.stop() } }, [])
-
-  /** Set the vertex and edge arrays to ones stored in the given selections.
-   * If `needRestart` is true, also reheat and restart the simulation. */
-  const updateSimData = (
-      vertSel: d3.Selection<SVGCircleElement, Vertex, d3.BaseType, unknown>,
-      edgeSel: d3.Selection<SVGLineElement, SimEdge, d3.BaseType, unknown>,
-      needRestart: boolean) => {
-    const g: SimGraph = {
-      vertices: vertSel.data(),
-      edges: edgeSel.data()
-    }
-    sim.current.nodes(g.vertices)
-      .force('link', d3.forceLink<Vertex, SimEdge>(g.edges).id(d => d.id))
-      .on('tick', () => {
-        vertSel
-          .attr('cx', d => d.x || 0)
-          .attr('cy', d => d.y || 0)
-        edgeSel
-          .attr('x1', d => getVertex(g, d.source).x || 0)
-          .attr('y1', d => getVertex(g, d.source).y || 0)
-          .attr('x2', d => getVertex(g, d.target).x || 0)
-          .attr('y2', d => getVertex(g, d.target).y || 0)
-      })
-      .stop()
-    vertSel.call(
-      d3.drag<SVGCircleElement, Vertex>()
-        .on('start', (ev: d3.D3DragEvent<SVGCircleElement, Vertex, Vertex>) => {
-          if (!ev.active) sim.current.alphaTarget(0.3).restart()
-          ev.subject.fx = ev.subject.x
-          ev.subject.fy = ev.subject.y
-        })
-        .on('drag', (ev: d3.D3DragEvent<SVGCircleElement, Vertex, Vertex>) => {
-          ev.subject.fx = ev.x
-          ev.subject.fy = ev.y
-        })
-        .on('end', (ev: d3.D3DragEvent<SVGCircleElement, Vertex, Vertex>) => {
-          if (!ev.active) sim.current.alphaTarget(0)
-          ev.subject.fx = null
-          ev.subject.fy = null
-        })
-    )
-    if (needRestart) sim.current.alpha(1).restart()
+  /**
+   * A common practice in `d3-force` simulations
+   * is to store simulation data in the DOM using d3's `__data__` mechanism.
+   * However, ensuring correct interactions between this and React is complex.
+   * Instead, we store the simulation state and related data here.
+   */
+  interface State {
+    g: SimGraph
+    sim: d3.Simulation<SimVertex, SimEdge>
+    tickCallbacks: Map<string, () => void>
   }
+  const state = React.useRef<State>({
+    g: SimGraph.empty(),
+    sim: d3.forceSimulation<SimVertex, SimEdge>().force('charge', d3.forceManyBody()),
+    tickCallbacks: new Map(),
+  })
+  // Stop the simulation on unmount
+  React.useEffect(() => { return () => { state.current.sim.stop() } }, [])
+  /** Reheat and restart the simulation. */
+  const simRestart = () => { state.current.sim.alpha(1).restart() }
+  /** Runs on every tick of the simulation. */
+  const onTick = () => { for (const c of state.current.tickCallbacks.values()) c() }
 
+  /* Update simulation state given new input graph. */
   React.useEffect(() => {
-    if (!svgRef.current) return
-    const svg = d3.select(svgRef.current)
-    // We need to make copies of the graph data
-    // that the simulation will be able to mutate.
-    // We store these copies in the DOM using d3's `__data__` storage.
-    // We cannot use `selection.data` because it overwrites the stored data,
-    // whereas we want to merge it with the new graph
-    // while keeping the simulated positions
-    // of entities that are still present in the new graph.
-    // So, we implement update/remove/append using other selection methods.
-    const [vertMap, edgeMap] = [
-      new Map<string, Vertex>(graph.vertices.map(v => [v.id, {...v}])),
-      new Map<string, SimEdge>(graph.edges.map(e => [calcEdgeId(e), {...e, id: calcEdgeId(e)}])),
-    ]
-
-    const vertSel = svg.select('#vs')
-      .selectAll<SVGCircleElement, Vertex>('circle')
-      .datum(d => {
-        const newD = vertMap.get(d.id)
-        if (!newD) return null
-        vertMap.delete(d.id)
-        // It's important not to create a new object here
-        // so that the simulation's object reference remains valid
-        return Object.assign(d, newD)
-      })
-    const rmVertSel = vertSel.filter(d => !d).remove()
-    const addVertSel = svg.select('#vs').selectAll()
-      .data(vertMap.values())
-      .join('circle')
-      .attr('r', 5)
-      .attr('fill', '#ffff00')
-
-    const edgeSel = svg.select('#es')
-      .selectAll<SVGLineElement, SimEdge>('line')
-      .datum(d => {
-        const newD = edgeMap.get(d.id)
-        if (!newD) return null
-        edgeMap.delete(d.id)
-        return Object.assign(d, newD)
-      })
-    const rmEdgeSel = edgeSel.filter(d => !d).remove()
-    const addEdgeSel = svg.select('#es').selectAll()
-      .data(edgeMap.values())
-      .join('line')
-      .attr('stroke-width', 0.5)
-
-    const needRestart =
-      !rmVertSel.empty() || !addVertSel.empty() || !rmEdgeSel.empty() || !addEdgeSel.empty()
-    updateSimData(svg.selectAll('#vs circle'), svg.selectAll('#es line'), needRestart)
+    const [g, changed] = SimGraph.updateFrom(state.current.g, graph)
+    state.current.g = g
+    if (!changed) return
+    state.current.sim.nodes(Array.from(g.vertices.values()))
+      .force('link',
+        d3.forceLink<SimVertex, SimEdge>(Array.from(g.edges.values()))
+        .id(d => d.id))
+      .on('tick', () => { onTick() })
   }, [graph])
 
-  const updateSimDims = (width: number, height: number) => {
+  /* Update simulation targets given new dimensions. */
+  React.useEffect(() => {
+    if (!width || !height) return
     const [midX, midY] = [width / 2, height / 2]
-    sim.current
+    state.current.sim
       .force('center', d3.forceCenter(midX, midY))
       .force('x', d3.forceX(midX))
       .force('y', d3.forceY(midY))
-      .alpha(1).restart()
+    simRestart()
+  }, [width, height])
+
+  const EmbedVert = ({v}: {v: Vertex}) => {
+    const ref = React.useRef<SVGSVGElement>(null)
+    React.useEffect(() => {
+      const cb = () => {
+        if (!ref.current) return
+        d3.select<SVGSVGElement, unknown>(ref.current)
+          .attr('x', state.current.g.vertices.get(v.id)?.x || 0)
+          .attr('y', state.current.g.vertices.get(v.id)?.y || 0)
+          .call(
+            d3.drag<SVGSVGElement, unknown>()
+              .on('start', (ev: d3.D3DragEvent<SVGSVGElement, unknown, unknown>) => {
+                if (!ev.active) state.current.sim.alphaTarget(0.3).restart()
+                const sv = state.current.g.vertices.get(v.id)
+                if (!sv) return
+                sv.fx = sv.x
+                sv.fy = sv.y
+              })
+              .on('drag', (ev: d3.D3DragEvent<SVGSVGElement, unknown, unknown>) => {
+                const sv = state.current.g.vertices.get(v.id)
+                if (!sv) return
+                sv.fx = ev.x
+                sv.fy = ev.y
+              })
+              .on('end', (ev: d3.D3DragEvent<SVGSVGElement, unknown, unknown>) => {
+                if (!ev.active) state.current.sim.alphaTarget(0)
+                const sv = state.current.g.vertices.get(v.id)
+                if (!sv) return
+                sv.fx = null
+                sv.fy = null
+              })
+          )
+      }
+      cb()
+      state.current.tickCallbacks.set(v.id, cb)
+      return () => {
+        if (state.current.tickCallbacks.get(v.id) === cb)
+          state.current.tickCallbacks.delete(v.id)
+      }
+    }, [])
+    return <svg
+      ref={ref}
+      key={v.id}
+    >
+      <circle r={5} fill='#ffff00' />
+    </svg>
   }
 
-  React.useEffect(() => {
-    if (!width || !height) return
-    updateSimDims(width, height)
-  }, [width, height])
+  const EmbedEdge = ({e}: {e: Edge}) => {
+    const eId = Edge.calcId(e)
+    const ref = React.useRef<SVGLineElement>(null)
+    React.useEffect(() => {
+      const cb = () => {
+        d3.select(ref.current)
+          .attr('x1', state.current.g.vertices.get(e.source)?.x || 0)
+          .attr('y1', state.current.g.vertices.get(e.source)?.y || 0)
+          .attr('x2', state.current.g.vertices.get(e.target)?.x || 0)
+          .attr('y2', state.current.g.vertices.get(e.target)?.y || 0)
+        }
+      cb()
+      state.current.tickCallbacks.set(eId, cb)
+      return () => {
+        if (state.current.tickCallbacks.get(eId) === cb)
+          state.current.tickCallbacks.delete(eId)
+      }
+    }, [])
+    return <line
+      ref={ref}
+      key={Edge.calcId(e)}
+    >
+    </line>
+  }
 
   return (
     <div ref={setRef}
@@ -179,8 +243,12 @@ export default (graph: Graph) => {
         height={400}
         viewBox={`0 0 ${width || 400} ${400}`}
       >
-        <g id='es' stroke='#888' strokeWidth={1.5} />
-        <g id='vs' stroke='#999' strokeOpacity={0.6} />
+        <g stroke='#888' strokeWidth={1.5}>
+          {graph.edges.map(e => <EmbedEdge e={e} />)}
+        </g>
+        <g stroke='#999' strokeOpacity={0.6}>
+          {graph.vertices.map(v => <EmbedVert v={v} />)}
+        </g>
       </svg>
     </div>
   )

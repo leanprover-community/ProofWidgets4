@@ -1,28 +1,39 @@
-import ProofWidgets.Component.Basic
+import ProofWidgets.Component.Digraph
+import ProofWidgets.Component.HtmlDisplay
 
-namespace ProofWidgets
-open Lean Server
+open ProofWidgets Jsx
 
-structure DigraphDisplay.Vertex where
-  id : String
-  label? : Option Html := none
-  details? : Option Html := none
-  deriving Inhabited, RpcEncodable
-
-structure DigraphDisplay.Edge where
-  source : String
-  target : String
-  label? : Option Html := none
-  details? : Option Html := none
-  deriving Inhabited, RpcEncodable
-
-structure DigraphDisplay.Props where
-  vertices : Array Vertex
-  edges : Array Edge
-  deriving Inhabited, RpcEncodable
-
-@[widget_module]
-def DigraphDisplay : Component DigraphDisplay.Props where
-  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "d3Graph.js"
-
-end ProofWidgets
+#html <DigraphDisplay
+    vertices={#[
+      {id := "a"},
+      {id := "b"}
+    ]}
+    edges={#[
+      {source := "a", target := "b"}
+    ]}
+  />
+#html <DigraphDisplay
+    vertices={#[
+      {id := "a"},
+      {id := "b"},
+      {id := "c"}
+    ]}
+    edges={#[
+      {source := "a", target := "b"}
+    ]}
+  />
+#html <DigraphDisplay
+    vertices={#[
+      {id := "a"},
+      {id := "b"},
+      {id := "c"},
+      {id := "d"},
+      {id := "e"}
+    ]}
+    edges={#[
+      {source := "a", target := "b"},
+      {source := "c", target := "d"},
+      {source := "d", target := "e"},
+      {source := "e", target := "c"}
+    ]}
+  />
