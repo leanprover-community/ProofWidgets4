@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as React from 'react';
-import { OrbitControls } from '@react-three/drei';
 import { Canvas } from '@react-three/fiber';
+import { OrbitControls } from '@react-three/drei';
 
 /*
 Idea: represent the group as
@@ -203,13 +203,15 @@ function Cube(props: CubeProps) {
   </group>
 }
 
+// Note: this widget is broken in development mode
+// but works in the production build.
 export default function (props: any) {
   const seq = props.seq ?? []
   const [t, setT] = React.useState(100)
   return <div style={{ height: 300 }}>
     <input type="range" min="0" max="100" value={t} onChange={e => setT(e.target.value as any)} />
     <div>Sequence: {JSON.stringify(seq)}</div>
-    <Canvas >
+    <Canvas>
       <pointLight position={[150, 150, 150]} intensity={0.55} />
       <ambientLight color={0xffffff} />
       <group rotation-x={Math.PI * 0.25} rotation-y={Math.PI * 0.25}>
