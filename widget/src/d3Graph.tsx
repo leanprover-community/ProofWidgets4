@@ -177,15 +177,9 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
   // TODO: adaptive height
   const svgHeight = 400
 
-  const forcesLink0 = forces0.filter(f => 'link' in f)
-  const forcesOther0 = forces0.filter(f => !('link' in f))
-  const [forcesLink, setForcesLink] = React.useState(forcesLink0)
-  const [forcesOther, setForcesOther] = React.useState(forcesOther0)
-  if (!equal(forcesLink0, forcesLink, { strict: true })) {
-    setForcesLink(forcesLink0)
-  }
-  if (!equal(forcesOther0, forcesOther, { strict: true })) {
-    setForcesOther(forcesOther0)
+  const [forces, setForces] = React.useState(forces0)
+  if (!equal(forces0, forces, { strict: true })) {
+    setForces(forces0)
   }
 
   interface State {
@@ -213,14 +207,8 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
     const sim =
       d3.forceSimulation<SimVertex, SimEdge>(Array.from(state.current.g.vertices.values()))
         .on('tick', () => { onTick() })
-    for (let i = 0; i < forcesLink.length; i++) {
-      sim.force(`link${i}`,
-        d3.forceLink<SimVertex, SimEdge>(Array.from(state.current.g.edges.values()))
-          .id(d => d.id)
-      )
-    }
-    for (let i = 0; i < forcesOther.length; i++) {
-      const f = forcesOther[i]
+    for (let i = 0; i < forces.length; i++) {
+      const f = forces[i]
       let force = null
       if ('center' in f) {
         force = d3.forceCenter(f.center.x, f.center.y)
@@ -229,6 +217,13 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
         force = d3.forceCollide(f.collide.radius)
         if (f.collide.strength !== undefined) force.strength(f.collide.strength)
         if (f.collide.iterations !== undefined) force.iterations(f.collide.iterations)
+      } else if ('link' in f) {
+        force =
+          d3.forceLink<SimVertex, SimEdge>(Array.from(state.current.g.edges.values()))
+            .id(d => d.id)
+        if (f.link.distance !== undefined) force.distance(f.link.distance)
+        if (f.link.strength !== undefined) force.strength(f.link.strength)
+        if (f.link.iterations !== undefined) force.iterations(f.link.iterations)
       } else if ('manyBody' in f) {
         force = d3.forceManyBody()
         if (f.manyBody.strength !== undefined) force.strength(f.manyBody.strength)
@@ -251,7 +246,7 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
   }
 
   /* Update force simulation given new forces. */
-  React.useEffect(() => { simRestart() }, [forcesOther])
+  React.useEffect(() => { simRestart() }, [forces])
 
   /* Update simulation state and selection given new input graph. */
   React.useEffect(() => {

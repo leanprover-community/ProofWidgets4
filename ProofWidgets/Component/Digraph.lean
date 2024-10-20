@@ -34,6 +34,7 @@ structure Edge where
   /-- Attributes to set on the SVG `<line>` element representing this edge. -/
   attrs : Json := json% {
     className: "dim",
+    fill: "var(--vscode-editor-foreground)",
     stroke: "var(--vscode-editor-foreground)",
     strokeWidth: 2
   }
@@ -108,6 +109,7 @@ structure Props where
 
 end DigraphDisplay
 
+/-- Display a directed graph with an interactive force simulation. -/
 @[widget_module]
 def DigraphDisplay : Component DigraphDisplay.Props where
   javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "d3Graph.js"
