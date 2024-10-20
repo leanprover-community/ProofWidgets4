@@ -3,8 +3,14 @@
 This file contains work-in-progress notes for the upcoming release, as well as previous releases.
 Please check the [releases](https://github.com/leanprover-community/ProofWidgets4/releases) page for the build artifacts.
 
-v0.0.31 (development in progress)
+v0.0.44
 -------
+
+* Added `DigraphDisplay` component. It uses [d3-force](https://d3js.org/d3-force) for layout
+  and can accommodate a variety of display styles.
+  See `Demos/Digraph.lean` for more.
+* Added `MarkdownDisplay` component to display Markdown (including LaTeX).
+* Fixed cloud release issue (see [Zulip](https://leanprover.zulipchat.com/#narrow/channel/287929-mathlib4/topic/cache.20and.20proofwidgets)).
 
 v0.0.30
 -------
