@@ -7,6 +7,7 @@ import HtmlDisplay, { Html } from './htmlDisplay'
 interface Vertex {
   id: string
   label: Html
+  radius: number
   details?: Html
 }
 
@@ -276,8 +277,9 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
     React.useEffect(() => {
       const cb = () => {
         if (!ref.current) return
-        const x = state.current.g.vertices.get(v.id)?.x || 0
-        const y = state.current.g.vertices.get(v.id)?.y || 0
+        const verts = state.current.g.vertices
+        const x = verts.get(v.id)?.x || 0
+        const y = verts.get(v.id)?.y || 0
         d3.select<SVGSVGElement, unknown>(ref.current)
           .attr('transform', `translate(${x}, ${y})`)
           .call(
@@ -326,11 +328,20 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
     const ref = React.useRef<SVGLineElement>(null)
     React.useEffect(() => {
       const cb = () => {
+        const verts = state.current.g.vertices
+        const vSrc = verts.get(e.source)
+        const vTgt = verts.get(e.target)
+        const xSrc = vSrc?.x || 0
+        const ySrc = vSrc?.y || 0
+        const xTgt = vTgt?.x || 0
+        const yTgt = vTgt?.y || 0
+        const alpha = Math.atan2(yTgt - ySrc, xTgt - xSrc)
         d3.select(ref.current)
-          .attr('x1', state.current.g.vertices.get(e.source)?.x || 0)
-          .attr('y1', state.current.g.vertices.get(e.source)?.y || 0)
-          .attr('x2', state.current.g.vertices.get(e.target)?.x || 0)
-          .attr('y2', state.current.g.vertices.get(e.target)?.y || 0)
+          .attr('x1', xSrc + Math.cos(alpha) * (vSrc?.radius || 0))
+          .attr('y1', ySrc + Math.sin(alpha) * (vSrc?.radius || 0))
+          /* `+ 2` to accommodate arrowheads. */
+          .attr('x2', xTgt - Math.cos(alpha) * ((vTgt?.radius || 0) + 2))
+          .attr('y2', yTgt - Math.sin(alpha) * ((vTgt?.radius || 0) + 2))
         }
       cb()
       state.current.tickCallbacks.set(eId, cb)
@@ -344,6 +355,7 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
       ref={ref}
       key={Edge.calcId(e)}
       onClick={() => { if (showDetails) setSelection({ type: 'edge', id: eId }) }}
+      markerEnd="url(#arrow)"
     />
   }
 
@@ -357,6 +369,21 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
         height={svgHeight}
         viewBox={`-${svgWidth/2} -${svgHeight/2} ${svgWidth} ${svgHeight}`}
       >
+        <defs>
+          <marker
+            id="arrow"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="3"
+            markerHeight="3"
+            orient="auto-start-reverse"
+          >
+            <g stroke="context-stroke" fill="context-fill">
+              <path d="M 0 0 L 10 5 L 0 10 z" />
+            </g>
+          </marker>
+        </defs>
         <g>{edges.map(e => <EmbedEdge e={e} />)}</g>
         <g>{vertices.map(v => <EmbedVert v={v} />)}</g>
       </svg>

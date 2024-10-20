@@ -18,6 +18,9 @@ structure Vertex where
       stroke="var(--vscode-editor-foreground)"
       strokeWidth={.num 1.5}
     />
+  /-- Radius of a circle bounding this vertex.
+  Used to place incident edge endpoints. -/
+  radius : Float := 5
   /-- Details are shown below the graph display
   after the vertex label has been clicked. -/
   details? : Option Html := none
