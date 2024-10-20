@@ -1,10 +1,10 @@
 import ProofWidgets.Component.Basic
 import ProofWidgets.Data.Html
 
-namespace ProofWidgets
+namespace ProofWidgets.DigraphDisplay
 open Lean Server Jsx
 
-structure DigraphDisplay.Vertex where
+structure Vertex where
   /-- Identifier for this vertex. Must be unique. -/
   id : String
   /-- The label is drawn at the vertex position.
@@ -15,30 +15,95 @@ structure DigraphDisplay.Vertex where
       r={5}
       className="dim"
       fill="var(--vscode-editor-background)"
-      strokeWidth={.num 1.5}
       stroke="var(--vscode-editor-foreground)"
+      strokeWidth={.num 1.5}
     />
   /-- Details are shown below the graph display
   after the vertex label has been clicked. -/
   details? : Option Html := none
   deriving Inhabited, RpcEncodable
 
-structure DigraphDisplay.Edge where
+structure Edge where
   /-- Source vertex. Must match the `id` of one of the vertices. -/
   source : String
   /-- Target vertex. Must match the `id` of one of the vertices. -/
   target : String
+  /-- Attributes to set on the SVG `<line>` element representing this edge. -/
+  attrs : Json := json% {
+    className: "dim",
+    stroke: "var(--vscode-editor-foreground)",
+    strokeWidth: 2
+  }
   /-- Details are shown below the graph display
   after the edge has been clicked. -/
   details? : Option Html := none
   deriving Inhabited, RpcEncodable
 
-structure DigraphDisplay.Props where
+structure ForceCenterParams where
+  x? : Option Float := none
+  y? : Option Float := none
+  strength? : Option Float := none
+  deriving Inhabited, FromJson, ToJson
+
+structure ForceCollideParams where
+  radius? : Option Float := none
+  strength? : Option Float := none
+  iterations? : Option Nat := none
+  deriving Inhabited, FromJson, ToJson
+
+structure ForceLinkParams where
+  distance? : Option Float := none
+  strength? : Option Float := none
+  iterations? : Option Nat := none
+  deriving Inhabited, FromJson, ToJson
+
+structure ForceManyBodyParams where
+  strength? : Option Float := none
+  theta? : Option Float := none
+  distanceMin? : Option Float := none
+  distanceMax? : Option Float := none
+  deriving Inhabited, FromJson, ToJson
+
+structure ForceXParams where
+  x? : Option Float := none
+  strength? : Option Float := none
+  deriving Inhabited, FromJson, ToJson
+
+structure ForceYParams where
+  y? : Option Float := none
+  strength? : Option Float := none
+  deriving Inhabited, FromJson, ToJson
+
+structure ForceRadialParams where
+  radius : Float
+  x? : Option Float := none
+  y? : Option Float := none
+  strength? : Option Float := none
+  deriving Inhabited, FromJson, ToJson
+
+/-- Settings for the simulation of forces on vertices.
+See https://d3js.org/d3-force. -/
+inductive ForceParams where
+  | center : ForceCenterParams → ForceParams
+  | collide : ForceCollideParams → ForceParams
+  | link : ForceLinkParams → ForceParams
+  | manyBody : ForceManyBodyParams → ForceParams
+  | x : ForceXParams → ForceParams
+  | y : ForceYParams → ForceParams
+  | radial : ForceRadialParams → ForceParams
+  deriving Inhabited, FromJson, ToJson
+
+structure Props where
   vertices : Array Vertex
   edges : Array Edge
-  -- TODO: Allow configuring `d3-force` parameters
-  -- TODO: Allow hiding the vertex/edge details element
+  /-- Which forces to apply to the vertices.
+  Most force parameters are optional, using default values if not specified. -/
+  forces : Array ForceParams := #[ .link {}, .manyBody {}, .x {}, .y {} ]
+  /-- Whether to show the details box below the graph. -/
+  showDetails : Bool := true
   deriving Inhabited, RpcEncodable
+
+end DigraphDisplay
 
 @[widget_module]
 def DigraphDisplay : Component DigraphDisplay.Props where

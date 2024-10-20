@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as d3 from 'd3'
+import equal from 'deep-equal'
 import useResizeObserver from 'use-resize-observer'
 import HtmlDisplay, { Html } from './htmlDisplay'
 
@@ -12,6 +13,7 @@ interface Vertex {
 interface Edge {
   source: string
   target: string
+  attrs: any
   details?: Html
 }
 
@@ -106,35 +108,157 @@ export function updateFrom(g: SimGraph, newG: SimGraph): [SimGraph, boolean] {
 }
 }
 
-export default (graph0: Graph) => {
-  const graph = React.useMemo(() => SimGraph.ofGraph(graph0), [graph0])
+interface ForceCenterParams {
+  x?: number
+  y?: number
+  strength?: number
+}
+
+interface ForceCollideParams {
+  radius?: number
+  strength?: number
+  iterations?: number
+}
+
+interface ForceLinkParams {
+  distance?: number
+  strength?: number
+  iterations?: number
+}
+
+interface ForceManyBodyParams {
+  strength?: number
+  theta?: number
+  distanceMin?: number
+  distanceMax?: number
+}
+
+interface ForceXParams {
+  x?: number
+  strength?: number
+}
+
+interface ForceYParams {
+  y?: number
+  strength?: number
+}
+
+interface ForceRadialParams {
+  radius: number
+  x?: number
+  y?: number
+  strength?: number
+}
+
+type ForceParams =
+    { center: ForceCenterParams }
+  | { collide: ForceCollideParams }
+  | { link: ForceLinkParams }
+  | { manyBody: ForceManyBodyParams }
+  | { x: ForceXParams }
+  | { y: ForceYParams }
+  | { radial: ForceRadialParams }
+
+interface Props {
+  vertices: Vertex[]
+  edges: Edge[]
+  forces: ForceParams[]
+  showDetails: boolean
+}
+
+export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
+  const graph = React.useMemo(() => SimGraph.ofGraph({vertices, edges}), [vertices, edges])
   const svgRef = React.useRef<SVGSVGElement>(null)
-  const { ref: setRef, width, height } = useResizeObserver<HTMLDivElement>({
+  const { ref: setRef, width: width_, height: _height } = useResizeObserver<HTMLDivElement>({
     round: Math.floor,
   })
+  const svgWidth = width_ || 400
+  // TODO: adaptive height
+  const svgHeight = 400
 
+  const forcesLink0 = forces0.filter(f => 'link' in f)
+  const forcesOther0 = forces0.filter(f => !('link' in f))
+  const [forcesLink, setForcesLink] = React.useState(forcesLink0)
+  const [forcesOther, setForcesOther] = React.useState(forcesOther0)
+  if (!equal(forcesLink0, forcesLink, { strict: true })) {
+    setForcesLink(forcesLink0)
+  }
+  if (!equal(forcesOther0, forcesOther, { strict: true })) {
+    setForcesOther(forcesOther0)
+  }
+
+  interface State {
+    g: SimGraph
+    sim: d3.Simulation<SimVertex, SimEdge>
+    tickCallbacks: Map<string, () => void>
+  }
+  /** Runs on every tick of the simulation. */
+  const onTick = () => { for (const c of state.current.tickCallbacks.values()) c() }
   /**
    * A common practice in `d3-force` simulations
    * is to store simulation data in the DOM using d3's `__data__` mechanism.
    * However, ensuring correct interactions between this and React is complex.
    * Instead, we store the simulation state and related data here.
    */
-  interface State {
-    g: SimGraph
-    sim: d3.Simulation<SimVertex, SimEdge>
-    tickCallbacks: Map<string, () => void>
-  }
   const state = React.useRef<State>({
     g: SimGraph.empty(),
-    sim: d3.forceSimulation<SimVertex, SimEdge>().force('charge', d3.forceManyBody()).stop(),
+    sim: d3.forceSimulation<SimVertex, SimEdge>().stop(),
     tickCallbacks: new Map(),
   })
-  // Stop the simulation on unmount
+  /* Stop the simulation on unmount. */
   React.useEffect(() => { return () => { state.current.sim.stop() } }, [])
-  /** Reheat and restart the simulation. */
-  const simRestart = () => { state.current.sim.alpha(1).restart() }
-  /** Runs on every tick of the simulation. */
-  const onTick = () => { for (const c of state.current.tickCallbacks.values()) c() }
+  /** Restart the simulation using vertex/edge arrays from the current state. */
+  const simRestart = () => {
+    const sim =
+      d3.forceSimulation<SimVertex, SimEdge>(Array.from(state.current.g.vertices.values()))
+        .on('tick', () => { onTick() })
+    for (let i = 0; i < forcesLink.length; i++) {
+      sim.force(`link${i}`,
+        d3.forceLink<SimVertex, SimEdge>(Array.from(state.current.g.edges.values()))
+          .id(d => d.id)
+      )
+    }
+    for (let i = 0; i < forcesOther.length; i++) {
+      const f = forcesOther[i]
+      let force = null
+      if ('center' in f) {
+        force = d3.forceCenter(f.center.x, f.center.y)
+        if (f.center.strength !== undefined) force.strength (f.center.strength)
+      } else if ('collide' in f) {
+        force = d3.forceCollide(f.collide.radius)
+        if (f.collide.strength !== undefined) force.strength(f.collide.strength)
+        if (f.collide.iterations !== undefined) force.iterations(f.collide.iterations)
+      } else if ('manyBody' in f) {
+        force = d3.forceManyBody()
+        if (f.manyBody.strength !== undefined) force.strength(f.manyBody.strength)
+        if (f.manyBody.theta !== undefined) force.theta(f.manyBody.theta)
+        if (f.manyBody.distanceMin !== undefined) force.distanceMin(f.manyBody.distanceMin)
+        if (f.manyBody.distanceMax !== undefined) force.distanceMax(f.manyBody.distanceMax)
+      } else if ('x' in f) {
+        force = d3.forceX(f.x.x)
+        if (f.x.strength !== undefined) force.strength(f.x.strength)
+      } else if ('y' in f) {
+        force = d3.forceY(f.y.y)
+        if (f.y.strength !== undefined) force.strength(f.y.strength)
+      } else if ('radial' in f) {
+        force = d3.forceRadial(f.radial.radius, f.radial.x, f.radial.y)
+        if (f.radial.strength !== undefined) force.strength(f.radial.strength)
+      }
+      sim.force(`force${i}`, force)
+    }
+    state.current.sim = sim
+  }
+
+  /* Update force simulation given new forces. */
+  React.useEffect(() => { simRestart() }, [forcesOther])
+
+  /* Update simulation state and selection given new input graph. */
+  React.useEffect(() => {
+    const [g, changed] = SimGraph.updateFrom(state.current.g, graph)
+    state.current.g = g
+    if (!changed) return
+    simRestart()
+  }, [graph])
 
   /** A selected element in the graph. */
   type Selection =
@@ -143,33 +267,9 @@ export default (graph0: Graph) => {
     { type: 'edge', id: string }
   const [selection, setSelection] = React.useState<Selection>({ type: 'none' })
   if ((selection.type === 'vertex' && !graph.vertices.has(selection.id)) ||
-    (selection.type === 'edge' && !graph.edges.has(selection.id))) {
+      (selection.type === 'edge' && !graph.edges.has(selection.id))) {
     setSelection({ type: 'none' })
   }
-
-  /* Update simulation state and selection given new input graph. */
-  React.useEffect(() => {
-    const [g, changed] = SimGraph.updateFrom(state.current.g, graph)
-    state.current.g = g
-    if (!changed) return
-    state.current.sim.nodes(Array.from(g.vertices.values()))
-      .force('link',
-        d3.forceLink<SimVertex, SimEdge>(Array.from(g.edges.values()))
-        .id(d => d.id))
-      .on('tick', () => { onTick() })
-    simRestart()
-  }, [graph])
-
-  /* Update simulation targets given new dimensions. */
-  React.useEffect(() => {
-    if (!width || !height) return
-    const [midX, midY] = [width / 2, height / 2]
-    state.current.sim
-      .force('center', d3.forceCenter(midX, midY))
-      .force('x', d3.forceX(midX))
-      .force('y', d3.forceY(midY))
-    simRestart()
-  }, [width, height])
 
   const EmbedVert = ({v}: {v: Vertex}) => {
     const ref = React.useRef<SVGSVGElement>(null)
@@ -215,7 +315,7 @@ export default (graph0: Graph) => {
     return <g
       ref={ref}
       key={v.id}
-      onClick={() => { setSelection({ type: 'vertex', id: v.id }) }}
+      onClick={() => { if (showDetails) setSelection({ type: 'vertex', id: v.id }) }}
     >
       <HtmlDisplay html={v.label} />
     </g>
@@ -240,10 +340,10 @@ export default (graph0: Graph) => {
       }
     }, [])
     return <line
+      {...e.attrs}
       ref={ref}
       key={Edge.calcId(e)}
-      className='dim'
-      onClick={() => { setSelection({ type: 'edge', id: eId }) }}
+      onClick={() => { if (showDetails) setSelection({ type: 'edge', id: eId }) }}
     />
   }
 
@@ -253,27 +353,23 @@ export default (graph0: Graph) => {
     >
       <svg
         ref={svgRef}
-        width={width || 400}
-        // TODO: adaptive height
-        height={400}
-        viewBox={`0 0 ${width || 400} ${400}`}
+        width={svgWidth}
+        height={svgHeight}
+        viewBox={`-${svgWidth/2} -${svgHeight/2} ${svgWidth} ${svgHeight}`}
       >
-        <g stroke='var(--vscode-editor-foreground)' strokeWidth={2}>
-          {graph0.edges.map(e => <EmbedEdge e={e} />)}
-        </g>
-        <g>
-          {graph0.vertices.map(v => <EmbedVert v={v} />)}
-        </g>
+        <g>{edges.map(e => <EmbedEdge e={e} />)}</g>
+        <g>{vertices.map(v => <EmbedVert v={v} />)}</g>
       </svg>
-      <div className="pa1 ba bw1">
-        {selection.type === 'none' ?
+      {showDetails &&
+        <div className="pa1 ba bw1">
+          {selection.type === 'none' ?
           'Click a vertex or an edge to learn more about it.' :
           selection.type === 'vertex' ?
           <HtmlDisplay html={state.current.g.vertices.get(selection.id)?.details ||
             {text: `Vertex '${selection.id}' has no details.`}} /> :
           <HtmlDisplay html={state.current.g.edges.get(selection.id)?.details ||
             {text: `Edge '${selection.id}' has no details.`}} />}
-      </div>
+        </div>}
     </div>
   )
 }
