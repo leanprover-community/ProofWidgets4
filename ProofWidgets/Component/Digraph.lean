@@ -104,7 +104,7 @@ structure Props where
   Most force parameters are optional, using default values if not specified. -/
   forces : Array ForceParams := #[ .link {}, .manyBody {}, .x {}, .y {} ]
   /-- Whether to show the details box below the graph. -/
-  showDetails : Bool := true
+  showDetails : Bool := false
   deriving Inhabited, RpcEncodable
 
 end DigraphDisplay
