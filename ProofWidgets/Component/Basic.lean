@@ -87,6 +87,27 @@ def InteractiveMessage : Component InteractiveMessageProps where
     }
   "
 
+structure MarkdownDisplay.Props where
+  contents : String
+  deriving ToJson, FromJson
+
+/-- Render a given string as Markdown.
+LaTeX is supported with MathJax:
+use `$...$` for inline math,
+and `$$...$$` for displayed math.
+
+Example usage:
+```lean
+<MarkdownDisplay contents={"$a + b = c$"} />
+``` -/
+@[widget_module]
+def MarkdownDisplay : Component MarkdownDisplay.Props where
+  javascript := "
+    import { Markdown } from '@leanprover/infoview'
+    import * as React from 'react'
+    export default (props) => React.createElement(Markdown, props)
+  "
+
 end ProofWidgets
 
 /-- Construct a structured message from a ProofWidgets component.

@@ -1,7 +1,7 @@
 import * as React from 'react';
 import Tree from 'react-d3-tree';
+import type { RawNodeDatum, CustomNodeElementProps } from 'react-d3-tree';
 import { CodeWithInfos, DocumentPosition, InteractiveCode } from '@leanprover/infoview';
-import type { RawNodeDatum, CustomNodeElementProps } from 'react-d3-tree/lib/types/types/common';
 
 type RBTreeVarsColour =
   'red' | 'black' | 'blue'
@@ -65,7 +65,6 @@ export default function ({ pos, tree }: { pos: DocumentPosition, tree: RBTreeVar
     if (t != null) { return }
     const b = elt.getBoundingClientRect()
     if (!b.width || !b.height) { return }
-    console.log("b: ", b)
     setT({ x: b.width / 2, y: 20 })
 
   })
