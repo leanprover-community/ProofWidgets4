@@ -33,7 +33,7 @@ def isvg : InteractiveSvg State where
             ]
           | _, _ => #[]
         let circles := (state.mapIdx fun idx (p : Float × Float) =>
-              Svg.circle p (.abs 0.2) |>.setFill (0.7,0.7,0.7) |>.setId s!"circle{idx}" |>.setData idx.1
+              Svg.circle p (.abs 0.2) |>.setFill (0.7,0.7,0.7) |>.setId s!"circle{idx}" |>.setData idx
             )
         mousePointer.append circles
     }
