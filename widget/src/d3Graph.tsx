@@ -15,6 +15,7 @@ interface Edge {
   source: string
   target: string
   attrs: any
+  label?: Html
   details?: Html
 }
 
@@ -185,7 +186,7 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
   interface State {
     g: SimGraph
     sim: d3.Simulation<SimVertex, SimEdge>
-    tickCallbacks: Map<string, () => void>
+    tickCallbacks: Map<() => void, () => void>
   }
   /** Runs on every tick of the simulation. */
   const onTick = () => { for (const c of state.current.tickCallbacks.values()) c() }
@@ -302,17 +303,14 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
           )
       }
       cb()
-      state.current.tickCallbacks.set(v.id, cb)
-      return () => {
-        if (state.current.tickCallbacks.get(v.id) === cb)
-          state.current.tickCallbacks.delete(v.id)
-      }
+      state.current.tickCallbacks.set(cb, cb)
+      return () => { state.current.tickCallbacks.delete(cb) }
     }, [])
     // https://stackoverflow.com/a/479643
     return <g
       ref={ref}
       key={v.id}
-      onClick={() => { if (showDetails) setSelection({ type: 'vertex', id: v.id }) }}
+      onClick={() => { if (showDetails && v.details) setSelection({ type: 'vertex', id: v.id }) }}
     >
       <HtmlDisplay html={v.label} />
     </g>
@@ -320,7 +318,8 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
 
   const EmbedEdge = ({e}: {e: Edge}) => {
     const eId = Edge.calcId(e)
-    const ref = React.useRef<SVGLineElement>(null)
+    const lineRef = React.useRef<SVGLineElement>(null)
+    const labelGRef = React.useRef<SVGGElement>(null)
     React.useEffect(() => {
       const cb = () => {
         const verts = state.current.g.vertices
@@ -331,27 +330,30 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
         const xTgt = vTgt?.x || 0
         const yTgt = vTgt?.y || 0
         const alpha = Math.atan2(yTgt - ySrc, xTgt - xSrc)
-        d3.select(ref.current)
+        d3.select(lineRef.current)
           .attr('x1', xSrc + Math.cos(alpha) * (vSrc?.radius || 0))
           .attr('y1', ySrc + Math.sin(alpha) * (vSrc?.radius || 0))
           /* `+ 2` to accommodate arrowheads. */
           .attr('x2', xTgt - Math.cos(alpha) * ((vTgt?.radius || 0) + 2))
           .attr('y2', yTgt - Math.sin(alpha) * ((vTgt?.radius || 0) + 2))
-        }
-      cb()
-      state.current.tickCallbacks.set(eId, cb)
-      return () => {
-        if (state.current.tickCallbacks.get(eId) === cb)
-          state.current.tickCallbacks.delete(eId)
+        d3.select(labelGRef.current)
+          .attr('transform', `translate(${(xSrc + xTgt) / 2}, ${(ySrc + yTgt) / 2})`)
       }
+      cb()
+      state.current.tickCallbacks.set(cb, cb)
+      return () => { state.current.tickCallbacks.delete(cb) }
     }, [])
-    return <line
-      {...e.attrs}
-      ref={ref}
-      key={Edge.calcId(e)}
-      onClick={() => { if (showDetails) setSelection({ type: 'edge', id: eId }) }}
-      markerEnd="url(#arrow)"
-    />
+    return <g key={Edge.calcId(e)}>
+      <line
+        {...e.attrs}
+        ref={lineRef}
+        onClick={() => { if (showDetails && e.details) setSelection({ type: 'edge', id: eId }) }}
+        markerEnd="url(#arrow)"
+      />
+      <g ref={labelGRef}>
+        {e.label && <HtmlDisplay html={e.label} />}
+      </g>
+    </g>
   }
 
   return (

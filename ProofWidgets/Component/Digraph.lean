@@ -38,6 +38,10 @@ structure Edge where
     stroke: "var(--vscode-editor-foreground)",
     strokeWidth: 2
   }
+  /-- If present, the label is shown over the edge midpoint.
+  This must be an SVG element.
+  Use `<foreignObject>` to draw non-SVG elements. -/
+  label? : Option Html := none
   /-- Details are shown below the graph display
   after the edge has been clicked. -/
   details? : Option Html := none

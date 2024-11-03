@@ -57,7 +57,33 @@ def K₁₀ := complete 10
     edges={#[{ source := "a", target := "b" }]}
   />
 
-/-! ### Extra details -/
+/-! ### Edge labels
+
+Arbitrary SVG elements can be used as edge labels. -/
+
+#html <DigraphDisplay
+    vertices={#["a", "b", "c"].map ({ id := ·})}
+    edges={#[
+      { source := "a", target := "b"
+        -- Specify a label here.
+        label? := <g>
+          {DigraphDisplay.mkCircle #[("r", "10")]}
+          <text textAnchor="middle" dominantBaseline="middle">1</text>
+        </g>
+      },
+      { source := "b", target := "c"
+        -- Use `<foreignObject>` to draw non-SVG elements.
+        label? := <foreignObject height={50} width={50}>
+          -- TODO: the extra `<p>` node messes up positioning
+          <MarkdownDisplay contents="$e_2$" />
+        </foreignObject>
+      }
+    ]}
+    forces={#[
+      .link { distance? := some 100 }
+    ]}
+  />
+
 
 #html <DigraphDisplay
     vertices={#[
