@@ -4,25 +4,29 @@ import ProofWidgets.Data.Html
 namespace ProofWidgets.DigraphDisplay
 open Lean Server Jsx
 
+/-- A themed `<circle>` SVG element, with optional extra attributes. -/
+def mkCircle (attrs : Array (String × Json) := #[]) : Html :=
+  <circle
+    r={5}
+    fill="var(--vscode-editor-background)"
+    stroke="var(--vscode-editor-foreground)"
+    strokeWidth={.num 1.5}
+    {...attrs}
+  />
+
 structure Vertex where
   /-- Identifier for this vertex. Must be unique. -/
   id : String
   /-- The label is drawn at the vertex position.
   This must be an SVG element.
   Use `<foreignObject>` to draw non-SVG elements. -/
-  label : Html :=
-    <circle
-      r={5}
-      className="dim"
-      fill="var(--vscode-editor-background)"
-      stroke="var(--vscode-editor-foreground)"
-      strokeWidth={.num 1.5}
-    />
+  label : Html := mkCircle
   /-- Radius of a circle bounding this vertex.
   Used to place incident edge endpoints. -/
   radius : Float := 5
   /-- Details are shown below the graph display
-  after the vertex label has been clicked. -/
+  after the vertex label has been clicked.
+  See also `Props.showDetails`. -/
   details? : Option Html := none
   deriving Inhabited, RpcEncodable
 
@@ -31,19 +35,16 @@ structure Edge where
   source : String
   /-- Target vertex. Must match the `id` of one of the vertices. -/
   target : String
-  /-- Attributes to set on the SVG `<line>` element representing this edge. -/
-  attrs : Json := json% {
-    className: "dim",
-    fill: "var(--vscode-editor-foreground)",
-    stroke: "var(--vscode-editor-foreground)",
-    strokeWidth: 2
-  }
+  /-- Extra attributes to set on the SVG `<line>` element representing this edge.
+  See also `Props.defaultEdgeAttrs`. -/
+  attrs : Array (String × Json) := #[]
   /-- If present, the label is shown over the edge midpoint.
   This must be an SVG element.
   Use `<foreignObject>` to draw non-SVG elements. -/
   label? : Option Html := none
   /-- Details are shown below the graph display
-  after the edge has been clicked. -/
+  after the edge has been clicked.
+  See also `Props.showDetails`. -/
   details? : Option Html := none
   deriving Inhabited, RpcEncodable
 
@@ -104,10 +105,17 @@ inductive ForceParams where
 structure Props where
   vertices : Array Vertex
   edges : Array Edge
+  /-- Attributes to set by default on `<line>` elements representing edges. -/
+  defaultEdgeAttrs : Array (String × Json) := #[
+    ("fill", "var(--vscode-editor-foreground)"),
+    ("stroke", "var(--vscode-editor-foreground)"),
+    ("strokeWidth", 2),
+    ("markerEnd", "url(#arrow)")
+  ]
   /-- Which forces to apply to the vertices.
   Most force parameters are optional, using default values if not specified. -/
   forces : Array ForceParams := #[ .link {}, .manyBody {}, .x {}, .y {} ]
-  /-- Whether to show the details box below the graph. -/
+  /-- Whether to show a details box below the graph. -/
   showDetails : Bool := false
   deriving Inhabited, RpcEncodable
 

@@ -14,7 +14,7 @@ interface Vertex {
 interface Edge {
   source: string
   target: string
-  attrs: any
+  attrs: [string, any][]
   label?: Html
   details?: Html
 }
@@ -164,11 +164,12 @@ type ForceParams =
 interface Props {
   vertices: Vertex[]
   edges: Edge[]
+  defaultEdgeAttrs: [string, any][]
   forces: ForceParams[]
   showDetails: boolean
 }
 
-export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
+export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails}: Props) => {
   const graph = React.useMemo(() => SimGraph.ofGraph({vertices, edges}), [vertices, edges])
   const svgRef = React.useRef<SVGSVGElement>(null)
   const { ref: setRef, width: width_, height: _height } = useResizeObserver<HTMLDivElement>({
@@ -345,10 +346,10 @@ export default ({vertices, edges, forces: forces0, showDetails}: Props) => {
     }, [])
     return <g key={Edge.calcId(e)}>
       <line
-        {...e.attrs}
+        {...defaultEdgeAttrs.reduce((o, [k, v]) => ({ ...o, [k]: v }), {})}
+        {...e.attrs.reduce((o, [k, v]) => ({ ...o, [k]: v }), {})}
         ref={lineRef}
         onClick={() => { if (showDetails && e.details) setSelection({ type: 'edge', id: eId }) }}
-        markerEnd="url(#arrow)"
       />
       <g ref={labelGRef}>
         {e.label && <HtmlDisplay html={e.label} />}

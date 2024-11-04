@@ -15,7 +15,10 @@ def mkEdge (st : String × String) : DigraphDisplay.Edge := {source := st.1, tar
     edges={#[("b","c"), ("d","e"), ("e","f"), ("f","d")].map mkEdge}
   />
 
-/-! ### Custom layout -/
+/-! ### Custom layout
+
+Forces acting on the vertices can be customized
+in order to control graph layout. -/
 
 def complete (n : Nat) : Array DigraphDisplay.Vertex × Array DigraphDisplay.Edge := Id.run do
   let mut verts := #[]
@@ -32,18 +35,20 @@ def K₁₀ := complete 10
 #html <DigraphDisplay
     vertices={K₁₀.1}
     edges={K₁₀.2}
-    -- Specify forces to control graph layout.
+    -- Specify forces here.
     forces={#[
       .link { distance? := some 150 }
     ]}
   />
 
-/-! ### Styling -/
+/-! ### Vertex labels
+
+Arbitrary SVG elements can be used as vertex labels. -/
 
 #html <DigraphDisplay
     vertices={#[
       { id := "a"
-        -- Arbitrary SVG elements can be used as vertex labels.
+        -- Specify a label here.
         label := <circle r={5} fill="#ff0000" />
       },
       { id := "b"
@@ -84,14 +89,27 @@ Arbitrary SVG elements can be used as edge labels. -/
     ]}
   />
 
+/-! ### Extra details
+
+A details box with extra information can be displayed below the graph.
+Click on vertices and edges to view their details. -/
 
 #html <DigraphDisplay
     vertices={#[
-      { id := "a", details? := Html.text "Vertex a." },
-      { id := "b", details? := <b>Vertex b.</b> }
+      { id := "a"
+        -- Specify details here.
+        details? := Html.text "Vertex a."
+        -- Add class to indicate clickability.
+        label := DigraphDisplay.mkCircle #[("className", "dim")]
+      },
+      { id := "b" }
     ]}
-    edges={ #[ { source := "a", target := "b", details? := Html.text "Edge a → b." } ] }
-    -- Use this to display a details box with extra information
-    -- about vertices and edges.
+    edges={#[
+      { source := "a", target := "b"
+        details? := Html.text "Edge a → b."
+        attrs := #[("className", "dim"), ("strokeWidth", 3)]
+      }
+    ]}
+    -- Set this to display details.
     showDetails={true}
   />
