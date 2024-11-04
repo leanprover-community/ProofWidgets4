@@ -1,7 +1,7 @@
 import ProofWidgets.Component.Basic
 import ProofWidgets.Data.Html
 
-namespace ProofWidgets.DigraphDisplay
+namespace ProofWidgets.GraphDisplay
 open Lean Server Jsx
 
 /-- A themed `<circle>` SVG element, with optional extra attributes. -/
@@ -104,6 +104,9 @@ inductive ForceParams where
 
 structure Props where
   vertices : Array Vertex
+  /-- At most one edge may exist between any two vertices.
+  Self-loops are allowed,
+  but (TODO) are currently not rendered well. -/
   edges : Array Edge
   /-- Attributes to set by default on `<line>` elements representing edges. -/
   defaultEdgeAttrs : Array (String × Json) := #[
@@ -119,11 +122,11 @@ structure Props where
   showDetails : Bool := false
   deriving Inhabited, RpcEncodable
 
-end DigraphDisplay
+end GraphDisplay
 
-/-- Display a directed graph with an interactive force simulation. -/
+/-- Display a graph with an interactive force simulation. -/
 @[widget_module]
-def DigraphDisplay : Component DigraphDisplay.Props where
+def GraphDisplay : Component GraphDisplay.Props where
   javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "d3Graph.js"
 
 end ProofWidgets

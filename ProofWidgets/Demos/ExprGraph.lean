@@ -1,4 +1,4 @@
-import ProofWidgets.Component.Digraph
+import ProofWidgets.Component.GraphDisplay
 import ProofWidgets.Component.HtmlDisplay
 import Lean.Util.FoldConsts
 
@@ -20,7 +20,7 @@ def elabExprGraphCmd : CommandElab := fun
       let some bb := env.find? b | continue
       if bb.getUsedConstantsAsSet.contains a then
         edges := edges.insert (toString a, toString b)
-    let mut nodesWithInfos : Array DigraphDisplay.Vertex := #[]
+    let mut nodesWithInfos : Array GraphDisplay.Vertex := #[]
     let mut maxRadius := 10
     for node in nodes.toArray do
       let some c := env.find? node | continue
@@ -31,7 +31,7 @@ def elabExprGraphCmd : CommandElab := fun
       let node := toString node
       let rx := node.length * 3
       maxRadius := Nat.max maxRadius rx
-      let newNode : DigraphDisplay.Vertex := {
+      let newNode : GraphDisplay.Vertex := {
         id := node
         label :=
           <g>
@@ -57,7 +57,7 @@ def elabExprGraphCmd : CommandElab := fun
             </span>
       }
       nodesWithInfos := nodesWithInfos.push newNode
-    let html : Html := <DigraphDisplay
+    let html : Html := <GraphDisplay
       vertices={nodesWithInfos}
       edges={edges.fold (init := #[]) fun acc (a,b) => acc.push {source := a, target := b}}
       forces={#[

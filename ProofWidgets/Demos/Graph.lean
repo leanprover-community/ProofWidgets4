@@ -1,16 +1,16 @@
-import ProofWidgets.Component.Digraph
+import ProofWidgets.Component.GraphDisplay
 import ProofWidgets.Component.HtmlDisplay
 
-/-! ## Directed graphs with `DigraphDisplay` -/
+/-! ## Directed graphs with `GraphDisplay` -/
 
 open ProofWidgets Jsx
 
 /-! ### Basic usage -/
 
-def mkEdge (st : String × String) : DigraphDisplay.Edge := {source := st.1, target := st.2}
+def mkEdge (st : String × String) : GraphDisplay.Edge := {source := st.1, target := st.2}
 
 -- Place your cursor here.
-#html <DigraphDisplay
+#html <GraphDisplay
     vertices={#["a", "b", "c", "d", "e", "f"].map ({id := ·})}
     edges={#[("b","c"), ("d","e"), ("e","f"), ("f","d")].map mkEdge}
   />
@@ -20,7 +20,7 @@ def mkEdge (st : String × String) : DigraphDisplay.Edge := {source := st.1, tar
 Forces acting on the vertices can be customized
 in order to control graph layout. -/
 
-def complete (n : Nat) : Array DigraphDisplay.Vertex × Array DigraphDisplay.Edge := Id.run do
+def complete (n : Nat) : Array GraphDisplay.Vertex × Array GraphDisplay.Edge := Id.run do
   let mut verts := #[]
   let mut edges := #[]
   for i in [:n] do
@@ -32,7 +32,7 @@ def complete (n : Nat) : Array DigraphDisplay.Vertex × Array DigraphDisplay.Edg
 
 def K₁₀ := complete 10
 
-#html <DigraphDisplay
+#html <GraphDisplay
     vertices={K₁₀.1}
     edges={K₁₀.2}
     -- Specify forces here.
@@ -45,7 +45,7 @@ def K₁₀ := complete 10
 
 Arbitrary SVG elements can be used as vertex labels. -/
 
-#html <DigraphDisplay
+#html <GraphDisplay
     vertices={#[
       { id := "a"
         -- Specify a label here.
@@ -66,13 +66,13 @@ Arbitrary SVG elements can be used as vertex labels. -/
 
 Arbitrary SVG elements can be used as edge labels. -/
 
-#html <DigraphDisplay
+#html <GraphDisplay
     vertices={#["a", "b", "c"].map ({ id := ·})}
     edges={#[
       { source := "a", target := "b"
         -- Specify a label here.
         label? := <g>
-          {DigraphDisplay.mkCircle #[("r", "10")]}
+          {GraphDisplay.mkCircle #[("r", "10")]}
           <text textAnchor="middle" dominantBaseline="middle">1</text>
         </g>
       },
@@ -94,13 +94,13 @@ Arbitrary SVG elements can be used as edge labels. -/
 A details box with extra information can be displayed below the graph.
 Click on vertices and edges to view their details. -/
 
-#html <DigraphDisplay
+#html <GraphDisplay
     vertices={#[
       { id := "a"
         -- Specify details here.
         details? := Html.text "Vertex a."
         -- Add class to indicate clickability.
-        label := DigraphDisplay.mkCircle #[("className", "dim")]
+        label := GraphDisplay.mkCircle #[("className", "dim")]
       },
       { id := "b" }
     ]}

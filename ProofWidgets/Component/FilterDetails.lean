@@ -1,6 +1,7 @@
 import ProofWidgets.Data.Html
 
-open Lean ProofWidgets
+namespace ProofWidgets
+open Lean
 
 /-- Props for the `FilterDetails` component. -/
 structure FilterDetailsProps where
@@ -20,3 +21,5 @@ that allows you to switch between filtered and unfiltered states. -/
 @[widget_module]
 def FilterDetails : Component FilterDetailsProps where
   javascript := include_str ".." /  ".." / ".lake" / "build" / "js" / "filterDetails.js"
+
+end ProofWidgets
