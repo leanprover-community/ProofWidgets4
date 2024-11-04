@@ -46,10 +46,13 @@ declare_syntax_cat jsxAttr
 declare_syntax_cat jsxAttrVal
 
 scoped syntax str : jsxAttrVal
-/-- Interpolates an expression into a JSX attribute literal -/
+/-- Interpolates an expression into a JSX attribute literal. -/
 scoped syntax group("{" term "}") : jsxAttrVal
 scoped syntax ident "=" jsxAttrVal : jsxAttr
-/-- Interpolates an array of expressions into a JSX attribute literal -/
+/-- Interpolates a collection into a JSX attribute literal.
+For HTML tags, this should have type `Array (String × Json)`.
+For `ProofWidgets.Component`s, it can be any structure `$t` whatsoever:
+it is interpolated into the component's props using `{ $t with ... }` notation. -/
 scoped syntax group(" {..." term "}") : jsxAttr
 
 /-- Characters not allowed inside JSX plain text. -/
@@ -148,7 +151,7 @@ def transformTag (tk : Syntax) (n m : Ident) (vs : Array (TSyntax `jsxAttr))
   else
     let vs ← joinArrays <| ← foldInlsM vs (fun vs' => do
       let vs' ← vs'.mapM (fun (k, v) =>
-        `(term| ($(quote <| toString k.getId), $v)))
+        `(term| ($(quote <| toString k.getId), ($v : Json))))
       `(term| #[$vs',*]))
     `(Html.element $(quote tag) $vs $children)
 
@@ -156,8 +159,8 @@ def transformTag (tk : Syntax) (n m : Ident) (vs : Array (TSyntax `jsxAttr))
 similarly to [JSX](https://react.dev/learn/writing-markup-with-jsx) in JavaScript. The syntax is
 enabled using `open scoped ProofWidgets.Jsx`.
 
-Lowercase tags are interpreted as standard HTML whereas uppercase ones are expected to be
-`ProofWidgets.Component`s. -/
+Lowercase tags are interpreted as standard HTML
+whereas uppercase ones are expected to be `ProofWidgets.Component`s. -/
 macro_rules
   | `(<$n:ident $[$attrs:jsxAttr]* />%$tk) => transformTag tk n n attrs #[]
   | `(<$n:ident $[$attrs:jsxAttr]* >%$tk $cs*</$m>) => transformTag tk n m attrs cs
