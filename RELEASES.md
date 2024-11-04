@@ -3,6 +3,13 @@
 This file contains work-in-progress notes for the upcoming release, as well as previous releases.
 Please check the [releases](https://github.com/leanprover-community/ProofWidgets4/releases) page for the build artifacts.
 
+v0.0.45
+-------
+
+* Renamed `DigraphDisplay` to `GraphDisplay`.
+  Undirected graphs can be rendered by turning off arrowheads.
+* Added support for edge labels and more customization to `GraphDisplay`.
+
 v0.0.44
 -------
 
