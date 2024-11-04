@@ -157,9 +157,9 @@ def polygon {f} (pts : Array (Point f)) : Element f := { shape := .polygon pts }
 end Svg
 
 def mkIdToIdx {f} (elements : Array (Svg.Element f)) : Std.HashMap String (Fin elements.size) :=
-  let idToIdx := (elements
-    |>.mapIdx (λ idx el => (idx,el))) -- zip with index
-    |>.filterMap (λ (idx,el) => el.id.map (λ id => (id,idx))) -- keep only elements with specified id
+  let idToIdx := elements
+    |>.mapFinIdx (λ idx el => (idx, el)) -- zip with index
+    |>.filterMap (λ (idx,el) => el.id.map (λ id => (id, idx))) -- keep only elements with specified id
     |>.toList
     |> Std.HashMap.ofList
   idToIdx
