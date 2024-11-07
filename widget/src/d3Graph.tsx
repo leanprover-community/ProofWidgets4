@@ -344,12 +344,14 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
       state.current.tickCallbacks.set(cb, cb)
       return () => { state.current.tickCallbacks.delete(cb) }
     }, [])
-    return <g key={Edge.calcId(e)}>
+    return <g
+      key={Edge.calcId(e)}
+      onClick={() => { if (showDetails && e.details) setSelection({ type: 'edge', id: eId }) }}
+    >
       <line
         {...defaultEdgeAttrs.reduce((o, [k, v]) => ({ ...o, [k]: v }), {})}
         {...e.attrs.reduce((o, [k, v]) => ({ ...o, [k]: v }), {})}
         ref={lineRef}
-        onClick={() => { if (showDetails && e.details) setSelection({ type: 'edge', id: eId }) }}
       />
       <g ref={labelGRef}>
         {e.label && <HtmlDisplay html={e.label} />}
