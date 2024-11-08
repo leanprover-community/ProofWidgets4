@@ -66,6 +66,7 @@ def elabExprGraphCmd : CommandElab := fun
         .x { strength? := some 0.05 },
         .y { strength? := some 0.05 }
       ]}
+      showDetails={true}
     />
     Widget.savePanelWidgetInfo
       (hash HtmlDisplayPanel.javascript)
