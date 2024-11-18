@@ -43,7 +43,7 @@ def elabExprGraphCmd : CommandElab := fun
             />
             <text x={s!"-{rx}"} y="5" className="font-code">{.text node}</text>
           </g>
-        radius := 15
+        boundingShape := .rect (rx*4).toFloat 20
         details? :=
           match doc? with
           | some d =>
