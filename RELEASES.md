@@ -3,6 +3,11 @@
 This file contains work-in-progress notes for the upcoming release, as well as previous releases.
 Please check the [releases](https://github.com/leanprover-community/ProofWidgets4/releases) page for the build artifacts.
 
+v0.0.47 (WIP)
+-------
+* Generalized `GraphDisplay.Vertex.radius` to `GraphDisplay.Vertex.boundingShape`.
+* Added demo of metavariable graph display in tactic proofs.
+
 v0.0.46
 -------
 
