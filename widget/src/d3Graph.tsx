@@ -4,10 +4,14 @@ import equal from 'deep-equal'
 import useResizeObserver from 'use-resize-observer'
 import HtmlDisplay, { Html } from './htmlDisplay'
 
+type BoundingShape =
+  { circle: { radius: number } } |
+  { rect: { width: number, height: number } }
+
 interface Vertex {
   id: string
   label: Html
-  radius: number
+  boundingShape: BoundingShape
   details?: Html
 }
 
@@ -37,6 +41,7 @@ interface SimEdge extends d3.SimulationLinkDatum<SimVertex> {
   id: string
   source: Vertex | string | number
   target: Vertex | string | number
+  attrs: [string, any][]
   label?: Html
   details?: Html
 }
@@ -84,6 +89,7 @@ export function updateFrom(g: SimGraph, newG: SimGraph): [SimGraph, boolean] {
       changed = true
     } else {
       oldV.label = v.label
+      oldV.boundingShape = v.boundingShape
       oldV.details = v.details
       newG.vertices.set(vId, oldV)
     }
@@ -93,6 +99,7 @@ export function updateFrom(g: SimGraph, newG: SimGraph): [SimGraph, boolean] {
     if (!oldE) {
       changed = true
     } else {
+      oldE.attrs = e.attrs
       oldE.label = e.label
       oldE.details = e.details
       newG.edges.set(eId, oldE)
@@ -326,17 +333,31 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
         const verts = state.current.g.vertices
         const vSrc = verts.get(e.source)
         const vTgt = verts.get(e.target)
-        const xSrc = vSrc?.x || 0
-        const ySrc = vSrc?.y || 0
-        const xTgt = vTgt?.x || 0
-        const yTgt = vTgt?.y || 0
-        const alpha = Math.atan2(yTgt - ySrc, xTgt - xSrc)
-        d3.select(lineRef.current)
-          .attr('x1', xSrc + Math.cos(alpha) * (vSrc?.radius || 0))
-          .attr('y1', ySrc + Math.sin(alpha) * (vSrc?.radius || 0))
-          /* `+ 2` to accommodate arrowheads. */
-          .attr('x2', xTgt - Math.cos(alpha) * ((vTgt?.radius || 0) + 2))
-          .attr('y2', yTgt - Math.sin(alpha) * ((vTgt?.radius || 0) + 2))
+        if (!vSrc || !vTgt) return
+        const xSrc = vSrc.x || 0
+        const ySrc = vSrc.y || 0
+        const xTgt = vTgt.x || 0
+        const yTgt = vTgt.y || 0
+        if (lineRef.current) {
+          const alpha = Math.atan2(yTgt - ySrc, xTgt - xSrc)
+          // Compute the offset of the arrow endpoint from the vertex position.
+          const calcOffset = (v: SimVertex, alpha: number): number => {
+            if ('rect' in v.boundingShape) {
+              const a = v.boundingShape.rect.width/(2*Math.abs(Math.cos(alpha)))
+              const b = v.boundingShape.rect.height/(2*Math.abs(Math.sin(alpha)))
+              return Math.min(a, b)
+            } else if ('circle' in v.boundingShape) {
+              return v.boundingShape.circle.radius
+            }
+            return 0
+          }
+          d3.select(lineRef.current)
+            .attr('x1', xSrc + Math.cos(alpha) * calcOffset(vSrc, alpha))
+            .attr('y1', ySrc + Math.sin(alpha) * calcOffset(vSrc, alpha))
+            /* `+ 2` to accommodate arrowheads. */
+            .attr('x2', xTgt - Math.cos(alpha) * (calcOffset(vTgt, alpha) + 2))
+            .attr('y2', yTgt - Math.sin(alpha) * (calcOffset(vTgt, alpha) + 2))
+        }
         d3.select(labelGRef.current)
           .attr('transform', `translate(${(xSrc + xTgt) / 2}, ${(ySrc + yTgt) / 2})`)
       }

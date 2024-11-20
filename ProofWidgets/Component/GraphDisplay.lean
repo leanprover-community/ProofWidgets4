@@ -14,6 +14,17 @@ def mkCircle (attrs : Array (String × Json) := #[]) : Html :=
     {...attrs}
   />
 
+/-- A shape containing the vertex label.
+Used to position incident edge endpoints.
+The shape is assumed to be centred on the vertex position. -/
+-- TODO: use `getBoundingClientRect` to dynamically compute size
+inductive BoundingShape where
+  /-- A circle of fixed radius. -/
+  | circle (radius : Float) : BoundingShape
+  /-- A rectangle of fixed dimensions. -/
+  | rect (width height : Float) : BoundingShape
+  deriving Inhabited, FromJson, ToJson
+
 structure Vertex where
   /-- Identifier for this vertex. Must be unique. -/
   id : String
@@ -21,9 +32,7 @@ structure Vertex where
   This must be an SVG element.
   Use `<foreignObject>` to draw non-SVG elements. -/
   label : Html := mkCircle
-  /-- Radius of a circle bounding this vertex.
-  Used to place incident edge endpoints. -/
-  radius : Float := 5
+  boundingShape : BoundingShape := .circle 5
   /-- Details are shown below the graph display
   after the vertex label has been clicked.
   See also `Props.showDetails`. -/
