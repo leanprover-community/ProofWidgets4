@@ -74,7 +74,9 @@ def elabHtmlCmd : CommandElab := fun
 /-- The `html!` tactic is deprecated and does nothing.
 If you have a use for it,
 please open an issue on https://github.com/leanprover-community/ProofWidgets4. -/
-@[deprecated]
+@[deprecated "The `html!` tactic is deprecated and does nothing. If you have a use for it, \
+  please open an issue on https://github.com/leanprover-community/ProofWidgets4."
+  (since := "2024-05-15")]
 syntax (name := htmlTac) "html! " term : tactic
 
 open Tactic in

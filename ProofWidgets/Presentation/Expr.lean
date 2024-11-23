@@ -81,21 +81,6 @@ structure GetExprPresentationParams where
   name : Name
   deriving RpcEncodable
 
-@[server_rpc_method]
-def getExprPresentation : GetExprPresentationParams → RequestM (RequestTask Html)
-  | { expr := ⟨expr⟩, name } => RequestM.asTask do
-    let ci := expr.ci
-    if !exprPresenters.hasTag ci.env name then
-      throw <| RequestError.invalidParams s!"The constant '{name}' is not an Expr presenter."
-    match evalExprPresenter ci.env ci.options name with
-    | .ok p =>
-      expr.runMetaM p.present
-    | .error e =>
-      throw <| RequestError.internalError s!"Failed to evaluate Expr presenter '{name}': {e}"
-
--- https://leanprover.zulipchat.com/#narrow/stream/287929-mathlib4/topic/deprecation.20warning.20from.20ProofWidgets
-attribute [deprecated] getExprPresentation
-
 structure ExprPresentationProps where
   expr : WithRpcRef ExprWithCtx
   deriving RpcEncodable
