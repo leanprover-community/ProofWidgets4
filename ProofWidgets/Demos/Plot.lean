@@ -9,7 +9,7 @@ def fn (t : Float) (x : Float): Float :=
 open scoped ProofWidgets.Jsx in
 def Plot (fn : Float → Float) (steps := 100) : Html :=
   let jsonData : Array Json :=
-    Nat.fold (flip Array.push) (steps + 1) #[]
+    Array.range (steps + 1)
     |> Array.map (fun (x : Nat) => let x : Float := x.toFloat / steps.toFloat;  (x, fn x))
     |> Array.map (fun (x,y) => json% {x: $(toJson x) , y: $(toJson y)});
   <LineChart width={400} height={400} data={jsonData}>
