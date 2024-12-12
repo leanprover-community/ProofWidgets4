@@ -3,7 +3,13 @@
 This file contains work-in-progress notes for the upcoming release, as well as previous releases.
 Please check the [releases](https://github.com/leanprover-community/ProofWidgets4/releases) page for the build artifacts.
 
-v0.0.47 (WIP)
+v0.0.49 (WIP)
+-------------
+* Published [@leanprover-community/proofwidgets4](https://www.npmjs.com/package/@leanprover-community/proofwidgets4) on NPM.
+  This allows importing ProofWidgets4 JS components from widgets defined in other Lean packages.
+  NPM support is experimental: see [discussion](https://leanprover.zulipchat.com/#narrow/channel/270676-lean4/topic/ProofWidgets.2EHtml.20to.20JSX.2EElement/near/488669256).
+
+v0.0.47
 -------
 * Generalized `GraphDisplay.Vertex.radius` to `GraphDisplay.Vertex.boundingShape`.
 * Added demo of metavariable graph display in tactic proofs.
