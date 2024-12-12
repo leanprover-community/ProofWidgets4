@@ -9,10 +9,8 @@ import { DocumentPosition, EnvPosContext, RpcSessionAtPos, importWidgetModule, m
     useAsyncPersistent, useRpcSession } from '@leanprover/infoview';
 import type { DynamicComponent } from '@leanprover/infoview';
 
-type HtmlAttribute = [string, any]
-
 export type Html =
-    | { element: [string, HtmlAttribute[], Html[]] }
+    | { element: [string, [string, any][], Html[]] }
     | { text: string }
     | { component: [string, string, any, Html[]] }
 
@@ -24,7 +22,7 @@ export type Html =
  * there are no extraneous {@link DynamicComponent} nodes which works better with some libraries
  * that directly inspect the children nodes.
  */
-async function renderHtml(rs: RpcSessionAtPos, pos: DocumentPosition, html: Html):
+export async function renderHtml(rs: RpcSessionAtPos, pos: DocumentPosition, html: Html):
         Promise<JSX.Element> {
     if ('text' in html) {
         return <>{html.text}</>

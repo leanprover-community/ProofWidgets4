@@ -11,9 +11,9 @@ export type Fn = {
 
 /** Returns a promise of a response to this request
  * as well as a function you can call to cancel the request.
- * It is request-specific what a cancelled request resolves with:
+ * The output of a cancelled RPC request is determined by its handler implementation:
  * it could ignore the cancellation altogether,
- * return a null result,
+ * return a `null` result,
  * or throw an error. */
 export function callCancellable<T, S>(rs: RpcSessionAtPos, name: string, params: T):
     [Promise<S>, Fn] {
