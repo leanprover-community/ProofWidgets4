@@ -54,8 +54,8 @@ which will automatically fetch pre-built JavaScript files *as long as* you requi
 rather than the `main` branch.
 In this mode, you don't need to have NPM installed.
 
-⚠️ [EXPERIMENTAL] To import ProofWidgets4 JS components in widgets defined in other Lean packages,
-you can import [@leanprover-community/proofwidgets4](https://www.npmjs.com/package/@leanprover-community/proofwidgets4) on NPM.
+⚠️ [EXPERIMENTAL] To use ProofWidgets4 JS components in widgets defined in other Lean packages,
+you can import [@leanprover-community/proofwidgets4](https://www.npmjs.com/package/@leanprover-community/proofwidgets4) from NPM.
 
 ## Features
 
