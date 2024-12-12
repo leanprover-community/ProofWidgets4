@@ -1,16 +1,31 @@
 {
   "compilerOptions": {
+    /* Language and environment */
     "target": "esnext",
     "jsx": "react-jsx",
+
+    /* Modules */
     "module": "esnext",
     "moduleResolution": "bundler",
+
+    /* Emit code */
     "sourceMap": false,
     "outDir": "./dist/",
+
+    /* Emit declarations */
+    "declaration": true,
+
     "allowSyntheticDefaultImports": true,
+
+    /* Interop constraints */
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
+
+    /* Typechecking */
     "strict": true,
     "isolatedModules": true,
+
+    /* Completeness */
     "skipLibCheck": true
   },
   "include": ["./src/*.ts", "./src/*.tsx"]
