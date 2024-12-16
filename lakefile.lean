@@ -25,7 +25,7 @@ target widgetPackageLock pkg : FilePath := do
     } (quiet := true)
 
 /-- Target to build all TypeScript widget modules that match `widget/src/*.tsx`. -/
-def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (BuildJob (Array FilePath)) := do
+def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (Job (Array FilePath)) := do
   let fs ← (pkg.widgetDir / "src").readDir
   let srcs : Array FilePath := fs.filterMap fun f =>
     let p := f.path
@@ -37,15 +37,15 @@ def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (BuildJob (Array F
   let depFiles := srcs ++ #[ pkg.widgetDir / "rollup.config.js", pkg.widgetDir / "tsconfig.json" ]
   let deps ← liftM <| depFiles.mapM inputTextFile
   let deps := deps.push <| ← widgetPackageLock.fetch
-  let deps ← BuildJob.collectArray deps
+  let deps := Job.collectArray deps
   /- `widgetJsAll` is an `extraDepTarget`,
   and Lake's default build order is `extraDepTargets -> cloud release -> main build`.
   We must instead ensure that the cloud release is fetched first
   so that this target does not build from scratch unnecessarily.
   `afterReleaseAsync` guarantees this. -/
-  pkg.afterBuildCacheAsync $ deps.bindSync fun depInfo depTrace => do
+  pkg.afterBuildCacheAsync $ deps.mapM fun depInfo => do
     let traceFile := pkg.buildDir / "js" / "lake.trace"
-    let _ ← buildUnlessUpToDate? traceFile depTrace traceFile do
+    let _ ← buildUnlessUpToDate? traceFile (← getTrace) traceFile do
        /- HACK: Ensure that NPM modules are installed before building TypeScript,
        *if* we are building Typescript.
        It would probably be better to have a proper target for `node_modules`
@@ -72,7 +72,7 @@ def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (BuildJob (Array F
     -- including in downstream projects.
     -- if upToDate then
     --   Lake.logInfo "JavaScript build up to date"
-    return (depInfo, depTrace)
+    return depInfo
 
 target widgetJsAll pkg : Array FilePath :=
   widgetJsAllTarget pkg (isDev := false)
