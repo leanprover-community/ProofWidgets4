@@ -50,7 +50,7 @@ jobs:
         run: lake build ProofWidgets
 
       - name: Try publishing @leanprover-community/proofwidgets4
-        if: ${{ startsWith(github.ref, 'refs/tags/v') && !endsWith(github.ref, '-pre') && matrix.os == 'ubuntu-latest' }}
+        if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-pre') && matrix.os == 'ubuntu-latest' }}
         continue-on-error: true
         run: cd widget/ && npm publish --access=public
 
