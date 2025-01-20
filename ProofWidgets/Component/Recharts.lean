@@ -38,10 +38,20 @@ def LineChart : Component LineChartProps where
   javascript := Recharts.javascript
   «export» := "LineChart"
 
+inductive AxisType where
+  /-- Treat values as numbers: spacing on axis by numeric difference. -/
+  | number
+  /-- Treat values as categorical: equal spacing between values. -/
+  | category
+  deriving FromJson, ToJson
+
 structure AxisProps where
   dataKey? : Option Json := none
   domain? : Option (Array Json) := none
   allowDataOverflow : Bool := false
+  /-- How values along this axis should be interpreted.
+  The Recharts default is `category`. -/
+  type : AxisType := .number
   -- TODO: There are many more props
   deriving FromJson, ToJson
 
