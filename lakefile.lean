@@ -6,7 +6,7 @@ package proofwidgets where
   buildArchive? := "ProofWidgets4.tar.gz"
   releaseRepo := "https://github.com/leanprover-community/ProofWidgets4"
 
-require "leanprover-community" / "batteries" @ git "v4.16.0"
+require "leanprover-community" / "batteries" @ git "v4.17.0-rc1"
 
 def npmCmd : String :=
   if Platform.isWindows then "npm.cmd" else "npm"
