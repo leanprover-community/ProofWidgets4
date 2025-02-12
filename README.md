@@ -41,18 +41,27 @@ to keep a widget in view. You can then live code your widgets.
 
 Put this in your `lakefile.lean`, making sure to reference a **release tag**
 rather than the `main` branch:
+
 ```lean
 -- You should replace v0.0.3 with the latest version published under Releases
 require proofwidgets from git "https://github.com/leanprover-community/ProofWidgets4"@"v0.0.3"
 ```
 
-Note that [developing ProofWidgets](#developing-proofwidgets) involves building TypeScript code with NPM.
+[Developing ProofWidgets](#developing-proofwidgets) involves building TypeScript code with NPM.
 When depending on `ProofWidgets` but not writing any custom TypeScript yourself,
-you likely want to spare yourself and your users from having to run NPM.
+you likely want to spare yourself and your users from having to install and run NPM.
 ProofWidgets is configured to use Lake's [cloud releases](https://github.com/leanprover/lake/#cloud-releases) feature
 which will automatically fetch pre-built JavaScript files *as long as* you require a release tag
 rather than the `main` branch.
-In this mode, you don't need to have NPM installed.
+In this mode, you and your users should not need to have NPM installed.
+However, fetching cloud release may sometimes fail,
+in which case ProofWidgets may still revert to a full build.
+You can force ProofWidgets to fail with a custom error in this case by importing it like so:
+
+```lean
+-- You should replace v0.0.3 with the latest version published under Releases
+require proofwidgets with NameMap.empty.insert `errorOnBuild "<my message>" from git "https://github.com/leanprover-community/ProofWidgets4"@"v0.0.3"
+```
 
 ⚠️ [EXPERIMENTAL] To use ProofWidgets4 JS components in widgets defined in other Lean packages,
 you can import [@leanprover-community/proofwidgets4](https://www.npmjs.com/package/@leanprover-community/proofwidgets4) from NPM.
