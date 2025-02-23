@@ -6,7 +6,7 @@ package proofwidgets where
   buildArchive? := "ProofWidgets4.tar.gz"
   releaseRepo := "https://github.com/leanprover-community/ProofWidgets4"
 
-require "leanprover-community" / "batteries" @ git "v4.16.0-rc2"
+require "leanprover-community" / "batteries" @ git "v4.17.0-rc1"
 
 def npmCmd : String :=
   if Platform.isWindows then "npm.cmd" else "npm"
@@ -46,7 +46,9 @@ def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (Job (Array FilePa
   pkg.afterBuildCacheAsync $ deps.mapM fun depInfo => do
     let traceFile := pkg.buildDir / "js" / "lake.trace"
     let _ ← buildUnlessUpToDate? traceFile (← getTrace) traceFile do
-       /- HACK: Ensure that NPM modules are installed before building TypeScript,
+      if let some msg := get_config? errorOnBuild then
+        error msg
+      /- HACK: Ensure that NPM modules are installed before building TypeScript,
        *if* we are building Typescript.
        It would probably be better to have a proper target for `node_modules`
        that all the JS/TS modules depend on.

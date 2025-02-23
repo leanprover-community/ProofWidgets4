@@ -44,7 +44,6 @@ export default function ({ expr }: { expr: ExprWithCtx }): JSX.Element {
   if (st.state === 'rejected')
     return <>Error: {mapRpcError(st.error).message}</>
   else if (st.state === 'resolved') {
-    console.log(selection, st.value)
     let selectionName: Name | 'none' = 'none'
     if (selection.tag === 'auto' && 0 < st.value.size)
       selectionName = Array.from(st.value.values())[0].name
