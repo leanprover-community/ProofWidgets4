@@ -34,9 +34,9 @@ def mkCancellable [RpcEncodable β] (handler : α → RequestM (RequestTask β))
     α → RequestM (RequestTask RequestId) := fun a => do
   RequestM.asTask do
     let t ← handler a
-    let t' := t.map (·.map rpcEncode)
+    let t' := t.mapCheap (·.map rpcEncode)
     runningRequests.modifyGet fun (id, m) =>
-      (id, (id+1, m.insert id ⟨t', IO.cancel t⟩))
+      (id, (id+1, m.insert id ⟨t'.task, t.cancel⟩))
 
 /-- Cancel the request with ID `rid`.
 Does nothing if `rid` is invalid. -/
