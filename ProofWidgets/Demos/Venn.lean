@@ -58,7 +58,7 @@ def mkSetDiag (sub : String) (embeds : ExprEmbeds) : MetaM Html := do
 
 def isSetGoal? (hyps : Array LocalDecl) : MetaM (Option Html) := do
   let mut sub := "AutoLabel All\n"
-  let mut sets : Std.HashMap String Expr := .empty
+  let mut sets : Std.HashMap String Expr := .emptyWithCapacity
   for assm in hyps do
     let tp ← instantiateMVars assm.type
     if let some (S, T) := isSubsetPred? tp then

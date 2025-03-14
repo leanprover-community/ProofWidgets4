@@ -149,7 +149,7 @@ def EuclideanDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html
         Meta.withLCtx lctx md.localInstances do
           -- Which hypotheses have been selected in the UI,
           -- meaning they should *not* be shown in the display.
-          let mut hiddenLocs : Std.HashSet FVarId := .empty props.selectedLocations.size
+          let mut hiddenLocs : Std.HashSet FVarId := .emptyWithCapacity props.selectedLocations.size
           for l in props.selectedLocations do
             match l with
             | ⟨mv, .hyp fv⟩ | ⟨mv, .hypType fv _⟩ =>
