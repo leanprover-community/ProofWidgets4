@@ -81,7 +81,7 @@ def cartanMatrix.E₈ : Matrix (Fin 8) (Fin 8) Int :=
      [ 0,  0,  0, -1,  2, -1,  0,  0],
      [ 0,  0,  0,  0, -1,  2, -1,  0],
      [ 0,  0,  0,  0,  0, -1,  2, -1],
-     [ 0,  0,  0,  0,  0,  0, -1,  2]].get! i |>.get! j
+     [ 0,  0,  0,  0,  0,  0, -1,  2]][i]![j]!
 
 -- Place your cursor here
 #html cartanMatrix.E₈.toHtml
