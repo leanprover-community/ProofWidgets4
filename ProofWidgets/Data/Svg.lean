@@ -84,6 +84,12 @@ inductive Shape (f : Frame) where
   | circle   (center : Point f) (radius : Size f)
   | polyline (points : Array (Point f)) -- (type : PolylineType)
   | polygon  (points : Array (Point f))
+  | path     (d : String)
+  | ellipse  (center : Point f) (rx ry : Size f)
+  | rect     (corner : Point f) (width height : Size f)
+  | text     (pos : Point f) (content : String) (size : Size f)
+
+
   deriving ToJson, FromJson
 
 def Shape.toHtmlData {f : Frame} : Shape f → String × Array (String × Json)
@@ -105,6 +111,22 @@ def Shape.toHtmlData {f : Frame} : Shape f → String × Array (String × Json)
         |>.map (λ p => let (x,y) := p.toPixels; s!"{x},{y}")
         |>.foldl (init := "") (λ s p => s ++ " " ++ p)
     ("polygon", #[("fillRule", "nonzero"), ("points", pts)])
+  | .path d =>
+      ("path", #[("d", d)])
+  | .ellipse center rx ry =>
+    let (cx,cy) := center.toPixels
+    let rX := rx.toPixels
+    let rY := ry.toPixels
+    ("ellipse", #[("cx", cx), ("cy", cy), ("rx", rX), ("ry", rY)])
+  | .rect corner width height =>
+    let (x,y) := corner.toPixels
+    let w := width.toPixels
+    let h := height.toPixels
+    ("rect", #[("x", x), ("y", y), ("width", w), ("height", h)])
+  | .text pos content size =>
+    let (x,y) := pos.toPixels
+    let fontSize := size.toPixels
+    ("text", #[("x", x), ("y", y), ("font-size", fontSize), ("text", content)])
 
 structure Element (f : Frame) where
   shape : Shape f
@@ -129,6 +151,10 @@ def Element.setData {α : Type} {f} (elem : Element f) (a : α) [ToJson α] :=
 
 def Element.toHtml {f : Frame} (e : Element f) : Html := Id.run do
   let mut (tag, args) := e.shape.toHtmlData
+  let mut children := #[]
+
+  if let .text _ content _ := e.shape then
+    children := #[.text content]  -- adding children <text>
 
   if let .some color := e.strokeColor then
     args := args.push ("stroke", color.toStringRGB)
@@ -147,12 +173,19 @@ def Element.toHtml {f : Frame} (e : Element f) : Html := Id.run do
   if let .some data := e.data then
     args := args.push ("data", data)
 
-  return .element tag args #[]
+  return .element tag args children
 
 def line {f} (p q : Point f) : Element f := { shape := .line p q }
 def circle {f} (c : Point f) (r : Size f) : Element f := { shape := .circle c r }
 def polyline {f} (pts : Array (Point f)) : Element f := { shape := .polyline pts }
 def polygon {f} (pts : Array (Point f)) : Element f := { shape := .polygon pts }
+def path {f} (d : String) : Element f := { shape := .path d }
+def ellipse {f} (center : Point f) (rx ry : Size f) : Element f :=
+  { shape := .ellipse center rx ry }
+def rect {f} (corner : Point f) (width height : Size f) : Element f :=
+  { shape := .rect corner width height }
+def text {f} (pos : Point f) (content : String) (size : Size f) : Element f :=
+  { shape := .text pos content size }
 
 end Svg
 
