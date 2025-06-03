@@ -32,9 +32,9 @@ If `newSelection?` is absent, place the cursor at the end of the new text.
 If `newSelection?` is present, make the specified selection instead.
 See also `MakeEditLinkProps.ofReplaceRange`.
 -/
-def MakeEditLinkProps.ofReplaceRange' (meta : Server.DocumentMeta) (range : Lsp.Range)
+def MakeEditLinkProps.ofReplaceRange' (doc : Server.DocumentMeta) (range : Lsp.Range)
     (newText : String) (newSelection? : Option Lsp.Range := none) : MakeEditLinkProps :=
-  let edit := { textDocument := { uri := meta.uri, version? := meta.version }
+  let edit := { textDocument := { uri := doc.uri, version? := doc.version }
                 edits        := #[{ range, newText }] }
   if newSelection?.isSome then
     { edit, newSelection? }
@@ -46,10 +46,10 @@ def MakeEditLinkProps.ofReplaceRange' (meta : Server.DocumentMeta) (range : Lsp.
 If `newSelection?` is absent, place the cursor at the end of the new text.
 If `newSelection?` is present, select the range it specifies within `newText`.
 See also `MakeEditLinkProps.ofReplaceRange'`. -/
-def MakeEditLinkProps.ofReplaceRange (meta : Server.DocumentMeta) (range : Lsp.Range)
+def MakeEditLinkProps.ofReplaceRange (doc : Server.DocumentMeta) (range : Lsp.Range)
     (newText : String) (newSelection? : Option (String.Pos × String.Pos) := none) :
     MakeEditLinkProps :=
-  ofReplaceRange' meta range newText (newSelection?.map fun (s, e) =>
+  ofReplaceRange' doc range newText (newSelection?.map fun (s, e) =>
     let ps := range.start.advance (newText.toSubstring.extract 0 s)
     let pe := ps.advance (newText.toSubstring.extract s e)
     { start := ps, «end» := pe })
