@@ -30,10 +30,10 @@ open ProofWidgets in
 "} />
 
 -- HTML trees can also be produced by metaprograms
-open ProofWidgets Lean Elab in
+open ProofWidgets Lean Server Elab in
 #html (do
   let e ← Term.elabTerm (← ``(1 + 3)) (mkConst ``Nat)
   Term.synthesizeSyntheticMVarsNoPostponing
   let e ← instantiateMVars e
-  return <InteractiveExpr expr={⟨← ExprWithCtx.save e⟩} />
+  return <InteractiveExpr expr={← WithRpcRef.mk (← ExprWithCtx.save e)} />
     : Term.TermElabM Html)
