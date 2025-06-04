@@ -4,7 +4,6 @@
  Authors: Vladimir Sedlacek, Wojciech Nawrocki
  -/
 
-import Lean.Data.HashMap
 import Lean.Elab.Tactic
 import ProofWidgets.Component.PenroseDiagram
 import ProofWidgets.Component.HtmlDisplay

@@ -300,7 +300,7 @@ private def insertAnywhereElse (stx : Syntax) (pathBeforeConvParam : List Nat) (
     | false => List.append (argList.take (pathAfterConv.head! + 1) ) (newNode::(argList.drop (pathAfterConv.head! + 1)))
   let newPath := match entersMerged with
     | true => pathBeforeConvParam ++ (pathAfterConvParam.take 4)
-    | false => pathBeforeConvParam ++ (pathAfterConvParam.take 3) ++ [(pathAfterConvParam[3]!) + 2]
+    | false => pathBeforeConvParam ++ (pathAfterConvParam.take 3) ++ [pathAfterConvParam[3]! + 2]
 
   t := t.setCur (t.cur.setArgs newArgList.toArray)
   while t.parents.size > 0 do

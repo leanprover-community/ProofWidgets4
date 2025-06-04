@@ -1,4 +1,3 @@
-import Lean.Data.HashMap
 import Lean.Elab.Tactic
 import ProofWidgets.Component.Panel.Basic
 import ProofWidgets.Component.PenroseDiagram
@@ -58,7 +57,7 @@ def mkSetDiag (sub : String) (embeds : ExprEmbeds) : MetaM Html := do
 
 def isSetGoal? (hyps : Array LocalDecl) : MetaM (Option Html) := do
   let mut sub := "AutoLabel All\n"
-  let mut sets : Std.HashMap String Expr := .emptyWithCapacity
+  let mut sets : Std.HashMap String Expr := ∅
   for assm in hyps do
     let tp ← instantiateMVars assm.type
     if let some (S, T) := isSubsetPred? tp then

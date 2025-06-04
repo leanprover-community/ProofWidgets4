@@ -6,23 +6,33 @@ package proofwidgets where
   buildArchive? := "ProofWidgets4.tar.gz"
   releaseRepo := "https://github.com/leanprover-community/ProofWidgets4"
 
-require "leanprover-community" / "batteries" @ git "nightly-testing"
-
-def npmCmd : String :=
-  if Platform.isWindows then "npm.cmd" else "npm"
+require "leanprover-community" / "batteries" @ git "v4.21.0-rc3"
 
 def Lake.Package.widgetDir (pkg : Package) := pkg.dir / "widget"
+
+def Lake.Package.runNpmCommand (pkg : Package) (args : Array String) : LogIO Unit :=
+  -- Running `cmd := "npm.cmd"` directly fails on Windows sometimes
+  -- (https://github.com/leanprover-community/ProofWidgets4/issues/97)
+  -- so run in PowerShell instead (`cmd.exe` also doesn't work.)
+  if Platform.isWindows then
+    proc {
+      cmd := "powershell"
+      args := #["-Command", "npm.cmd"] ++ args
+      cwd := some pkg.widgetDir
+    } (quiet := true) -- use `quiet` here or `lake` will replay the output in downstream projects.
+  else
+    proc {
+      cmd := "npm"
+      args
+      cwd := some pkg.widgetDir
+    } (quiet := true)
 
 /-- Target to update `package-lock.json` whenever `package.json` has changed. -/
 target widgetPackageLock pkg : FilePath := do
   let packageFile ← inputTextFile <| pkg.widgetDir / "package.json"
   let packageLockFile := pkg.widgetDir / "package-lock.json"
   buildFileAfterDep (text := true) packageLockFile packageFile fun _srcFile => do
-    proc {
-      cmd := npmCmd
-      args := #["install"]
-      cwd := some pkg.widgetDir
-    } (quiet := true)
+    pkg.runNpmCommand #["install"]
 
 /-- Target to build all TypeScript widget modules that match `widget/src/*.tsx`. -/
 def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (Job (Array FilePath)) := do
@@ -59,21 +69,8 @@ def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (Job (Array FilePa
        Hence, we put this block inside the build process for JS/TS files
        rather than as a top-level target.
        This only runs when some TypeScript needs building. -/
-      proc {
-        cmd  := npmCmd
-        args := #["clean-install"]
-        cwd  := some pkg.widgetDir
-      } (quiet := true) -- use `quiet` here or `lake` will replay the output in downstream projects.
-      proc {
-        cmd  := npmCmd
-        args := if isDev then #["run", "build-dev"]
-                else #["run", "build"]
-        cwd  := some pkg.widgetDir
-      } (quiet := true) -- use `quiet` here or `lake` will replay the output in downstream projects.
-    -- 2024-06-04 (@semorrison): I've commented this out, as `lake` now replays it in every build
-    -- including in downstream projects.
-    -- if upToDate then
-    --   Lake.logInfo "JavaScript build up to date"
+      pkg.runNpmCommand #["clean-install"]
+      pkg.runNpmCommand #["run", if isDev then "build-dev" else "build"]
     return depInfo
 
 target widgetJsAll pkg : Array FilePath :=
