@@ -48,8 +48,9 @@ structure ExprPresentations where
 
 @[server_rpc_method]
 def getExprPresentations : GetExprPresentationsParams → RequestM (RequestTask ExprPresentations)
-  | ⟨⟨expr⟩⟩ => RequestM.asTask do
+  | ⟨ref⟩ => RequestM.asTask do
     let mut presentations : Array ExprPresentationData := #[]
+    let expr := ref.val
     let env := expr.ci.env
     for nm in exprPresenters.ext.getState env do
       presentations ← addPresenterIfApplicable expr nm presentations
