@@ -19,7 +19,8 @@ structure RunnerWidgetProps where
 
 @[server_rpc_method]
 def runMetaMStringCont : RunnerWidgetProps → RequestM (RequestTask String)
-  | {k := ⟨{ci, lctx, k}⟩} => RequestM.asTask do
+  | {k := ref} => RequestM.asTask do
+    let {ci, lctx, k} := ref.val
     ci.runMetaM lctx k
 
 @[widget_module]
@@ -49,11 +50,12 @@ syntax (name := makeRunnerTac) "make_runner" : tactic
       return "Hello, world!"
     -- Store the continuation and monad context.
     let props : RunnerWidgetProps := {
-      k := ⟨{
+      k := ← WithRpcRef.mk {
         ci := { ← CommandContextInfo.save with }
         lctx := (← getLCtx)
         k := x
-      }⟩}
+      }
+    }
     -- Save a widget together with a pointer to `props`.
     Widget.savePanelWidgetInfo runnerWidget.javascriptHash (rpcEncode props) tk
   | _ => throwUnsupportedSyntax
