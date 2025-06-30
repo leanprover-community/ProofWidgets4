@@ -196,7 +196,7 @@ open DiagramBuilderM Jsx in
 /-- Add every possible line between any two points in `hyps`
 to the diagram.
 Lines are labelled with links to insert them into the proof script. -/
-def constructLines (hyps : Array LocalDecl) (meta : Server.DocumentMeta) (cursorPos : Lsp.Position)
+def constructLines (hyps : Array LocalDecl) (docMeta : Server.DocumentMeta) (cursorPos : Lsp.Position)
     : DiagramBuilderM Unit := do
   -- Identify objects and hypotheses from which constructions can be made.
   let mut points : Array LocalDecl := {}
@@ -214,7 +214,7 @@ def constructLines (hyps : Array LocalDecl) (meta : Server.DocumentMeta) (cursor
       <span>
         <b>{.text nm}</b> ({
           .ofComponent MakeEditLink
-            (MakeEditLinkProps.ofReplaceRange meta ⟨cursorPos, cursorPos⟩ ctr)
+            (MakeEditLinkProps.ofReplaceRange docMeta ⟨cursorPos, cursorPos⟩ ctr)
             #[.text "insert"]
         })
       </span>)
