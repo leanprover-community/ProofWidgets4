@@ -6,7 +6,7 @@ package proofwidgets where
   buildArchive? := "ProofWidgets4.tar.gz"
   releaseRepo := "https://github.com/leanprover-community/ProofWidgets4"
 
-require "leanprover-community" / "batteries" @ git "v4.21.0"
+require "leanprover-community" / "batteries" @ git "v4.22.0-rc1"
 
 def Lake.Package.widgetDir (pkg : Package) := pkg.dir / "widget"
 
