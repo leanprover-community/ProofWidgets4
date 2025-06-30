@@ -38,8 +38,9 @@ def goalsLocationsToExprs (args : GoalsLocationsToExprsParams) :
     RequestM (RequestTask GoalsLocationsToExprsResponse) :=
   RequestM.asTask do
     let mut exprs := #[]
-    for ⟨⟨ci⟩, loc⟩ in args.locations do
-      exprs := exprs.push ⟨← ci.runMetaM {} loc.saveExprWithCtx⟩
+    for ⟨ref, loc⟩ in args.locations do
+      let ci := ref.val
+      exprs := exprs.push (← WithRpcRef.mk (← ci.runMetaM {} loc.saveExprWithCtx))
     return { exprs }
 
 /-- Display a list of all expressions selected in the goal state, with a choice of which `Expr`

@@ -59,7 +59,7 @@ structure InteractiveExprProps where
 
 @[server_rpc_method]
 def ppExprTagged : InteractiveExprProps → Server.RequestM (Server.RequestTask Widget.CodeWithInfos)
-  | ⟨⟨expr⟩⟩ => Server.RequestM.asTask <| expr.runMetaM Widget.ppExprTagged
+  | ⟨ref⟩ => Server.RequestM.asTask <| ref.val.runMetaM Widget.ppExprTagged
 
 /-- Lazily pretty-print and present a `Lean.Expr` as interactive text.
 
