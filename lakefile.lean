@@ -8,7 +8,10 @@ package proofwidgets where
 
 require "leanprover-community" / "batteries" @ git "v4.22.0-rc2"
 
-def Lake.Package.widgetDir (pkg : Package) := pkg.dir / "widget"
+def widgetDir : FilePath := "widget"
+
+nonrec def Lake.Package.widgetDir (pkg : Package) : FilePath :=
+  pkg.dir / widgetDir
 
 def Lake.Package.runNpmCommand (pkg : Package) (args : Array String) : LogIO Unit :=
   -- Running `cmd := "npm.cmd"` directly fails on Windows sometimes
@@ -27,35 +30,49 @@ def Lake.Package.runNpmCommand (pkg : Package) (args : Array String) : LogIO Uni
       cwd := some pkg.widgetDir
     } (quiet := true)
 
+input_file widgetPackageJson where
+  path := widgetDir / "package.json"
+  text := true
+
 /-- Target to update `package-lock.json` whenever `package.json` has changed. -/
 target widgetPackageLock pkg : FilePath := do
-  let packageFile ← inputTextFile <| pkg.widgetDir / "package.json"
+  let packageFile ← widgetPackageJson.fetch
   let packageLockFile := pkg.widgetDir / "package-lock.json"
   buildFileAfterDep (text := true) packageLockFile packageFile fun _srcFile => do
     pkg.runNpmCommand #["install"]
 
-/-- Target to build all TypeScript widget modules that match `widget/src/*.tsx`. -/
-def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (Job (Array FilePath)) := do
-  let fs ← (pkg.widgetDir / "src").readDir
-  let srcs : Array FilePath := fs.filterMap fun f =>
-    let p := f.path
-    match p.extension with
-    | some "ts" | some "tsx" | some "js" | some "jsx" => some p
-    | _ => none
-  -- See https://leanprover.zulipchat.com/#narrow/stream/113488-general/topic/ProofWidgets.20v0.2E0.2E36.20and.20v0.2E0.2E39/near/446602029
-  let srcs := srcs.qsort (toString · < toString ·)
-  let depFiles := srcs ++ #[ pkg.widgetDir / "rollup.config.js", pkg.widgetDir / "tsconfig.json" ]
-  let deps ← liftM <| depFiles.mapM inputTextFile
-  let deps := deps.push <| ← widgetPackageLock.fetch
-  let deps := Job.collectArray deps
-  /- `widgetJsAll` is an `extraDepTarget`,
-  and Lake's default build order is `extraDepTargets -> cloud release -> main build`.
+input_file widgetRollupConfig where
+  path := widgetDir / "rollup.config.js"
+  text := true
+
+input_file widgetTsconfig where
+  path := widgetDir / "tsconfig.json"
+  text := true
+
+/-- The TypeScript widget modules in `widget/src`. -/
+input_dir widgetJsSrcs where
+  path := widgetDir / "src"
+  filter := .extension <| .mem #["ts", "tsx", "js", "jsx"]
+  text := true
+
+/-- Target to build all widget modules from `widgetJsSrcs`. -/
+def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (Job Unit) := do
+  let srcs ← widgetJsSrcs.fetch
+  let rollupConfig ← widgetRollupConfig.fetch
+  let tsconfig ← widgetTsconfig.fetch
+  let widgetPackageLock ← widgetPackageLock.fetch
+  /- `widgetJsAll` is built via `needs`,
+  and Lake's default build order is `needs -> cloud release -> main build`.
   We must instead ensure that the cloud release is fetched first
   so that this target does not build from scratch unnecessarily.
-  `afterReleaseAsync` guarantees this. -/
-  pkg.afterBuildCacheAsync $ deps.mapM fun depInfo => do
+  `afterBuildCacheAsync` guarantees this. -/
+  pkg.afterBuildCacheAsync do
+  srcs.bindM (sync := true) fun _ =>
+  rollupConfig.bindM (sync := true) fun _ =>
+  tsconfig.bindM (sync := true) fun _ =>
+  widgetPackageLock.mapM fun _ => do
     let traceFile := pkg.buildDir / "js" / "lake.trace"
-    let _ ← buildUnlessUpToDate? traceFile (← getTrace) traceFile do
+    buildUnlessUpToDate traceFile (← getTrace) traceFile do
       if let some msg := get_config? errorOnBuild then
         error msg
       /- HACK: Ensure that NPM modules are installed before building TypeScript,
@@ -71,18 +88,17 @@ def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (Job (Array FilePa
        This only runs when some TypeScript needs building. -/
       pkg.runNpmCommand #["clean-install"]
       pkg.runNpmCommand #["run", if isDev then "build-dev" else "build"]
-    return depInfo
 
-target widgetJsAll pkg : Array FilePath :=
+target widgetJsAll pkg : Unit :=
   widgetJsAllTarget pkg (isDev := false)
 
-target widgetJsAllDev pkg : Array FilePath :=
+target widgetJsAllDev pkg : Unit :=
   widgetJsAllTarget pkg (isDev := true)
 
 @[default_target]
 lean_lib ProofWidgets where
-  extraDepTargets := #[``widgetJsAll]
+  needs := #[widgetJsAll]
 
 lean_lib ProofWidgets.Demos where
+  needs := #[widgetJsAll]
   globs := #[.submodules `ProofWidgets.Demos]
-  extraDepTargets := #[``widgetJsAll]
