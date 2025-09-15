@@ -63,7 +63,7 @@ def jsxText : Parser :=
     fn := fun c s =>
       let startPos := s.pos
       let s := takeWhile1Fn (not ∘ jsxTextForbidden.contains) "expected JSX text" c s
-      mkNodeToken `ProofWidgets.Jsx.jsxText startPos c s }
+      mkNodeToken `ProofWidgets.Jsx.jsxText startPos true c s }
 
 def getJsxText : TSyntax ``jsxText → String
   | stx => stx.raw[0].getAtomVal
