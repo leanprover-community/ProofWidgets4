@@ -1,6 +1,8 @@
 import ProofWidgets.Compat
 import ProofWidgets.Component.Basic
 import Lean.Elab.Tactic
+import Lean.Widget.Commands
+import Batteries.Tactic.OpenPrivate
 
 namespace ProofWidgets
 open Lean Elab Tactic
@@ -39,6 +41,8 @@ will show the geometry display alongside the usual tactic state throughout the p
 -/
 syntax (name := withPanelWidgetsTacticStx)
   "with_panel_widgets" "[" Widget.widgetInstanceSpec,+ "]" tacticSeq : tactic
+
+open private Widget.elabWidgetInstanceSpec from Lean.Widget.Commands
 
 @[tactic withPanelWidgetsTacticStx]
 def withPanelWidgets : Tactic
