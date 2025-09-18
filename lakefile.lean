@@ -6,11 +6,7 @@ package proofwidgets where
   buildArchive? := "ProofWidgets4.tar.gz"
   releaseRepo := "https://github.com/leanprover-community/ProofWidgets4"
 
-<<<<<<< HEAD
 require "leanprover-community" / "batteries" @ git "nightly-testing"
-=======
-require "leanprover-community" / "batteries" @ git "v4.24.0-rc1"
->>>>>>> main
 
 def widgetDir : FilePath := "widget"
 
