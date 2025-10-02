@@ -47,7 +47,7 @@ If `newSelection?` is absent, place the cursor at the end of the new text.
 If `newSelection?` is present, select the range it specifies within `newText`.
 See also `MakeEditLinkProps.ofReplaceRange'`. -/
 def MakeEditLinkProps.ofReplaceRange (doc : Server.DocumentMeta) (range : Lsp.Range)
-    (newText : String) (newSelection? : Option (String.Pos × String.Pos) := none) :
+    (newText : String) (newSelection? : Option (String.Pos.Raw × String.Pos.Raw) := none) :
     MakeEditLinkProps :=
   ofReplaceRange' doc range newText (newSelection?.map fun (s, e) =>
     let ps := range.start.advance (newText.toSubstring.extract 0 s)
