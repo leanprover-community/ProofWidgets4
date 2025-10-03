@@ -1,4 +1,8 @@
-import ProofWidgets.Data.Html
+module
+
+public meta import ProofWidgets.Data.Html
+
+public meta section
 
 namespace ProofWidgets
 open Lean Server

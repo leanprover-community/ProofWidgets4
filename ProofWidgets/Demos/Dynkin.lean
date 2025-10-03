@@ -1,4 +1,8 @@
-import ProofWidgets.Component.HtmlDisplay
+module
+
+public meta import ProofWidgets.Component.HtmlDisplay
+
+public meta section
 
 /-! Ported from Lean 3 code by Oliver Nash:
 https://gist.github.com/ocfnash/fb61a17d0f1598edcc752999f17b70c6 -/

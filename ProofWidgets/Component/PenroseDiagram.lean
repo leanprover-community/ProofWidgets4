@@ -1,6 +1,10 @@
-import ProofWidgets.Component.Basic
-import ProofWidgets.Data.Html
-import Std.Data.HashMap
+module
+
+public meta import ProofWidgets.Component.Basic
+public meta import ProofWidgets.Data.Html
+public meta import Std.Data.HashMap
+
+public meta section
 
 namespace ProofWidgets.Penrose
 open Lean Server Std

@@ -1,5 +1,9 @@
-import Lean.Server.Utils
-import ProofWidgets.Component.Basic
+module
+
+public meta import Lean.Server.Utils
+public meta import ProofWidgets.Component.Basic
+
+public meta section
 
 /-- Assuming that `s` is the content of a file starting at position `p`,
 advance `p` to the end of `s`. -/

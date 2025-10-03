@@ -1,4 +1,8 @@
-import ProofWidgets.Component.HtmlDisplay
+module
+
+public meta import ProofWidgets.Component.HtmlDisplay
+
+public meta section
 
 -- The `ProofWidgets.Jsx` namespace provides JSX-like notation for HTML
 open scoped ProofWidgets.Jsx

@@ -1,5 +1,9 @@
-import ProofWidgets.Data.Svg
-import ProofWidgets.Component.HtmlDisplay
+module
+
+public meta import ProofWidgets.Data.Svg
+public meta import ProofWidgets.Component.HtmlDisplay
+
+public meta section
 
 open ProofWidgets Svg
 

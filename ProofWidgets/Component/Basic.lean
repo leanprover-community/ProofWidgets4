@@ -1,6 +1,10 @@
-import Lean.Widget.InteractiveCode
-import Lean.Widget.UserWidget
-import ProofWidgets.Compat
+module
+
+public meta import Lean.Widget.InteractiveCode
+public meta import Lean.Widget.UserWidget
+public meta import ProofWidgets.Compat
+
+public meta section
 
 namespace ProofWidgets
 open Lean

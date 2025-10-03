@@ -1,4 +1,8 @@
-import ProofWidgets.Component.Panel.Basic
+module
+
+public meta import ProofWidgets.Component.Panel.Basic
+
+public meta section
 
 namespace ProofWidgets
 
