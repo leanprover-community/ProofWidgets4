@@ -139,7 +139,7 @@ def transformTag (tk : Syntax) (n m : Ident) (vs : Array (TSyntax `jsxAttr))
   let tag := toString nId
 
   -- Uppercase tags are parsed as components
-  if tag.get? 0 |>.filter (·.isUpper) |>.isSome then
+  if String.Pos.Raw.get? tag 0 |>.filter (·.isUpper) |>.isSome then
     let withs : Array Term ← vs.filterMapM fun
       | .inr e => return some e
       | .inl _ => return none
