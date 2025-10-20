@@ -12,7 +12,7 @@ open Lean Meta Server
 open ProofWidgets
 
 /-! # Minimal definiton of sets copied from Mathlib -/
-def Set (α : Type u) := α → Prop
+@[expose] def Set (α : Type u) := α → Prop
 
 namespace Set
 

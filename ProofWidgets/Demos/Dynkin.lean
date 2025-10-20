@@ -11,7 +11,7 @@ def List.product : List α → List β → List (α × β)
   | [], _     => []
   | a::as, bs => bs.map ((a, ·)) ++ as.product bs
 
-def Matrix (n m α : Type) := n → m → α
+@[expose] def Matrix (n m α : Type) := n → m → α
 
 namespace Matrix
 
