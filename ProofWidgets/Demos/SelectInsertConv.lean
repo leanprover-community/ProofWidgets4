@@ -4,7 +4,6 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Robin Böhne, Wojciech Nawrocki, Patrick Massot
 -/
 import Lean.Meta.ExprLens
-import Batteries.Lean.Position
 import ProofWidgets.Data.Html
 import ProofWidgets.Component.OfRpcMethod
 import ProofWidgets.Component.MakeEditLink
@@ -150,7 +149,7 @@ def ConvSelectionPanel : Component ConvSelectionPanelProps :=
 
 open scoped Json in
 elab stx:"conv?" : tactic => do
-  let some replaceRange := (← getFileMap).rangeOfStx? stx | return
+  let some replaceRange := (← getFileMap).lspRangeOfStx? stx | return
   Widget.savePanelWidgetInfo ConvSelectionPanel.javascriptHash
     (pure $ json% { replaceRange: $(replaceRange) }) stx
 
