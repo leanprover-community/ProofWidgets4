@@ -1,6 +1,10 @@
-import ProofWidgets.Component.GraphDisplay
-import ProofWidgets.Component.HtmlDisplay
-import Lean.Util.FoldConsts
+module
+
+public meta import ProofWidgets.Component.GraphDisplay
+public meta import ProofWidgets.Component.HtmlDisplay
+public meta import Lean.Util.FoldConsts
+
+public meta section
 
 open ProofWidgets Jsx
 

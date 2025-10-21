@@ -1,4 +1,8 @@
-import ProofWidgets.Data.Svg
+module
+
+public meta import ProofWidgets.Data.Svg
+
+public meta section
 
 namespace ProofWidgets
 open Lean Std

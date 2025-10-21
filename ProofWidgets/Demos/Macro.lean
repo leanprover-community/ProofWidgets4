@@ -1,4 +1,8 @@
-import ProofWidgets.Component.HtmlDisplay
+module
+
+public meta import ProofWidgets.Component.HtmlDisplay
+
+public meta section
 
 -- See the `Jsx.lean` demo for more about JSX.
 open scoped ProofWidgets.Jsx

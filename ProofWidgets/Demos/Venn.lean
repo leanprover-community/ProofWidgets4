@@ -1,14 +1,18 @@
-import Lean.Elab.Tactic
-import ProofWidgets.Component.Panel.Basic
-import ProofWidgets.Component.PenroseDiagram
-import ProofWidgets.Component.HtmlDisplay
-import ProofWidgets.Component.OfRpcMethod
+module
+
+public meta import Lean.Elab.Tactic
+public meta import ProofWidgets.Component.Panel.Basic
+public meta import ProofWidgets.Component.PenroseDiagram
+public meta import ProofWidgets.Component.HtmlDisplay
+public meta import ProofWidgets.Component.OfRpcMethod
+
+public meta section
 
 open Lean Meta Server
 open ProofWidgets
 
 /-! # Minimal definiton of sets copied from Mathlib -/
-def Set (α : Type u) := α → Prop
+@[expose] def Set (α : Type u) := α → Prop
 
 namespace Set
 

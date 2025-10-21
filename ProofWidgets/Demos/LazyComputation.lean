@@ -1,4 +1,8 @@
-import ProofWidgets.Component.Basic
+module
+
+public meta import ProofWidgets.Component.Basic
+
+public meta section
 
 open ProofWidgets
 open Lean Meta Server Elab Tactic
