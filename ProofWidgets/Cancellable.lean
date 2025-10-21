@@ -1,7 +1,11 @@
-import Lean.Data.Json.FromToJson
-import Lean.Server.Rpc.RequestHandling
-import Std.Data.HashMap
-import ProofWidgets.Compat
+module
+
+public meta import Lean.Data.Json.FromToJson
+public meta import Lean.Server.Rpc.RequestHandling
+public meta import Std.Data.HashMap
+public meta import ProofWidgets.Compat
+
+public meta section
 
 /-! Experimental support for cancellable RPC requests.
 

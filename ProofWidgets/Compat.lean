@@ -1,4 +1,8 @@
-import Lean.Elab.InfoTree.Main
+module
+
+public meta import Lean.Elab.InfoTree.Main
+
+public meta section
 
 namespace ProofWidgets
 open Lean Server Elab

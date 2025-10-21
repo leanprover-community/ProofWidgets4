@@ -1,5 +1,9 @@
-import ProofWidgets.Component.Panel.SelectionPanel
-import ProofWidgets.Component.Panel.GoalTypePanel
+module
+
+public meta import ProofWidgets.Component.Panel.SelectionPanel
+public meta import ProofWidgets.Component.Panel.GoalTypePanel
+
+public meta section
 
 open ProofWidgets Jsx
 

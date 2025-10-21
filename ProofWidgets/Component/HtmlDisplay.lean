@@ -1,7 +1,11 @@
-import Lean.Server.Rpc.Basic
-import Lean.Elab.Command
+module
 
-import ProofWidgets.Data.Html
+public meta import Lean.Server.Rpc.Basic
+public meta import Lean.Elab.Command
+
+public meta import ProofWidgets.Data.Html
+
+public meta section
 
 namespace ProofWidgets
 open Lean Server

@@ -1,5 +1,9 @@
-import ProofWidgets.Component.HtmlDisplay
-import ProofWidgets.Component.Recharts
+module
+
+public meta import ProofWidgets.Component.HtmlDisplay
+public meta import ProofWidgets.Component.Recharts
+
+public meta section
 
 open Lean ProofWidgets Recharts
 

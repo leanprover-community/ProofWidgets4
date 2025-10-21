@@ -3,11 +3,15 @@ Copyright (c) 2023 Patrick Massot. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Robin Böhne, Wojciech Nawrocki, Patrick Massot
 -/
-import Lean.Meta.ExprLens
-import ProofWidgets.Data.Html
-import ProofWidgets.Component.OfRpcMethod
-import ProofWidgets.Component.MakeEditLink
-import ProofWidgets.Component.Panel.Basic
+module
+
+public meta import Lean.Meta.ExprLens
+public meta import ProofWidgets.Data.Html
+public meta import ProofWidgets.Component.OfRpcMethod
+public meta import ProofWidgets.Component.MakeEditLink
+public meta import ProofWidgets.Component.Panel.Basic
+
+public meta section
 
 open Lean Meta Server
 open ProofWidgets

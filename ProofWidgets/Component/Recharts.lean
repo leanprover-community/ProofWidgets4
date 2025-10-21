@@ -1,4 +1,8 @@
-import ProofWidgets.Component.Basic
+module
+
+public meta import ProofWidgets.Component.Basic
+
+public meta section
 
 namespace ProofWidgets.Recharts
 open Lean

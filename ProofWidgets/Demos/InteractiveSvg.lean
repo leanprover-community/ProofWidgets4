@@ -1,5 +1,9 @@
-import ProofWidgets.Component.InteractiveSvg
-import ProofWidgets.Component.HtmlDisplay
+module
+
+public meta import ProofWidgets.Component.InteractiveSvg
+public meta import ProofWidgets.Component.HtmlDisplay
+
+public meta section
 
 open Lean
 open ProofWidgets Svg Jsx

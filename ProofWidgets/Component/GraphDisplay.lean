@@ -1,5 +1,9 @@
-import ProofWidgets.Component.Basic
-import ProofWidgets.Data.Html
+module
+
+public meta import ProofWidgets.Component.Basic
+public meta import ProofWidgets.Data.Html
+
+public meta section
 
 namespace ProofWidgets.GraphDisplay
 open Lean Server Jsx

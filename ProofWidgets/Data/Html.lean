@@ -3,13 +3,17 @@
  Released under Apache 2.0 license as described in the file LICENSE.
  Authors: Wojciech Nawrocki, Sebastian Ullrich, Eric Wieser
  -/
-import Lean.Data.Json.FromToJson
-import Lean.Parser
-import Lean.PrettyPrinter.Delaborator.Basic
-import Lean.Server.Rpc.Basic
+module
 
-import ProofWidgets.Component.Basic
-import ProofWidgets.Util
+public meta import Lean.Data.Json.FromToJson
+public meta import Lean.Parser
+public meta import Lean.PrettyPrinter.Delaborator.Basic
+public meta import Lean.Server.Rpc.Basic
+
+public meta import ProofWidgets.Component.Basic
+public meta import ProofWidgets.Util
+
+public meta section
 
 /-! We define a representation of HTML trees together with a JSX-like DSL for writing them. -/
 

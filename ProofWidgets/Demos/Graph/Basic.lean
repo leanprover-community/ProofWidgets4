@@ -1,5 +1,9 @@
-import ProofWidgets.Component.GraphDisplay
-import ProofWidgets.Component.HtmlDisplay
+module
+
+public meta import ProofWidgets.Component.GraphDisplay
+public meta import ProofWidgets.Component.HtmlDisplay
+
+public meta section
 
 /-! ## Directed graphs with `GraphDisplay` -/
 

@@ -3,7 +3,11 @@
  Released under Apache 2.0 license as described in the file LICENSE.
  Authors: Eric Wieser
  -/
-import Lean.PrettyPrinter.Delaborator.Basic
+module
+
+public meta import Lean.PrettyPrinter.Delaborator.Basic
+
+public meta section
 
 namespace ProofWidgets.Util
 open Lean

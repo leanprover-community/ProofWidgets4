@@ -1,4 +1,8 @@
-import ProofWidgets.Component.HtmlDisplay
+module
+
+public meta import ProofWidgets.Component.HtmlDisplay
+
+public meta section
 
 open Lean ProofWidgets
 open scoped ProofWidgets.Jsx

@@ -3,13 +3,16 @@
  Released under Apache 2.0 license as described in the file LICENSE.
  Authors: Vladimir Sedlacek, Wojciech Nawrocki
  -/
+module
 
-import Lean.Elab.Tactic
-import ProofWidgets.Component.PenroseDiagram
-import ProofWidgets.Component.HtmlDisplay
-import ProofWidgets.Component.Panel.Basic
-import ProofWidgets.Component.OfRpcMethod
-import ProofWidgets.Component.MakeEditLink
+public meta import Lean.Elab.Tactic
+public meta import ProofWidgets.Component.PenroseDiagram
+public meta import ProofWidgets.Component.HtmlDisplay
+public meta import ProofWidgets.Component.Panel.Basic
+public meta import ProofWidgets.Component.OfRpcMethod
+public meta import ProofWidgets.Component.MakeEditLink
+
+public meta section
 
 /-! A widget to display Euclidean geometry diagrams,
 and another one to make geometric constructions in the UI. -/

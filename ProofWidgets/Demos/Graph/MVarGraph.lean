@@ -1,6 +1,10 @@
-import ProofWidgets.Component.GraphDisplay
-import ProofWidgets.Component.Panel.Basic
-import ProofWidgets.Component.OfRpcMethod
+module
+
+public meta import ProofWidgets.Component.GraphDisplay
+public meta import ProofWidgets.Component.Panel.Basic
+public meta import ProofWidgets.Component.OfRpcMethod
+
+public meta section
 
 /-! This demo visualizes the graph of metavariable assignments in tactic proofs. -/
 

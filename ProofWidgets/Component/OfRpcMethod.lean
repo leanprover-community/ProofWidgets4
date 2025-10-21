@@ -1,7 +1,11 @@
-import Lean.Elab.ElabRules
-import ProofWidgets.Component.Basic
-import ProofWidgets.Data.Html
-import ProofWidgets.Cancellable
+module
+
+public meta import Lean.Elab.ElabRules
+public meta import ProofWidgets.Component.Basic
+public meta import ProofWidgets.Data.Html
+public meta import ProofWidgets.Cancellable
+
+public meta section
 
 namespace ProofWidgets
 open Lean Server Meta Elab Term

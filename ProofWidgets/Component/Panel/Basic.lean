@@ -1,7 +1,11 @@
-import ProofWidgets.Compat
-import ProofWidgets.Component.Basic
-import Lean.Elab.Tactic
-import Lean.Widget.Commands
+module
+
+public meta import ProofWidgets.Compat
+public meta import ProofWidgets.Component.Basic
+public meta import Lean.Elab.Tactic
+public meta import Lean.Widget.Commands
+
+public meta section
 
 namespace ProofWidgets
 open Lean Elab Tactic
