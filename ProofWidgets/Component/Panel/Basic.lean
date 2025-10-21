@@ -1,6 +1,7 @@
 import ProofWidgets.Compat
 import ProofWidgets.Component.Basic
 import Lean.Elab.Tactic
+import Lean.Widget.Commands
 
 namespace ProofWidgets
 open Lean Elab Tactic

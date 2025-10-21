@@ -2,9 +2,6 @@ import Lean.Elab.ElabRules
 import ProofWidgets.Component.Basic
 import ProofWidgets.Data.Html
 import ProofWidgets.Cancellable
-import Batteries.Tactic.OpenPrivate
-
-open private Lean.Server.builtinRpcProcedures from Lean.Server.Rpc.RequestHandling
 
 namespace ProofWidgets
 open Lean Server Meta Elab Term
@@ -71,7 +68,7 @@ elab "mk_rpc_widget%" fn:term : term <= expectedType => do
   let fn ← instantiateMVars fn
   if let .const nm .. := fn then
     let cancellableNm := nm ++ cancellableSuffix
-    if (← Lean.Server.builtinRpcProcedures.get).contains cancellableNm || userRpcProcedures.contains (← getEnv) cancellableNm then
+    if (← existsBuiltinRpcProcedure cancellableNm) || userRpcProcedures.contains (← getEnv) cancellableNm then
       -- Use the cancellable variant if possible.
       let code : StrLit := quote $ ofRpcMethodTemplate
         |>.replace "$RPC_METHOD" (toString cancellableNm)
@@ -79,7 +76,7 @@ elab "mk_rpc_widget%" fn:term : term <= expectedType => do
       let valStx ← `({ javascript := $code })
       let ret ← elabTerm valStx expectedType
       return ret
-    if !(← Lean.Server.builtinRpcProcedures.get).contains nm && !userRpcProcedures.contains (← getEnv) nm then
+    if !(← existsBuiltinRpcProcedure nm) && !userRpcProcedures.contains (← getEnv) nm then
       throwError s!"'{nm}' is not a known RPC method. Use `@[server_rpc_method]` to register it."
     -- https://github.com/leanprover/lean4/issues/1415
     let code : StrLit := quote $ ofRpcMethodTemplate

@@ -1,15 +1,5 @@
 {"version": "1.1.0",
  "packagesDir": ".lake/packages",
- "packages":
- [{"url": "https://github.com/leanprover-community/batteries",
-   "type": "git",
-   "subDir": null,
-   "scope": "leanprover-community",
-   "rev": "8da40b72fece29b7d3fe3d768bac4c8910ce9bee",
-   "name": "batteries",
-   "manifestFile": "lake-manifest.json",
-   "inputRev": "v4.24.0",
-   "inherited": false,
-   "configFile": "lakefile.toml"}],
+ "packages": [],
  "name": "proofwidgets",
  "lakeDir": ".lake"}
