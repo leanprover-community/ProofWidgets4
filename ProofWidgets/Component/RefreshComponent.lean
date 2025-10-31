@@ -9,10 +9,14 @@ namespace ProofWidgets
 open Lean Server
 open scoped Jsx
 
-/-- The result returned by one step of a refresh task. -/
+/-- The result returned by one step of a refresh task.
+This is translated into a `RefreshResultProps` before being sent to the `RefreshComponent`. -/
 inductive RefreshResult where
+  /-- Leaves the current HTML in place and stops the refreshing. -/
   | none
+  /-- Replaces the HTML with `html` and stops the refreshing. -/
   | last (html : Html)
+  /-- Replaces the HTML with `html` and continues the refreshing with `task`. -/
   | cont (html : Html) (task : Task RefreshResult)
 
 /-- A task that can be queried by a `RefreshComponent` to refresh the display. -/
