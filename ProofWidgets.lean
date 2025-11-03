@@ -14,3 +14,4 @@ import ProofWidgets.Component.Recharts
 import ProofWidgets.Data.Html
 import ProofWidgets.Data.Svg
 import ProofWidgets.Presentation.Expr
+import ProofWidgets.CheckHighlight
