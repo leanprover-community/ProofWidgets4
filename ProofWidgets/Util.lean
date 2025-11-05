@@ -1,8 +1,8 @@
 /-
- Copyright (c) 2024 Eric Wieser. All rights reserved.
- Released under Apache 2.0 license as described in the file LICENSE.
- Authors: Eric Wieser
- -/
+Copyright (c) 2024 Eric Wieser. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Eric Wieser, Jovan Gerbscheid
+-/
 module
 
 public meta import Lean.PrettyPrinter.Delaborator.Basic
@@ -72,3 +72,36 @@ def withAnnotateTermLikeInfo (d : DelabM (TSyntax n)) : DelabM (TSyntax n) := do
   annotateTermLikeInfo stx
 
 end Lean.PrettyPrinter.Delaborator
+
+section MonadDrop
+#check MonadLift
+/--
+The class `MonadDrop m n` allows a computation in monad `m` to be run in monad `n`.
+For example, a `MetaM` computation can be ran in `EIO Exception`,
+which can then be ran as a task using `EIO.asTask`.
+-/
+class MonadDrop (m : Type → Type) (n : outParam <| Type → Type) where
+  /-- Translates an action from monad `m` into monad `n`. -/
+  dropM {α} : m α → m (n α)
+
+export MonadDrop (dropM)
+
+variable {m n : Type → Type} [Monad m] [MonadDrop m n]
+
+instance : MonadDrop m m where
+  dropM := pure
+
+instance {ρ} : MonadDrop (ReaderT ρ m) n where
+  dropM act := fun ctx => dropM (act ctx)
+
+instance {σ} : MonadDrop (StateT σ m) n where
+  dropM act := do liftM <| dropM <| act.run' (← get)
+
+instance {ω σ} [MonadLiftT (ST ω) m] : MonadDrop (StateRefT' ω σ m) n where
+  dropM act := do liftM <| dropM <| act.run' (← get)
+
+end MonadDrop
+
+instance : Lean.Server.RpcEncodable Unit where
+  rpcEncode _ := pure .null
+  rpcDecode _ := pure ()
