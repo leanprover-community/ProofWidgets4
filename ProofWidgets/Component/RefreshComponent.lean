@@ -4,77 +4,47 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jovan Gerbscheid
 -/
 import ProofWidgets.Data.Html
+import ProofWidgets.Util
 
 /-!
-## `RefreshComponent`
+## The `RefreshComponent` widget
 
 This file defines `RefreshComponent`, which allows you to have an HTML widget that updates
 incrementally as more results are computed by a Lean computation.
 
-To make this interaction work, we use an `IO.Ref` that the Lean and JavaScript both have access to.
-It stores the HTML that should currently be on display, and a task that computes the next HTML.
+For this interaction, we use an `IO.Ref` that the JavaScript reads from.
+It stores the HTML that should currently be on display, and a task returning the next HTML.
+To determine whether the widget is up to date, each computed HTML has an associated index.
+(So, the `n`-th HTML will have index `n`)
 
-When the widget (re)loads, it first needs to query the current HTML, before awaiting the next HTML.
+When the widget (re)loads, it first loads the current HTML from the ref, and then
+repeatedly awaits further HTML result.
 -/
-
-class AsTask (m : Type → Type) (n : outParam <| Type → Type) where
-  asTask {α} (act : m α) (prio : Task.Priority := Task.Priority.default) : m (Task (n α))
-
-export AsTask (asTask)
-
-instance : AsTask BaseIO (·) where
-  asTask act prio := BaseIO.asTask act prio
-
-instance {ε} : AsTask (EIO ε) (Except ε) where
-  asTask act prio := EIO.asTask act prio
-
-instance {ρ m n} [AsTask m n] : AsTask (ReaderT ρ m) n where
-  asTask act prio := fun ctx => asTask (act ctx) prio
-
-instance {σ m n} [AsTask m n] [Monad m] : AsTask (StateT σ m) n where
-  asTask act prio := do StateT.lift <| asTask (act.run' (← get)) prio
-
-instance {ω σ : Type} {m n} [AsTask m n] [Monad m] [STWorld ω m] [MonadLiftT (ST ω) m] :
-    AsTask (StateRefT σ m) n where
-  asTask act prio := do StateRefT'.lift <| asTask (act.run' (← get)) prio
-
-open Lean in
-instance (priority := high) : AsTask CoreM (Except Exception) where
-  asTask act prio := asTask (Core.withCurrHeartbeats act) prio
 
 namespace ProofWidgets
 open Lean Server Widget Jsx
 namespace RefreshComponent
 
--- /-- The result that is sent to the `RefreshComponent` after each query. -/
--- structure RefreshProps where
---   /-- The new HTML that will replace the current HTML. -/
---   html : Html
---   /-- Whether the `RefreshComponent` should continue to refresh. -/
---   refresh : Bool := false
---   deriving RpcEncodable--, Inhabited
-
+/-- The result that is sent to the `RefreshComponent` after each query. -/
 structure ResultProps where
+  /-- The new HTML that will replace the current HTML. -/
   html : Html
+  /-- The index of the HTML. It it is a count of how many HTMLs were created. -/
   idx : Nat
   deriving RpcEncodable, Inhabited
 
 /-- The `RefreshState` stores the incremental result of the HTML computation. -/
 structure RefreshState where
+  /-- The state that the widget should currently be in. -/
   curr : ResultProps
+  /-- A task that returns the next state for the widget.
+  It is implemented using `IO.Promise.result?`, or `.pure none`. -/
   next : Task (Option ResultProps)
-  -- /-- The state that the widget should currently be in.
-  -- If `new := true`, then this result is currenlty not yet shown in the widget. -/
-  -- | result (new : Bool) (result : RefreshProps)
-  -- /-- The widget is awaiting a refresh. To pass it to the widget, `promise` should be resolved.
-  -- If the widget is loaded, then `curr` is the HTML that is currently shown. -/
-  -- | awaiting (promise : IO.Promise RefreshProps) (curr : Html)
-  -- deriving Inhabited
 
 /-- A reference to a `RefreshState`. This is used to keep track of the refresh state. -/
-structure RefreshRef where
-  ref : IO.Ref RefreshState
-  deriving TypeName
+def RefreshRef := IO.Ref RefreshState
+
+instance : TypeName RefreshRef := unsafe .mk RefreshRef ``RefreshRef
 
 structure RequestProps where
   state : WithRpcRef RefreshRef
@@ -82,24 +52,26 @@ structure RequestProps where
   deriving RpcEncodable
 
 
-/-- `awaitRefresh` is called through RPC to obtain the next HTML to display.
-If the result is not yet available, it creates an `IO.Promise` and uses `ServerTask.mapCheap`,
-so that this function returns directly when the promise is resolved. -/
+/-- `awaitRefresh` is called through RPC to obtain the next HTML to display. -/
 @[server_rpc_method]
 def awaitRefresh (props : RequestProps) : RequestM (RequestTask (Option ResultProps)) := do
-  let { oldIdx, state } := props
-  let { curr, next } ← state.val.ref.get
-  match compare oldIdx curr.idx with
-  | .lt => return .pure curr
-  | .eq => return .mapCheap .ok ⟨next⟩
-  | .gt => panic! "how is the index bigger in JavaScript than in Lean??"
+  let { curr, next } ← props.state.val.get
+  -- If `props.oldIdx < curr.idx`, that means that the state has updated in the meantime.
+  -- So, returning `curr` will give a refresh.
+  -- If `props.oldIdx = curr.idx`, then we need to await `next` to get a refresh
+  if props.oldIdx = curr.idx then
+    return .mapCheap .ok ⟨next⟩
+  else
+    return .pure curr
 
-/-- `getCurrState` is called through RPC whenever the widget reloads.
-This can be because the infoview was closed and reopened.
-But it can also be because a differen expression was selected in the goal. -/
+/--
+`getCurrState` is called through RPC whenever the widget reloads.
+This can be because the infoview was closed and reopened,
+or because a different expression was selected in the goal.
+-/
 @[server_rpc_method]
 def getCurrState (ref : WithRpcRef RefreshRef) : RequestM (RequestTask ResultProps) := do
-  return .pure (← ref.val.ref.get).curr
+  return .pure (← ref.val.get).curr
 
 
 deriving instance TypeName for IO.CancelToken
@@ -107,14 +79,13 @@ deriving instance TypeName for IO.CancelToken
 /-- `cancelRefresh` is called through RPC by `RefreshComponent` upon cancellation.
 It sets the cancel token for the task(s) on the Lean side. -/
 @[server_rpc_method]
-def cancelRefresh (cancelTk : WithRpcRef IO.CancelToken) : RequestM (RequestTask String) :=
-  RequestM.asTask do cancelTk.val.set; return "ok"
+def cancelRefresh (cancelTk : WithRpcRef IO.CancelToken) : RequestM (RequestTask Unit) := do
+  cancelTk.val.set
+  return .pure ()
 
 
 /-- The arguments passed to `RefreshComponent`. -/
 structure RefreshComponentProps where
-  /-- The initial HTML that is displayed. Usually this is a "loading..." kind of message. -/
-  initial : Html
   /-- The refresh state that is queried for updating the display. -/
   state : WithRpcRef RefreshRef
   /-- The cancel token that will be set when the component is unloaded/reloaded. -/
@@ -130,43 +101,44 @@ def RefreshComponent : Component RefreshComponentProps where
 
 /-! ## API for creating `RefreshComponent`s -/
 
-/-- A monad transformer for keeping track of a `RefreshRef`. -/
-abbrev RefreshT (m : Type → Type) [STWorld IO.RealWorld m] :=
-  ReaderT (IO.Promise ResultProps) StateRefT RefreshState m
+/-- The monad transformer for maintaining a `RefreshComponent`. -/
+abbrev RefreshT (m : Type → Type) :=
+  ReaderT (IO.Promise ResultProps) <| StateRefT' IO.RealWorld RefreshState m
 
-variable {m : Type → Type} [Monad m] [STWorld IO.RealWorld m] [MonadLiftT BaseIO m]
+variable {m : Type → Type} [Monad m] [MonadLiftT BaseIO m]
   [MonadLiftT (ST IO.RealWorld) m]
 
-def RefreshT.run {α} (initial : Html) (x : RefreshT m α) : m α := do
-  let promise ← IO.Promise.new
-  let ref ← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }
-  x promise ref
-
-inductive RefreshResult (m : Type → Type) [STWorld IO.RealWorld m] where
+/-- `RefreshStep` represents an update to the refresh state. -/
+inductive RefreshStep (m : Type → Type) where
+  /-- Leaves the current HTML in place and stops the refreshing. -/
   | none
+  /-- Sets the current HTML to `html` and stops the refreshing. -/
   | last (html : Html)
-  | cont (html : Html) (cont : RefreshT m Unit)
+  /-- Sets the current HTML to `html` and continues the refreshing with `cont`. -/
+  | cont' (html : Html) (cont : RefreshT m Unit)
   deriving Inhabited
 
-/-- Update the `RefreshState` from the context, using `k`. -/
-def refresh (k : RefreshResult m) : RefreshT m Unit := do
+/-- Update `RefreshState` and resolve `IO.Promise ResultProps` using the given `RefreshStep`. -/
+def runRefreshStep (k : RefreshStep m) : RefreshT m Unit := do
   let idx := (← get).curr.idx + 1
   match k with
   | .none =>
-    -- we drop the reference to the promise, so the corresponding task will return `none`.
     modify fun { curr, .. } => { curr, next := .pure none }
+    -- we drop the reference to the promise, so the corresponding task will return `none`.
   | .last html =>
-    (← read).resolve { html, idx }
     MonadState.set { curr := { html, idx }, next := .pure none }
-  | .cont html cont =>
     (← read).resolve { html, idx }
+  | .cont' html cont =>
     let newPromise ← IO.Promise.new
     MonadState.set { curr := { html, idx }, next := newPromise.result? }
+    (← read).resolve { html, idx }
     withReader (fun _ => newPromise) cont
 
-def refreshM [i : MonadAlwaysExcept Exception m] (k : m (RefreshResult m)) : RefreshT m Unit := do
+/-- Update `RefreshState` and resolve `IO.Promise ResultProps` using the given `RefreshStep`.
+Also catch all exceptions that `k` might throw. -/
+def runRefreshStepM [i : MonadAlwaysExcept Exception m] (k : m (RefreshStep m)) : RefreshT m Unit := do
   have := i.except
-  refresh <| ←
+  runRefreshStep <| ←
     try k
     catch e =>
       if let .internal id _ := e then
@@ -174,8 +146,17 @@ def refreshM [i : MonadAlwaysExcept Exception m] (k : m (RefreshResult m)) : Ref
           return .last <| .text "This component was cancelled"
       return .last
         <span>
-          Error refreshing this component: <InteractiveMessage msg={← WithRpcRef.mk e.toMessageData}/>
+        Error refreshing this component: <InteractiveMessage msg={← WithRpcRef.mk e.toMessageData}/>
         </span>
+
+@[inherit_doc RefreshStep.cont']
+def RefreshStep.cont [MonadAlwaysExcept Exception m]
+    (html : Html) (cont : m (RefreshStep m)) : RefreshStep m :=
+  .cont' html (runRefreshStepM cont)
+
+/-- Store a `IO.CancelToken` for all widgets initialized by `mkGoalRefreshComponent`. -/
+initialize cancelTokenMap : IO.Ref (Std.HashMap Name IO.CancelToken) ←
+  IO.mkRef {}
 
 end RefreshComponent
 
@@ -187,38 +168,43 @@ This should be used when the refreshing widget depends on shift-clicked expressi
 
 Warning: the thread that is updating `state` has started running on the Lean server before the
 widget is activated. The advantage is that there is no delay before the computation starts.
-The disadvantage is that if a `RefreshComponent` si reloaded/unloaded too quickly,
+The disadvantage is that if a `RefreshComponent` is reloaded/unloaded too quickly,
 it doesn't call `cancelRefresh`, and the thread will continue running unneccessarily.
-So, it is recommended to not rely purely on `cancelRefresh` for cancelling outdated refresh tasks.
-
-As a solution, the cancel token can be stored in a global ref, which should be reset at each call.
-This has the side effect that there can be at most one instance of that particular widget
-running at any time, and any other instances will say `This component was cancelled`.
+To fix this, we globally store a cancel token for each such widget.
+The argument `key` is used to differentiate the widgets for this purpose.
+If the same widget is loaded again, we set the previous cancel token.
+As a result, there can be at most one instance of that particular widget
+running at a time, and any other instances will say `This component was cancelled`.
 This is usually not an issue because there is no reason to have the widget duplicated.
+
+TODO: when the infoview gets closed, `cancelRefresh` isn't run, and I don't know how to fix this.
 -/
-def mkGoalRefreshComponent (goal : Widget.InteractiveGoal) (cancelTk : IO.CancelToken)
-    (initial : Html) (k : RefreshT MetaM Unit) :
-    BaseIO Html := do
+def mkGoalRefreshComponent (goal : Widget.InteractiveGoal) (initial : Html)
+    (k : MetaM (RefreshStep MetaM)) (key : Name := by exact decl_name%) : BaseIO Html := do
+  let cancelTk ← IO.CancelToken.new
+  if let some oldTk ← cancelTokenMap.modifyGet fun map => (map[key]?, map.insert key cancelTk) then
+    oldTk.set
   let promise ← IO.Promise.new
   let ref ← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }
   discard <| IO.asTask (prio := .dedicated) do
     goal.ctx.val.runMetaM {} do withTheReader Core.Context ({ · with cancelTk? := cancelTk }) do
       let decl ← goal.mvarId.getDecl
       let lctx := decl.lctx |>.sanitizeNames.run' {options := (← getOptions)}
-      Meta.withLCtx lctx decl.localInstances <| k promise ref
+      Meta.withLCtx lctx decl.localInstances <| (runRefreshStepM k) promise ref
   return <RefreshComponent
-    initial={initial}
-    state={← WithRpcRef.mk { ref }}
+    state={← WithRpcRef.mk ref}
     cancelTk={← WithRpcRef.mk cancelTk}/>
 
-def mkRefreshComponentM {m n} [Monad m] [AsTask m n] [STWorld IO.RealWorld m] [MonadLiftT BaseIO m]
-    (initial : Html) (k : RefreshT m Unit) : m Html := do
+/-- Create a `RefreshComponent`. To support cancellation, `m` should extend `CoreM`,
+and hence have access to a cancel token. -/
+def mkRefreshComponentM {m ε} [Monad m] [MonadDrop m (EIO ε)] [MonadLiftT BaseIO m]
+    [MonadLiftT (ST IO.RealWorld) m] [MonadAlwaysExcept Exception m]
+    (initial : Html) (k : m (RefreshStep m)) : m Html := do
   let promise ← IO.Promise.new
   let ref ← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }
-  discard <| asTask (prio := .dedicated) <| k promise ref
+  discard <| EIO.asTask (prio := .dedicated) <| ← dropM <| (runRefreshStepM k) promise ref
   return <RefreshComponent
-    initial={initial}
-    state={← WithRpcRef.mk { ref }}
+    state={← WithRpcRef.mk ref}
     cancelTk={none}/>
 
 end ProofWidgets

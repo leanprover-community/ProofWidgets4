@@ -4,6 +4,7 @@ public meta import Lean.Data.Json.FromToJson
 public meta import Lean.Server.Rpc.RequestHandling
 public meta import Std.Data.HashMap
 public meta import ProofWidgets.Compat
+public meta import ProofWidgets.Util
 
 public meta section
 
@@ -45,12 +46,11 @@ def mkCancellable [RpcEncodable β] (handler : α → RequestM (RequestTask β))
 /-- Cancel the request with ID `rid`.
 Does nothing if `rid` is invalid. -/
 @[server_rpc_method]
-def cancelRequest (rid : RequestId) : RequestM (RequestTask String) := do
+def cancelRequest (rid : RequestId) : RequestM (RequestTask Unit) := do
   RequestM.asTask do
     let t? ← runningRequests.modifyGet fun (id, m) => (m[rid]?, (id, m.erase rid))
     if let some t := t? then
       t.cancel
-    return "ok"
 
 /-- The status of a running cancellable request. -/
 inductive CheckRequestResponse
