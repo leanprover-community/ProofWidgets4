@@ -74,7 +74,7 @@ def withAnnotateTermLikeInfo (d : DelabM (TSyntax n)) : DelabM (TSyntax n) := do
 end Lean.PrettyPrinter.Delaborator
 
 section MonadDrop
-#check MonadLift
+
 /--
 The class `MonadDrop m n` allows a computation in monad `m` to be run in monad `n`.
 For example, a `MetaM` computation can be ran in `EIO Exception`,

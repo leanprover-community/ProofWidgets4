@@ -114,7 +114,7 @@ inductive RefreshStep (m : Type → Type) where
   | none
   /-- Sets the current HTML to `html` and stops the refreshing. -/
   | last (html : Html)
-  /-- Sets the current HTML to `html` and continues the refreshing with `cont`. -/
+  /-- Sets the current HTML to `html` and continues refreshing with `cont`. -/
   | cont' (html : Html) (cont : RefreshT m Unit)
   deriving Inhabited
 
