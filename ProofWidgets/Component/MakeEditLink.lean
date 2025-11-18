@@ -7,7 +7,7 @@ public meta section
 
 /-- Assuming that `s` is the content of a file starting at position `p`,
 advance `p` to the end of `s`. -/
-def Lean.Lsp.Position.advance (p : Position) (s : Substring) : Position :=
+def Lean.Lsp.Position.advance (p : Position) (s : Substring.Raw) : Position :=
   let (nLinesAfter, lastLineUtf16Sz) := s.foldl
     (init := (0, 0))
     fun (n, l) c => if c == '\n' then (n + 1, 0) else (n, l + c.utf16Size.toNat)
