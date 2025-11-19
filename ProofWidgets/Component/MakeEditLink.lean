@@ -43,7 +43,7 @@ def MakeEditLinkProps.ofReplaceRange' (doc : Server.DocumentMeta) (range : Lsp.R
   if newSelection?.isSome then
     { edit, newSelection? }
   else
-    let endPos := range.start.advance newText.toSubstring
+    let endPos := range.start.advance newText.toRawSubstring
     { edit, newSelection? := some { start := endPos, «end» := endPos } }
 
 /-- Replace `range` with `newText`.
@@ -54,8 +54,8 @@ def MakeEditLinkProps.ofReplaceRange (doc : Server.DocumentMeta) (range : Lsp.Ra
     (newText : String) (newSelection? : Option (String.Pos.Raw × String.Pos.Raw) := none) :
     MakeEditLinkProps :=
   ofReplaceRange' doc range newText (newSelection?.map fun (s, e) =>
-    let ps := range.start.advance (newText.toSubstring.extract 0 s)
-    let pe := ps.advance (newText.toSubstring.extract s e)
+    let ps := range.start.advance (newText.toRawSubstring.extract 0 s)
+    let pe := ps.advance (newText.toRawSubstring.extract s e)
     { start := ps, «end» := pe })
 
 /-- A link that, when clicked, makes the specified edit
