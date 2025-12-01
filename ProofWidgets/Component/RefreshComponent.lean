@@ -46,8 +46,11 @@ def RefreshRef := IO.Ref RefreshState
 
 instance : TypeName RefreshRef := unsafe .mk RefreshRef ``RefreshRef
 
+/-- The data used to call `awaitRefresh`, for updating the HTML display. -/
 structure RequestProps where
+  /-- The reference to the `RefreshState`. -/
   state : WithRpcRef RefreshRef
+  /-- The index of the HTML that is currently on display. -/
   oldIdx : Nat
   deriving RpcEncodable
 
