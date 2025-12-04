@@ -169,9 +169,11 @@ open RefreshComponent
 Create a `RefreshComponent` in the context of a `Widget.InteractiveGoal`.
 This should be used when the refreshing widget depends on shift-clicked expressions in the goal.
 
-Warning: the thread that is updating `state` has started running on the Lean server before the
-widget is activated. The advantage is that there is no delay before the computation starts.
-The disadvantage is that if a `RefreshComponent` is reloaded/unloaded too quickly,
+Warning: after the expression selections in the goal have been updated, the thread that
+updates the `RefreshState` has started running on the Lean server before the new version of the
+widget is loaded. The advantage is that there is no delay before the computation starts.
+The disadvantage is that if a `RefreshComponent` is reloaded too quickly,
+(for example when rapidly clicking on expressions in the goal)
 it doesn't call `cancelRefresh`, and the thread will continue running unneccessarily.
 To fix this, we globally store a cancel token for each such widget.
 The argument `key` is used to differentiate the widgets for this purpose.
