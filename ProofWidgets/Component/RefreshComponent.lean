@@ -14,7 +14,7 @@ incrementally as more results are computed by a Lean computation.
 
 For this interaction, we use an `IO.Ref` that the JavaScript reads from.
 It stores the HTML that should currently be on display, and a task returning the next HTML.
-To determine whether the widget is up to date, each computed HTML has an associated index.
+To determine whether the widget is up to date, each computed HTML has an associated version number.
 (So, the `n`-th HTML will have index `n`)
 
 When the widget (re)loads, it first loads the current HTML from the ref, and then
@@ -26,20 +26,20 @@ open Lean Server Widget Jsx
 namespace RefreshComponent
 
 /-- The result that is sent to the `RefreshComponent` after each query. -/
-structure ResultProps where
+structure VersionedHtml where
   /-- The new HTML that will replace the current HTML. -/
   html : Html
-  /-- The index of the HTML. It it is a count of how many HTMLs were created. -/
+  /-- The version number of the HTML. It is a count of how many HTMLs were created. -/
   idx : Nat
   deriving RpcEncodable, Inhabited
 
 /-- The `RefreshState` stores the incremental result of the HTML computation. -/
 structure RefreshState where
   /-- The state that the widget should currently be in. -/
-  curr : ResultProps
+  curr : VersionedHtml
   /-- A task that returns the next state for the widget.
   It is implemented using `IO.Promise.result?`, or `.pure none`. -/
-  next : Task (Option ResultProps)
+  next : Task (Option VersionedHtml)
 
 /-- A reference to a `RefreshState`. This is used to keep track of the refresh state. -/
 def RefreshRef := IO.Ref RefreshState
@@ -47,7 +47,7 @@ def RefreshRef := IO.Ref RefreshState
 instance : TypeName RefreshRef := unsafe .mk RefreshRef ``RefreshRef
 
 /-- The data used to call `awaitRefresh`, for updating the HTML display. -/
-structure RequestProps where
+structure AwaitRefreshParams where
   /-- The reference to the `RefreshState`. -/
   state : WithRpcRef RefreshRef
   /-- The index of the HTML that is currently on display. -/
@@ -57,7 +57,7 @@ structure RequestProps where
 
 /-- `awaitRefresh` is called through RPC to obtain the next HTML to display. -/
 @[server_rpc_method]
-def awaitRefresh (props : RequestProps) : RequestM (RequestTask (Option ResultProps)) := do
+def awaitRefresh (props : AwaitRefreshParams) : RequestM (RequestTask (Option VersionedHtml)) := do
   let { curr, next } ← props.state.val.get
   -- If `props.oldIdx < curr.idx`, that means that the state has updated in the meantime.
   -- So, returning `curr` will give a refresh.
@@ -73,7 +73,7 @@ This can be because the infoview was closed and reopened,
 or because a different expression was selected in the goal.
 -/
 @[server_rpc_method]
-def getCurrState (ref : WithRpcRef RefreshRef) : RequestM (RequestTask ResultProps) := do
+def getCurrState (ref : WithRpcRef RefreshRef) : RequestM (RequestTask VersionedHtml) := do
   return .pure (← ref.val.get).curr
 
 
@@ -106,7 +106,7 @@ def RefreshComponent : Component RefreshComponentProps where
 
 /-- The monad transformer for maintaining a `RefreshComponent`. -/
 abbrev RefreshT (m : Type → Type) :=
-  ReaderT (IO.Promise ResultProps) <| StateRefT' IO.RealWorld RefreshState m
+  ReaderT (IO.Promise VersionedHtml) <| StateRefT' IO.RealWorld RefreshState m
 
 variable {m : Type → Type} [Monad m] [MonadLiftT BaseIO m]
   [MonadLiftT (ST IO.RealWorld) m]
@@ -121,7 +121,7 @@ inductive RefreshStep (m : Type → Type) where
   | cont' (html : Html) (cont : RefreshT m Unit)
   deriving Inhabited
 
-/-- Update `RefreshState` and resolve `IO.Promise ResultProps` using the given `RefreshStep`. -/
+/-- Update `RefreshState` and resolve `IO.Promise VersionedHtml` using the given `RefreshStep`. -/
 def runRefreshStep (k : RefreshStep m) : RefreshT m Unit := do
   let idx := (← get).curr.idx + 1
   match k with
@@ -137,7 +137,7 @@ def runRefreshStep (k : RefreshStep m) : RefreshT m Unit := do
     (← read).resolve { html, idx }
     withReader (fun _ => newPromise) cont
 
-/-- Update `RefreshState` and resolve `IO.Promise ResultProps` using the given `RefreshStep`.
+/-- Update `RefreshState` and resolve `IO.Promise VersionedHtml` using the given `RefreshStep`.
 Also catch all exceptions that `k` might throw. -/
 def runRefreshStepM [i : MonadAlwaysExcept Exception m] (k : m (RefreshStep m)) : RefreshT m Unit := do
   have := i.except
