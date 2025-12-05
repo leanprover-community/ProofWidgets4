@@ -80,8 +80,9 @@ elab "#checkh " name:ident : command =>
     for fullName in (← Lean.Elab.realizeGlobalConstWithInfos name) do
       ProofWidgets.CheckHighlight fullName false
 /--
-Alternative to `#checkh` which keeps implicit arguments
-in the `String` output.
+A version of `#check` that dims implicit arguments in the infoview,
+and displays them as usual in non-interactive output (e.g. on the command-line).
+See also `#checkh`.
 -/
 elab "#checkh' " name:ident : command =>
   Lean.Elab.Command.runTermElabM fun _ => do
