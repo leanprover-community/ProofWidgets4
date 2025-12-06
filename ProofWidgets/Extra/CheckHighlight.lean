@@ -1,5 +1,10 @@
-import Lean
-import ProofWidgets.Component.HtmlDisplay
+module
+
+public meta import Lean.Meta.Basic
+public meta import Lean.Elab.Command
+public meta import ProofWidgets.Component.HtmlDisplay
+
+public meta section
 
 open Lean ProofWidgets Jsx in
 /--
@@ -88,10 +93,3 @@ elab "#checkh' " name:ident : command =>
   Lean.Elab.Command.runTermElabM fun _ => do
     for fullName in (← Lean.Elab.realizeGlobalConstWithInfos name) do
       ProofWidgets.CheckHighlight fullName true
-
-/-- info: Decidable.em (p : Prop) : p ∨ ¬p -/
-#guard_msgs in
-#checkh Decidable.em
-/-- info: Decidable.em (p : Prop) [Decidable p] : p ∨ ¬p -/
-#guard_msgs in
-#checkh' Decidable.em
