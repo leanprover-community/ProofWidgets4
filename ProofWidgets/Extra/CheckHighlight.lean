@@ -8,11 +8,13 @@ public meta section
 
 open Lean ProofWidgets Jsx in
 /--
-A function printing the signature in the InfoView with
-dimmed implicit arguments (opacity 50%).
+Print the signature of `name` as a widget message in the infoview
+with dimmed implicit arguments (opacity 50%).
+
 Arguments:
-* `name` the full Lean name to print the signature of
-* `showAlt` if `false`, implicit arguments are omitted from export to string
+* `name`: fully qualified name of the constant to print the signature of
+* `showAlt`: if `false`, implicit arguments are omitted
+  from the `alt` argument of `MessageData.ofWidget`
 -/
 def ProofWidgets.CheckHighlight (name : Lean.Name) (showAlt : Bool) : MetaM Unit := do
   let constVal ← getConstVal name
