@@ -56,6 +56,9 @@ jobs:
       - name: Build demos
         run: lake build ProofWidgets.Demos
 
+      - name: Run tests
+        run: lake test
+
       - name: Create GitHub release for tag (Ubuntu)
         if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'
         uses: softprops/action-gh-release@v2

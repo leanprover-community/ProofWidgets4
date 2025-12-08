@@ -101,3 +101,7 @@ lean_lib ProofWidgets where
 lean_lib ProofWidgets.Demos where
   needs := #[widgetJsAll]
   globs := #[.submodules `ProofWidgets.Demos]
+
+@[test_driver]
+lean_lib test where
+  globs := #[.submodules `test]
