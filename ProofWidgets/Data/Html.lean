@@ -66,7 +66,7 @@ def jsxText : Parser :=
   withAntiquot (mkAntiquot "jsxText" `ProofWidgets.Jsx.jsxText) {
     fn := fun c s =>
       let startPos := s.pos
-      let s := takeWhile1Fn (not ∘ jsxTextForbidden.contains) "expected JSX text" c s
+      let s := takeWhile1Fn (not ∘ (fun c =>  jsxTextForbidden.contains c)) "expected JSX text" c s
       mkNodeToken `ProofWidgets.Jsx.jsxText startPos true c s }
 
 def getJsxText : TSyntax ``jsxText → String
@@ -179,7 +179,7 @@ so we have to add the term annotations ourselves. -/
 partial def delabHtmlText : DelabM (TSyntax ``jsxText) := do
   let_expr Html.text e := ← getExpr | failure
   let .lit (.strVal s) := e | failure
-  if s.any jsxTextForbidden.contains then
+  if s.any (fun (c : Char) => jsxTextForbidden.contains c) then
     failure
   annotateTermLikeInfo <| mkNode ``jsxText #[mkAtom s]
 
