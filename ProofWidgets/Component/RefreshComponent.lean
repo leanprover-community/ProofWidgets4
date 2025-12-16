@@ -3,8 +3,11 @@ Copyright (c) 2025 Jovan Gerbscheid. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Jovan Gerbscheid
 -/
-import ProofWidgets.Data.Html
-import ProofWidgets.Util
+module
+
+public import ProofWidgets.Data.Html
+public import ProofWidgets.Util
+public import ProofWidgets.Component.Panel.Basic
 
 /-!
 ## The `RefreshComponent` widget
@@ -20,6 +23,8 @@ To determine whether the widget is up to date, each computed HTML has an associa
 When the widget (re)loads, it first loads the current HTML from the ref, and then
 repeatedly awaits further HTML result.
 -/
+
+public meta section
 
 namespace ProofWidgets
 open Lean Server Widget Jsx
@@ -42,7 +47,7 @@ structure RefreshState where
   next : Task (Option VersionedHtml)
 
 /-- A reference to a `RefreshState`. This is used to keep track of the refresh state. -/
-def RefreshRef := IO.Ref RefreshState
+abbrev RefreshRef := IO.Ref RefreshState
 
 instance : TypeName RefreshRef := unsafe .mk RefreshRef ``RefreshRef
 
@@ -76,23 +81,10 @@ or because a different expression was selected in the goal.
 def getCurrState (ref : WithRpcRef RefreshRef) : RequestM (RequestTask VersionedHtml) := do
   return .pure (← ref.val.get).curr
 
-
-deriving instance TypeName for IO.CancelToken
-
-/-- `cancelRefresh` is called through RPC by `RefreshComponent` upon cancellation.
-It sets the cancel token for the task(s) on the Lean side. -/
-@[server_rpc_method]
-def cancelRefresh (cancelTk : WithRpcRef IO.CancelToken) : RequestM (RequestTask Unit) := do
-  cancelTk.val.set
-  return .pure ()
-
-
-/-- The arguments passed to `RefreshComponent`. -/
+/-- The argument passed to `RefreshComponent`. -/
 structure RefreshComponentProps where
   /-- The refresh state that is queried for updating the display. -/
   state : WithRpcRef RefreshRef
-  /-- The cancel token that will be set when the component is unloaded/reloaded. -/
-  cancelTk : Option (WithRpcRef IO.CancelToken)
   deriving RpcEncodable
 
 /-- Display an inital HTML, and repeatedly update the display with new HTML objects
@@ -157,59 +149,49 @@ def RefreshStep.cont [MonadAlwaysExcept Exception m]
     (html : Html) (cont : m (RefreshStep m)) : RefreshStep m :=
   .cont' html (runRefreshStepM cont)
 
-/-- Store a `IO.CancelToken` for all widgets initialized by `mkGoalRefreshComponent`. -/
-initialize cancelTokenMap : IO.Ref (Std.HashMap Name IO.CancelToken) ←
-  IO.mkRef {}
-
 end RefreshComponent
 
 open RefreshComponent
 
-/--
-Create a `RefreshComponent` in the context of a `Widget.InteractiveGoal`.
-This should be used when the refreshing widget depends on shift-clicked expressions in the goal.
+variable {m ε} [Monad m] [MonadDrop m (EIO ε)] [MonadLiftT BaseIO m]
 
-Warning: after the expression selections in the goal have been updated, the thread that
-updates the `RefreshState` has started running on the Lean server before the new version of the
-widget is loaded. The advantage is that there is no delay before the computation starts.
-The disadvantage is that if a `RefreshComponent` is reloaded too quickly,
-(for example when rapidly clicking on expressions in the goal)
-it doesn't call `cancelRefresh`, and the thread will continue running unneccessarily.
-To fix this, we globally store a cancel token for each such widget.
-The argument `key` is used to differentiate the widgets for this purpose.
-If the same widget is loaded again, we set the previous cancel token.
-As a result, there can be at most one instance of that particular widget
-running at a time, and any other instances will say `This component was cancelled`.
-This is usually not an issue because there is no reason to have the widget duplicated.
+/-- Create a `RefreshComponent`. In order to implicitly support cancellation, `m` should extend
+`CoreM`, and hence have access to a cancel token. -/
+def mkRefreshComponent (initial : Html) (k : RefreshT m Unit) : m Html := do
+  let promise ← IO.Promise.new
+  let ref ← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }
+  discard <| EIO.asTask (prio := .dedicated) <| ← dropM <| k promise ref
+  return <RefreshComponent state={← WithRpcRef.mk ref}/>
 
-TODO: when the infoview gets closed, `cancelRefresh` isn't run, and I don't know how to fix this.
--/
-def mkGoalRefreshComponent (goal : Widget.InteractiveGoal) (initial : Html)
-    (k : MetaM (RefreshStep MetaM)) (key : Name := by exact decl_name%) : BaseIO Html := do
+/-- Create a `RefreshComponent`. Explicitly support cancellation by creating a cancel token,
+and setting the previous cancel token. This is useful when the component depends on the selections
+in the goal, so that after making a new selection, the previous computation is cancelled.
+
+Note: The cancel token is only set when a new computation is started.
+  When the infoview is closed, this unfortunately doesn't set the cancel token. -/
+def mkCancelRefreshComponent [MonadWithReaderOf Core.Context m]
+    (cancelTkRef : IO.Ref IO.CancelToken) (initial : Html) (k : RefreshT m Unit) : m Html := do
   let cancelTk ← IO.CancelToken.new
-  if let some oldTk ← cancelTokenMap.modifyGet fun map => (map[key]?, map.insert key cancelTk) then
-    oldTk.set
-  let promise ← IO.Promise.new
-  let ref ← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }
-  discard <| IO.asTask (prio := .dedicated) do
-    goal.ctx.val.runMetaM {} do withTheReader Core.Context ({ · with cancelTk? := cancelTk }) do
-      let decl ← goal.mvarId.getDecl
-      let lctx := decl.lctx |>.sanitizeNames.run' {options := (← getOptions)}
-      Meta.withLCtx lctx decl.localInstances <| (runRefreshStepM k) promise ref
-  return <RefreshComponent
-    state={← WithRpcRef.mk ref}
-    cancelTk={← WithRpcRef.mk cancelTk}/>
+  let oldTk ← (cancelTkRef.swap cancelTk : BaseIO _)
+  oldTk.set
+  mkRefreshComponent initial do
+    withTheReader Core.Context ({· with cancelTk? := cancelTk }) k
 
-/-- Create a `RefreshComponent`. To support cancellation, `m` should extend `CoreM`,
-and hence have access to a cancel token. -/
-def mkRefreshComponentM {m ε} [Monad m] [MonadDrop m (EIO ε)] [MonadLiftT BaseIO m]
-    [MonadLiftT (ST IO.RealWorld) m] [MonadAlwaysExcept Exception m]
-    (initial : Html) (k : m (RefreshStep m)) : m Html := do
-  let promise ← IO.Promise.new
-  let ref ← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }
-  discard <| EIO.asTask (prio := .dedicated) <| ← dropM <| (runRefreshStepM k) promise ref
-  return <RefreshComponent
-    state={← WithRpcRef.mk ref}
-    cancelTk={none}/>
+abbrev CancelTokenRef := IO.Ref IO.CancelToken
+
+instance : TypeName CancelTokenRef := unsafe .mk CancelTokenRef ``CancelTokenRef
+
+/-- `CancelPanelWidgetProps` are the arguments passed to a widget which supports cancellation. -/
+structure CancelPanelWidgetProps extends PanelWidgetProps where
+  /-- `cancelTkRef` is a reference to the cancel token of the most recent instance of the widget. -/
+  cancelTkRef : WithRpcRef (IO.Ref IO.CancelToken)
+  deriving RpcEncodable
+
+/-- Locally display a widget that supports cancellation via `CancelPanelWidgetProps`. -/
+def showCancelPanelWidget (component : Component CancelPanelWidgetProps) : CoreM Unit := do
+  let cancelTkRef ← WithRpcRef.mk (← IO.mkRef (← IO.CancelToken.new))
+  let wi ← Widget.WidgetInstance.ofHash component.javascriptHash
+    (return json% {cancelTkRef : $(← rpcEncode cancelTkRef)})
+  addPanelWidgetLocal wi
 
 end ProofWidgets
