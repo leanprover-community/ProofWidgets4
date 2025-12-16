@@ -40,7 +40,7 @@ where
 /-! Example 2: print the selected expressions one by one in an infinite loop -/
 
 @[server_rpc_method]
-partial def cycleSelections (props : SelectRefreshParams) : RequestM (RequestTask Html) :=
+partial def cycleSelections (props : CancelPanelWidgetProps) : RequestM (RequestTask Html) :=
   RequestM.asTask do
     let some goal := props.goals[0]? | return .text "there are no goals"
     goal.ctx.val.runMetaM {} do
@@ -61,7 +61,7 @@ where
       loop args (i + 1)
 
 @[widget_module]
-def cycleComponent : Component SelectRefreshParams :=
+def cycleComponent : Component CancelPanelWidgetProps :=
   mk_rpc_widget% cycleSelections
 
 elab stx:"cycleSelections" : tactic => do
