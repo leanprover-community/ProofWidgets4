@@ -15,7 +15,7 @@ open Lean.Widget ProofWidgets RefreshComponent Jsx Lean Server
 /-! Example 1: Counting up to 10 -/
 
 partial def countToTen : CoreM Html := do
-  mkRefreshComponentM (.text "Let's count to ten!!!") (count 0)
+  mkRefreshComponent (.text "Let's count to ten!!!") <| runRefreshStepM (count 0)
 where
   count (n : Nat) : CoreM (RefreshStep CoreM) := do
     IO.sleep 1000
@@ -40,10 +40,11 @@ where
 /-! Example 2: print the selected expressions one by one in an infinite loop -/
 
 @[server_rpc_method]
-partial def cycleSelections (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
+partial def cycleSelections (props : SelectRefreshParams) : RequestM (RequestTask Html) :=
   RequestM.asTask do
     let some goal := props.goals[0]? | return .text "there are no goals"
-    mkGoalRefreshComponent goal (.text "loading...") do
+    goal.ctx.val.runMetaM {} do
+    mkCancelRefreshComponent props.cancelTkRef.val (.text "loading...") <| runRefreshStepM do
       let args ← props.selectedLocations.mapM (·.saveExprWithCtx)
       if h : args.size ≠ 0 then
         have : NeZero args.size := ⟨h⟩
@@ -60,16 +61,20 @@ where
       loop args (i + 1)
 
 @[widget_module]
-def cycleComponent : Component PanelWidgetProps :=
+def cycleComponent : Component SelectRefreshParams :=
   mk_rpc_widget% cycleSelections
 
 elab stx:"cycleSelections" : tactic => do
-  Widget.savePanelWidgetInfo (hash cycleComponent.javascript) (pure <| json% {}) stx
+  let ref ← WithRpcRef.mk (← IO.mkRef (← IO.CancelToken.new))
+  Widget.savePanelWidgetInfo (hash cycleComponent.javascript)
+    (return json% { cancelTkRef : $(← rpcEncode ref)}) stx
 
--- show_panel_widgets [cycleComponent, cycleComponent]
-example : 1 + 2 + 3 = 6 ^ 1 := by
-  cycleSelections -- place your cursor here and select some expressions
-  rfl
+-- run_meta showSelectRefreshWidget cycleComponent
+
+example : 1 + 2 + 3 = 6 ^ 1 ∧ True := by
+  constructor
+  cycleSelections -- place your cursor here and select some expressions in the goals
+  all_goals trivial
 -- If you activate the widget multiple times, then thanks to the global cancel token ref,
 -- all but one of the widget computations will say `This component was cancelled`.
 
@@ -114,7 +119,7 @@ def generateFibo (n : Nat) : Html :=
   <li>{.text s!"the {n}-th Fibonacci number has {(fibo n).log2} binary digits."}</li>
 
 partial def FiboWidget : CoreM Html := do
-  mkRefreshComponentM (.text "loading...") do
+  mkRefreshComponent (.text "loading...") <| runRefreshStepM do
     IO.sleep 1 -- If we don't wait 1ms first, the infoview lags too much.
     let pending := (400000...=400040).toArray.map fun n => (n, Task.spawn fun _ => generateFibo n)
     let t0 ← IO.monoMsNow
