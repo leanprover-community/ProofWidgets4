@@ -12,7 +12,7 @@ We use `dbg_trace` to help see which Lean processes are active at any time.
 open Lean.Widget ProofWidgets RefreshComponent Jsx Lean Server
 
 
-/-! Example 1: Counting up to 10 -/
+/-! Example 1: Count from 1 to 10, taking one second for each count. -/
 
 partial def countToTen : CoreM Html := do
   mkRefreshComponent (.text "Let's count to ten!!!") <| runRefreshStepM (count 0)
@@ -37,7 +37,7 @@ where
 
 
 
-/-! Example 2: print the selected expressions one by one in an infinite loop -/
+/-! Example 2: Print the selected expressions one by one in an infinite loop. -/
 
 @[server_rpc_method]
 partial def cycleSelections (props : CancelPanelWidgetProps) : RequestM (RequestTask Html) :=
@@ -80,7 +80,7 @@ example : 1 + 2 + 3 = 6 ^ 1 ∧ True := by
 
 
 
-/-! Example 3: compute the fibonacci numbers from 400000 to 400040, in parallel,
+/-! Example 3: Compute the fibonacci numbers from 400000 to 400040, in parallel,
 and show the results as they come up. -/
 
 def fibo (n : Nat) : Nat := Id.run do
