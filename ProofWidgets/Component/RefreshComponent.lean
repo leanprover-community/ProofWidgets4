@@ -43,7 +43,7 @@ structure RefreshState where
   /-- The state that the widget should currently be in. -/
   curr : VersionedHtml
   /-- A task that returns the next state for the widget.
-  It is implemented using `IO.Promise.result?`, or `.pure none`. -/
+  It is always implemented using `IO.Promise.result?`. -/
   next : Task (Option VersionedHtml)
 
 /-- A reference to a `RefreshState`. This is used to keep track of the refresh state. -/
@@ -96,71 +96,44 @@ def RefreshComponent : Component RefreshComponentProps where
 
 /-! ## API for creating `RefreshComponent`s -/
 
-/-- The monad transformer for maintaining a `RefreshComponent`. -/
+/-- The monad transformer for maintaining a `RefreshComponent`.
+The `RefreshState` ref must also be passed to the corresponding `RefreshComponent`.
+The `IO.Promise VersionedHtml` is what is used to create the `RefreshState.next` task.
+If it is resolved, the task will return the next HTML. If not, the task will return `none`. -/
 abbrev RefreshT (m : Type → Type) :=
-  ReaderT (IO.Promise VersionedHtml) <| StateRefT' IO.RealWorld RefreshState m
+  ReaderT (IO.Ref RefreshState) <| StateRefT' IO.RealWorld (IO.Promise VersionedHtml) m
 
-variable {m : Type → Type} [Monad m] [MonadLiftT BaseIO m]
-  [MonadLiftT (ST IO.RealWorld) m]
+variable {m : Type → Type} [Monad m] [MonadLiftT BaseIO m] [MonadLiftT (ST IO.RealWorld) m]
 
-/-- `RefreshStep` represents an update to the refresh state. -/
-inductive RefreshStep (m : Type → Type) where
-  /-- Leaves the current HTML in place and stops the refreshing. -/
-  | none
-  /-- Sets the current HTML to `html` and stops the refreshing. -/
-  | last (html : Html)
-  /-- Sets the current HTML to `html` and continues refreshing with `cont`. -/
-  | cont' (html : Html) (cont : RefreshT m Unit)
-  deriving Inhabited
-
-/-- Update `RefreshState` and resolve `IO.Promise VersionedHtml` using the given `RefreshStep`. -/
-def runRefreshStep (k : RefreshStep m) : RefreshT m Unit := do
-  let idx := (← get).curr.idx + 1
-  match k with
-  | .none =>
-    modify fun { curr, .. } => { curr, next := .pure none }
-    -- we drop the reference to the promise, so the corresponding task will return `none`.
-  | .last html =>
-    MonadState.set { curr := { html, idx }, next := .pure none }
-    (← read).resolve { html, idx }
-  | .cont' html cont =>
-    let newPromise ← IO.Promise.new
-    MonadState.set { curr := { html, idx }, next := newPromise.result? }
-    (← read).resolve { html, idx }
-    withReader (fun _ => newPromise) cont
-
-/-- Update `RefreshState` and resolve `IO.Promise VersionedHtml` using the given `RefreshStep`.
-Also catch all exceptions that `k` might throw. -/
-def runRefreshStepM [i : MonadAlwaysExcept Exception m] (k : m (RefreshStep m)) : RefreshT m Unit := do
-  have := i.except
-  runRefreshStep <| ←
-    try k
-    catch e =>
-      if let .internal id _ := e then
-        if id == interruptExceptionId then
-          return .last <| .text "This component was cancelled"
-      return .last
-        <span>
-        Error refreshing this component: <InteractiveMessage msg={← WithRpcRef.mk e.toMessageData}/>
-        </span>
-
-@[inherit_doc RefreshStep.cont']
-def RefreshStep.cont [MonadAlwaysExcept Exception m]
-    (html : Html) (cont : m (RefreshStep m)) : RefreshStep m :=
-  .cont' html (runRefreshStepM cont)
+/-- Update the current HTML to be `html`. -/
+def refresh (html : Html) : RefreshT m Unit := do
+  let idx := (← (← read).get).curr.idx + 1
+  (← get).resolve { html, idx }
+  let newPromise ← IO.Promise.new
+  (← read).set { curr := { html, idx }, next := newPromise.result? }
+  set newPromise
 
 end RefreshComponent
 
 open RefreshComponent
 
-variable {m ε} [Monad m] [MonadDrop m (EIO ε)] [MonadLiftT BaseIO m]
+variable {m} [Monad m] [MonadDrop m (EIO Exception)] [MonadLiftT BaseIO m]
 
 /-- Create a `RefreshComponent`. In order to implicitly support cancellation, `m` should extend
 `CoreM`, and hence have access to a cancel token. -/
 def mkRefreshComponent (initial : Html) (k : RefreshT m Unit) : m Html := do
   let promise ← IO.Promise.new
+  let promiseRef ← IO.mkRef promise
   let ref ← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }
-  discard <| EIO.asTask (prio := .dedicated) <| ← dropM <| k promise ref
+  discard <| BaseIO.asTask (prio := .dedicated) <|
+    (← dropM <| k ref promiseRef).catchExceptions fun ex => (refresh · ref promiseRef) =<< do
+      if let .internal id _ := ex then
+        if id == interruptExceptionId then
+          return .text "This component was cancelled"
+      return <span>
+          An error occurred while refreshing this component:
+          <InteractiveMessage msg={← WithRpcRef.mk ex.toMessageData}/>
+        </span>
   return <RefreshComponent state={← WithRpcRef.mk ref}/>
 
 /-- Create a `RefreshComponent`. Explicitly support cancellation by creating a cancel token,
