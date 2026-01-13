@@ -15,17 +15,17 @@ open Lean.Widget ProofWidgets RefreshComponent Jsx Lean Server
 /-! Example 1: Count from 1 to 10, taking one second for each count. -/
 
 partial def countToTen : CoreM Html := do
-  mkRefreshComponent (.text "Let's count to ten!!!") <| runRefreshStepM (count 0)
-where
-  count (n : Nat) : CoreM (RefreshStep CoreM) := do
-    IO.sleep 1000
-    dbg_trace "counted {n}"
-    Core.checkSystem "count to ten"
-    if n = 10 then
-      return .last <| .text s!"Wie niet weg is, is gezien, ik kom!!!"
-    else
-      return .cont (.text s!"{n + 1}!!!") (count (n + 1))
-
+  mkRefreshComponent (.text "Let's count to ten!!!") do
+    let mut n := 0
+    repeat do
+      IO.sleep 1000
+      dbg_trace "counted {n}"
+      Core.checkSystem "count to ten"
+      if n = 10 then
+        refresh <| .text s!"Wie niet weg is, is gezien, ik kom!!!"
+        break
+      refresh <| .text s!"{n + 1}!!!"
+      n := n + 1
 -- If you close and reopen the infoview, the counting continues as if it was open the whole time.
 #html countToTen
 
@@ -44,21 +44,20 @@ partial def cycleSelections (props : CancelPanelWidgetProps) : RequestM (Request
   RequestM.asTask do
     let some goal := props.goals[0]? | return .text "there are no goals"
     goal.ctx.val.runMetaM {} do
-    mkCancelRefreshComponent props.cancelTkRef.val (.text "loading...") <| runRefreshStepM do
+    mkCancelRefreshComponent props.cancelTkRef.val (.text "loading...") do
       let args ← props.selectedLocations.mapM (·.saveExprWithCtx)
       if h : args.size ≠ 0 then
         have : NeZero args.size := ⟨h⟩
-        loop args 0
+        let mut i : Fin args.size := 0
+        repeat do
+          refresh <InteractiveCode fmt={← args[i].runMetaM Widget.ppExprTagged}/>
+          dbg_trace "cycled through expression {i}"
+          IO.sleep 1000
+          Core.checkSystem "cycleSelections"
+          have : NeZero args.size := ⟨by cases i; grind⟩
+          i := i + 1
       else
-        return .last <| .text "please select some expression"
-where
-  loop (args : Array ExprWithCtx) (i : Fin args.size) : MetaM (RefreshStep MetaM) := do
-    return .cont <InteractiveCode fmt={← args[i].runMetaM Widget.ppExprTagged}/> do
-      dbg_trace "cycled through expression {i}"
-      IO.sleep 1000
-      Core.checkSystem "cycleSelections"
-      have : NeZero args.size := ⟨by cases i; grind⟩
-      loop args (i + 1)
+        refresh <| .text "please select some expression"
 
 @[widget_module]
 def cycleComponent : Component CancelPanelWidgetProps :=
@@ -69,7 +68,7 @@ elab stx:"cycleSelections" : tactic => do
   Widget.savePanelWidgetInfo (hash cycleComponent.javascript)
     (return json% { cancelTkRef : $(← rpcEncode ref)}) stx
 
--- run_meta showSelectRefreshWidget cycleComponent
+-- run_meta showCancelPanelWidget cycleComponent
 
 example : 1 + 2 + 3 = 6 ^ 1 ∧ True := by
   constructor
@@ -119,21 +118,20 @@ def generateFibo (n : Nat) : Html :=
   <li>{.text s!"the {n}-th Fibonacci number has {(fibo n).log2} binary digits."}</li>
 
 partial def FiboWidget : CoreM Html := do
-  mkRefreshComponent (.text "loading...") <| runRefreshStepM do
+  mkRefreshComponent (.text "loading...") do
     IO.sleep 1 -- If we don't wait 1ms first, the infoview lags too much.
     let pending := (400000...=400040).toArray.map fun n => (n, Task.spawn fun _ => generateFibo n)
     let t0 ← IO.monoMsNow
-    loop t0 { pending }
-where
-  loop (t0 : Nat) (s : FiboState) : CoreM (RefreshStep CoreM) := do
-    Core.checkSystem "FiboWidget"
-    while !(← s.pending.anyM (IO.hasFinished ·.2)) do
-      IO.sleep 10
+    let mut s : FiboState := { pending }
+    repeat do
       Core.checkSystem "FiboWidget"
-    let s ← s.update
-    if s.pending.isEmpty then
-      return .last <| s.render ((← IO.monoMsNow) - t0)
-    else
-      return .cont s.render (loop t0 s)
+      while !(← s.pending.anyM (IO.hasFinished ·.2)) do
+        IO.sleep 10
+        Core.checkSystem "FiboWidget"
+      s ← s.update
+      if s.pending.isEmpty then
+        refresh (s.render ((← IO.monoMsNow) - t0))
+        break
+      refresh s.render
 
 -- #html FiboWidget
