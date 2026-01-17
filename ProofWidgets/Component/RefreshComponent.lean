@@ -81,10 +81,12 @@ or because a different expression was selected in the goal.
 def getCurrState (ref : WithRpcRef RefreshRef) : RequestM (RequestTask VersionedHtml) := do
   return .pure (← ref.val.get).curr
 
+end RefreshComponent
+
 /-- The argument passed to `RefreshComponent`. -/
 structure RefreshComponentProps where
   /-- The refresh state that is queried for updating the display. -/
-  state : WithRpcRef RefreshRef
+  state : WithRpcRef RefreshComponent.RefreshRef
   deriving RpcEncodable
 
 /-- Display an inital HTML, and repeatedly update the display with new HTML objects
@@ -94,7 +96,9 @@ def RefreshComponent : Component RefreshComponentProps where
   javascript := include_str ".." /  ".." / ".lake" / "build" / "js" / "RefreshComponent.js"
 
 
-/-! ## API for creating `RefreshComponent`s -/
+/-! ## API for creating a `RefreshComponent` -/
+
+namespace RefreshComponent
 
 /-- The monad transformer for maintaining a `RefreshComponent`.
 The `RefreshState` ref must also be passed to the corresponding `RefreshComponent`.
@@ -103,7 +107,7 @@ If it is resolved, the task will return the next HTML. If not, the task will ret
 abbrev RefreshT (m : Type → Type) :=
   ReaderT (IO.Ref RefreshState) <| StateRefT' IO.RealWorld (IO.Promise VersionedHtml) m
 
-variable {m : Type → Type} [Monad m] [MonadLiftT BaseIO m] [MonadLiftT (ST IO.RealWorld) m]
+variable {m} [Monad m] [MonadLiftT BaseIO m] [MonadLiftT (ST IO.RealWorld) m]
 
 /-- Update the current HTML to be `html`. -/
 def refresh (html : Html) : RefreshT m Unit := do
