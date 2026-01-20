@@ -102,6 +102,8 @@ instance {ω σ} [MonadLiftT (ST ω) m] : MonadDrop (StateRefT' ω σ m) n where
 
 end MonadDrop
 
-instance : Lean.Server.RpcEncodable Unit where
-  rpcEncode _ := pure .null
-  rpcDecode _ := pure ()
+instance : Lean.ToJson Unit where
+  toJson _ := .null
+
+instance : Lean.FromJson Unit where
+  fromJson? _ := .ok ()
