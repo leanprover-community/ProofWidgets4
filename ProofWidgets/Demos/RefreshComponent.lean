@@ -74,8 +74,7 @@ example : 1 + 2 + 3 = 6 ^ 1 ∧ True := by
   constructor
   cycleSelections -- place your cursor here and select some expressions in the goals
   all_goals trivial
--- If you activate the widget multiple times, then thanks to the global cancel token ref,
--- all but one of the widget computations will say `This component was cancelled`.
+-- If you activate the widget multiple times, they all appear next to eachother as duplicates.
 
 
 
