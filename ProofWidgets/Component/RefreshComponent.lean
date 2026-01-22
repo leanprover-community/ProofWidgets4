@@ -190,11 +190,11 @@ structure CancelPanelWidgetProps extends PanelWidgetProps where
   cancelTkRef : WithRpcRef (IO.Ref IO.CancelToken)
   deriving RpcEncodable
 
-/-- Locally display a widget that supports cancellation via `CancelPanelWidgetProps`. -/
-def showCancelPanelWidget (component : Component CancelPanelWidgetProps) : CoreM Unit := do
+/-- Return a widget that supports cancellation via `CancelPanelWidgetProps`.
+The widget can be activated with for example `addPanelWidgetLocal` or  `addPanelWidgetGlobal`. -/
+def mkCancelPanelWidget (component : Component CancelPanelWidgetProps) : CoreM WidgetInstance := do
   let cancelTkRef ← WithRpcRef.mk (← IO.mkRef (← IO.CancelToken.new))
-  let wi ← Widget.WidgetInstance.ofHash component.javascriptHash
+  Widget.WidgetInstance.ofHash component.javascriptHash
     (return json% {cancelTkRef : $(← rpcEncode cancelTkRef)})
-  addPanelWidgetLocal wi
 
 end ProofWidgets

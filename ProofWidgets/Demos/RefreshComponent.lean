@@ -68,7 +68,7 @@ elab stx:"cycleSelections" : tactic => do
   Widget.savePanelWidgetInfo (hash cycleComponent.javascript)
     (return json% { cancelTkRef : $(← rpcEncode ref)}) stx
 
--- run_meta showCancelPanelWidget cycleComponent
+-- run_meta do addPanelWidgetLocal <| ← mkCancelPanelWidget cycleComponent
 
 example : 1 + 2 + 3 = 6 ^ 1 ∧ True := by
   constructor
