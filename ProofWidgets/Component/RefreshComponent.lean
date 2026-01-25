@@ -108,6 +108,7 @@ def getCurrState (ref : WithRpcRef RefreshRef) : RequestM (RequestTask Versioned
   return .pure (← ref.val.get).curr
 
 end RefreshComponent
+
 open RefreshComponent
 
 /-- The argument passed to `RefreshComponent`. -/
