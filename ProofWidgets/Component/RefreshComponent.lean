@@ -5,9 +5,9 @@ Authors: Jovan Gerbscheid
 -/
 module
 
+public import ProofWidgets.Component.Panel.Basic
 public import ProofWidgets.Data.Html
 public import ProofWidgets.Util
-public import ProofWidgets.Component.Panel.Basic
 
 /-!
 # The `RefreshComponent` widget
