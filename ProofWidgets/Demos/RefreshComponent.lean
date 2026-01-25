@@ -15,16 +15,16 @@ open Lean.Widget ProofWidgets RefreshComponent Jsx Lean Server
 /-! Example 1: Count from 1 to 10, taking one second for each count. -/
 
 partial def countToTen : CoreM Html := do
-  mkRefreshComponent (.text "Let's count to ten!!!") do
+  mkRefreshComponent (.text "Let's count to ten!!!") fun token ↦ do
     let mut n := 0
     repeat do
       IO.sleep 1000
       dbg_trace "counted {n}"
       Core.checkSystem "count to ten"
       if n = 10 then
-        refresh <| .text s!"Wie niet weg is, is gezien, ik kom!!!"
+        token.refresh <| .text s!"Wie niet weg is, is gezien, ik kom!!!"
         break
-      refresh <| .text s!"{n + 1}!!!"
+      token.refresh <| .text s!"{n + 1}!!!"
       n := n + 1
 -- If you close and reopen the infoview, the counting continues as if it was open the whole time.
 #html countToTen
@@ -44,20 +44,20 @@ partial def cycleSelections (props : CancelPanelWidgetProps) : RequestM (Request
   RequestM.asTask do
     let some goal := props.goals[0]? | return .text "there are no goals"
     goal.ctx.val.runMetaM {} do
-    mkCancelRefreshComponent props.cancelTkRef.val (.text "loading...") do
+    mkCancelRefreshComponent props.cancelTkRef.val (.text "loading...") fun token ↦ do
       let args ← props.selectedLocations.mapM (·.saveExprWithCtx)
       if h : args.size ≠ 0 then
         have : NeZero args.size := ⟨h⟩
         let mut i : Fin args.size := 0
         repeat do
-          refresh <InteractiveCode fmt={← args[i].runMetaM Widget.ppExprTagged}/>
+          token.refresh <InteractiveCode fmt={← args[i].runMetaM Widget.ppExprTagged}/>
           dbg_trace "cycled through expression {i}"
           IO.sleep 1000
           Core.checkSystem "cycleSelections"
           have : NeZero args.size := ⟨by cases i; grind⟩
           i := i + 1
       else
-        refresh <| .text "please select some expression"
+        token.refresh <| .text "please select some expression"
 
 @[widget_module]
 def cycleComponent : Component CancelPanelWidgetProps :=
@@ -117,7 +117,7 @@ def generateFibo (n : Nat) : Html :=
   <li>{.text s!"the {n}-th Fibonacci number has {(fibo n).log2} binary digits."}</li>
 
 partial def FiboWidget : CoreM Html := do
-  mkRefreshComponent (.text "loading...") do
+  mkRefreshComponent (.text "loading...") fun token ↦ do
     IO.sleep 1 -- If we don't wait 1ms first, the infoview lags too much.
     let pending := (400000...=400040).toArray.map fun n => (n, Task.spawn fun _ => generateFibo n)
     let t0 ← IO.monoMsNow
@@ -129,8 +129,8 @@ partial def FiboWidget : CoreM Html := do
         Core.checkSystem "FiboWidget"
       s ← s.update
       if s.pending.isEmpty then
-        refresh (s.render ((← IO.monoMsNow) - t0))
+        token.refresh (s.render ((← IO.monoMsNow) - t0))
         break
-      refresh s.render
+      token.refresh s.render
 
 -- #html FiboWidget

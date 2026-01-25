@@ -62,7 +62,7 @@ structure VersionedHtml where
   html : Html
   /-- The version number of the HTML. It is a count of how many HTMLs were created. -/
   idx : Nat
-  deriving RpcEncodable, Inhabited
+  deriving RpcEncodable, Nonempty
 
 /-- The `RefreshState` stores the incremental result of the HTML computation. -/
 structure RefreshState where
@@ -108,11 +108,12 @@ def getCurrState (ref : WithRpcRef RefreshRef) : RequestM (RequestTask Versioned
   return .pure (← ref.val.get).curr
 
 end RefreshComponent
+open RefreshComponent
 
 /-- The argument passed to `RefreshComponent`. -/
 structure RefreshComponentProps where
   /-- The refresh state that is queried for updating the display. -/
-  state : WithRpcRef RefreshComponent.RefreshRef
+  state : WithRpcRef RefreshRef
   deriving RpcEncodable
 
 /-- Display an inital HTML, and repeatedly update the display with new HTML objects
@@ -124,39 +125,43 @@ def RefreshComponent : Component RefreshComponentProps where
 
 /-! ## API for creating a `RefreshComponent` -/
 
-namespace RefreshComponent
+/-- A `RefreshToken` allows you to update the state of the corresponding `RefreshComponent`
+using `RefreshToken.refresh`. -/
+structure RefreshToken where
+  /-- The reference that was given to the corresponding `RefreshComponent`. -/
+  ref : RefreshRef
+  /-- The promise that will resolve the `next` field in `ref`.
+  If we drop the reference to this structure, and hence to this promise,
+  the `next` field will resolve to `none`. -/
+  promise : IO.Ref (IO.Promise VersionedHtml)
 
-/-- The monad transformer for maintaining a `RefreshComponent`.
-The `RefreshState` ref must also be passed to the corresponding `RefreshComponent`.
-The `IO.Promise VersionedHtml` is what is used to create the `RefreshState.next` task.
-If it is resolved, the task will return the next HTML. If not, the task will return `none`. -/
-abbrev RefreshT (m : Type → Type) :=
-  ReaderT (IO.Ref RefreshState) <| StateRefT' IO.RealWorld (IO.Promise VersionedHtml) m
+/-- Create a fresh `RefreshToken` with initial HTML `initial`. -/
+def RefreshToken.new (initial : Html) : BaseIO RefreshToken := do
+  let promise ← IO.Promise.new
+  return {
+    ref := ← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }
+    promise := ← IO.mkRef promise }
 
-variable {m} [Monad m] [MonadLiftT BaseIO m] [MonadLiftT (ST IO.RealWorld) m]
-
-/-- Update the current HTML to be `html`. -/
-def refresh (html : Html) : RefreshT m Unit := do
-  let idx := (← (← read).get).curr.idx + 1
-  (← get).resolve { html, idx }
+/-- Update the current HTML to be `html`.
+This function makes use of `ST.Ref.take` in order to be thread safe.
+That is, if multiple different threads call `RefreshToken.refresh` with the same refresh token,
+a call will block other calls until it is finished. -/
+def RefreshToken.refresh (token : RefreshToken) (html : Html) : BaseIO Unit := unsafe do
+  let { ref, promise } := token
+  let idx := (← ref.take).curr.idx + 1
+  (← promise.get).resolve { html, idx }
   let newPromise ← IO.Promise.new
-  (← read).set { curr := { html, idx }, next := newPromise.result? }
-  set newPromise
-
-end RefreshComponent
-
-open RefreshComponent
+  promise.set newPromise
+  ref.set { curr := { html, idx }, next := newPromise.result? }
 
 variable {m} [Monad m] [MonadDrop m (EIO Exception)] [MonadLiftT BaseIO m]
 
 /-- Create a `RefreshComponent`. In order to implicitly support cancellation, `m` should extend
 `CoreM`, and hence have access to a cancel token. -/
-def mkRefreshComponent (initial : Html) (k : RefreshT m Unit) : m Html := do
-  let promise ← IO.Promise.new
-  let promiseRef ← IO.mkRef promise
-  let ref ← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }
+def mkRefreshComponent (initial : Html) (k : RefreshToken → m Unit) : m Html := do
+  let token ← RefreshToken.new initial
   discard <| BaseIO.asTask (prio := .dedicated) <|
-    (← dropM <| k ref promiseRef).catchExceptions fun ex => (refresh · ref promiseRef) =<< do
+    (← dropM <| k token).catchExceptions fun ex => token.refresh =<< do
       if let .internal id _ := ex then
         if id == interruptExceptionId then
           return .text "This component was cancelled"
@@ -164,7 +169,7 @@ def mkRefreshComponent (initial : Html) (k : RefreshT m Unit) : m Html := do
           An error occurred while refreshing this component:
           <InteractiveMessage msg={← WithRpcRef.mk ex.toMessageData}/>
         </span>
-  return <RefreshComponent state={← WithRpcRef.mk ref}/>
+  return <RefreshComponent state={← WithRpcRef.mk token.ref}/>
 
 /-- Create a `RefreshComponent`. Explicitly support cancellation by creating a cancel token,
 and setting the previous cancel token. This is useful when the component depends on the selections
@@ -173,12 +178,13 @@ in the goal, so that after making a new selection, the previous computation is c
 Note: The cancel token is only set when a new computation is started.
   When the infoview is closed, this unfortunately doesn't set the cancel token. -/
 def mkCancelRefreshComponent [MonadWithReaderOf Core.Context m]
-    (cancelTkRef : IO.Ref IO.CancelToken) (initial : Html) (k : RefreshT m Unit) : m Html := do
+    (cancelTkRef : IO.Ref IO.CancelToken) (initial : Html) (k : RefreshToken → m Unit) :
+    m Html := do
   let cancelTk ← IO.CancelToken.new
   let oldTk ← (cancelTkRef.swap cancelTk : BaseIO _)
   oldTk.set
-  mkRefreshComponent initial do
-    withTheReader Core.Context ({· with cancelTk? := cancelTk }) k
+  mkRefreshComponent initial fun token ↦
+    withTheReader Core.Context ({· with cancelTk? := cancelTk }) <| k token
 
 abbrev CancelTokenRef := IO.Ref IO.CancelToken
 
