@@ -62,7 +62,7 @@ def mkLabel (e : MVarId)
     (fill := "var(--vscode-editor-background)") :
     MetaM (Nat × Nat × Html) := do
   let fmt := s!"?{← e.getName}"
-  let fmtTp ← withOptions (·.setNat `pp.deepTerms.threshold 2)
+  let fmtTp ← withOptions (·.set `pp.deepTerms.threshold (2 : Nat))
     (toString <$> ppExpr (← e.getType'))
   let len := fmt.length + fmtTp.length + 3
   let w := min (15 + len * 6) 100
