@@ -15,13 +15,19 @@ export default React.memo((props: Props) => {
   const rs = useRpcSession()
   const cancelRef = React.useRef<Fn>({ fn: () => {} })
   const st = useAsyncPersistent<Html>(async () => {
+    cancelRef.current.fn()
     if (RPC_CANCELLABLE === 'true') {
-      cancelRef.current.fn()
+      // TODO: Remove this branch when removing `ProofWidgets.Cancellable`
       const [res, cancel] = callCancellable<Props, Html>(rs, RPC_METHOD, props)
       cancelRef.current = cancel
       return res
-    } else
-      return rs.call<Props, Html>(RPC_METHOD, props)
+    } else {
+      const ac = new AbortController()
+      const res = rs.call<Props, Html>(RPC_METHOD, props,
+        { autoCancel: true, abortSignal: ac.signal })
+      cancelRef.current = { fn: () => ac.abort() }
+      return res
+    }
   }, [rs, props])
 
   // This effect runs once on startup, does nothing,
