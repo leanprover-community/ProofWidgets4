@@ -6,6 +6,8 @@ public meta import Std.Data.HashMap
 public meta import ProofWidgets.Compat
 public meta import ProofWidgets.Util
 
+/-! # This file is DEPRECATED since v0.0.87 -/
+
 public meta section
 
 /-! Experimental support for cancellable RPC requests.
@@ -99,6 +101,14 @@ initialize
     see `callCancellable` in `cancellable.ts`."
     applicationTime := AttributeApplicationTime.afterCompilation
     add := fun decl _ _ => Prod.fst <$> MetaM.run do
+      logWarning "\
+        This attribute is deprecated since ProofWidgets v0.0.87.\n\n\
+        To migrate, replace `@[server_rpc_method_cancellable]` with `@[server_rpc_method]`,\n\
+        and replace calls to `IO.checkCanceled` with `RequestM.checkCancelled`.\n\n\
+        If the RPC method spawns `CoreM` computations,\n\
+        it is also encouraged to pass the cancellation token in `RequestContext`
+        into `Core.Context`."
+
       let name := decl ++ cancellableSuffix
       let value ← mkAppM ``mkCancellable #[mkConst decl]
       addAndCompile $ .defnDecl {
