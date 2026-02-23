@@ -15,7 +15,7 @@ open Lean.Widget ProofWidgets RefreshComponent Jsx Lean Server
 /-! Example 1: Count from 1 to 10, taking one second for each count. -/
 
 partial def countToTen : CoreM Html := do
-  mkRefreshComponent (.text "Let's count to ten!!!") fun token ↦ do
+  mkRefreshComponentM (.text "Let's count to ten!!!") fun token ↦ do
     let mut n := 0
     repeat do
       IO.sleep 1000
@@ -117,7 +117,7 @@ def generateFibo (n : Nat) : Html :=
   <li>{.text s!"the {n}-th Fibonacci number has {(fibo n).log2} binary digits."}</li>
 
 partial def FiboWidget : CoreM Html := do
-  mkRefreshComponent (.text "loading...") fun token ↦ do
+  mkRefreshComponentM (.text "loading...") fun token ↦ do
     IO.sleep 1 -- If we don't wait 1ms first, the infoview lags too much.
     let pending := (400000...=400040).toArray.map fun n => (n, Task.spawn fun _ => generateFibo n)
     let t0 ← IO.monoMsNow
@@ -134,3 +134,44 @@ partial def FiboWidget : CoreM Html := do
       token.refresh s.render
 
 -- #html FiboWidget
+
+/-! Example 4 -/
+
+/-
+This is a demonstration of a bug with widgets.
+Whenever the orange bar progresses to the next declaration, the widgets in the infoview reload.
+This is undesirable, because it will restart the computation that these widgets may be doing.
+-/
+
+@[server_rpc_method]
+partial def countToTen' (_ : PanelWidgetProps) : RequestM (RequestTask Html) :=
+  RequestM.asTask do
+    mkRefreshComponentM (m := EIO Exception) (.text "loading...") fun token ↦ do
+      for i in (0 : Nat)...10 do
+        token.refresh (.text s!"{i}")
+        IO.sleep 1000
+
+@[widget_module]
+def countToTen'Component : Component PanelWidgetProps :=
+  mk_rpc_widget% countToTen'
+
+elab stx:"#countToTen" : command => Elab.Command.liftCoreM do
+  Widget.savePanelWidgetInfo (hash countToTen'Component.javascript)
+    (pure (json% {})) stx
+
+elab "#wait" n:num : command => do
+  IO.sleep (1000 * .ofNat n.getNat)
+
+/-
+Place your cursor on the `#countToTen` command, and observe that it starts counting
+0, 1, 2, 3, 4, and then, it goes back to 0, because the orange bar has moved to
+the next `#wait 5` command
+-/
+#countToTen
+
+#wait 5
+#wait 5
+#wait 5
+#wait 5
+#wait 5
+#wait 5
