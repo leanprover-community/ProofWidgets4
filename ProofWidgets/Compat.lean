@@ -7,6 +7,7 @@ public meta section
 namespace ProofWidgets
 open Lean Server Elab
 
+/-- See `RpcEncodable`. -/
 abbrev LazyEncodable α := StateM RpcObjectStore α
 
 -- back from exile
