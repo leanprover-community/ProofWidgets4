@@ -44,20 +44,22 @@ inductive LayoutKind where
 namespace Jsx
 open Parser PrettyPrinter
 
-declare_syntax_cat jsxElement
-declare_syntax_cat jsxChild
-declare_syntax_cat jsxAttr
-declare_syntax_cat jsxAttrVal
+-- Verbose names to avoid conflicts with other packages that define HTML syntax
+-- (parser categories are not scoped).
+declare_syntax_cat proofWidgetsJsxElement
+declare_syntax_cat proofWidgetsJsxChild
+declare_syntax_cat proofWidgetsJsxAttr
+declare_syntax_cat proofWidgetsJsxAttrVal
 
-scoped syntax str : jsxAttrVal
+scoped syntax str : proofWidgetsJsxAttrVal
 /-- Interpolates an expression into a JSX attribute literal. -/
-scoped syntax group("{" term "}") : jsxAttrVal
-scoped syntax ident "=" jsxAttrVal : jsxAttr
+scoped syntax group("{" term "}") : proofWidgetsJsxAttrVal
+scoped syntax ident "=" proofWidgetsJsxAttrVal : proofWidgetsJsxAttr
 /-- Interpolates a collection into a JSX attribute literal.
 For HTML tags, this should have type `Array (String × Json)`.
 For `ProofWidgets.Component`s, it can be any structure `$t` whatsoever:
 it is interpolated into the component's props using `{ $t with ... }` notation. -/
-scoped syntax group(" {..." term "}") : jsxAttr
+scoped syntax group(" {..." term "}") : proofWidgetsJsxAttr
 
 /-- Characters not allowed inside JSX plain text. -/
 def jsxTextForbidden : String := "{<>}$"
@@ -66,7 +68,7 @@ def jsxText : Parser :=
   withAntiquot (mkAntiquot "jsxText" `ProofWidgets.Jsx.jsxText) {
     fn := fun c s =>
       let startPos := s.pos
-      let s := takeWhile1Fn (not ∘ (fun c =>  jsxTextForbidden.contains c)) "expected JSX text" c s
+      let s := takeWhile1Fn (fun c => !jsxTextForbidden.contains c) "expected JSX text" c s
       mkNodeToken `ProofWidgets.Jsx.jsxText startPos true c s }
 
 def getJsxText : TSyntax ``jsxText → String
@@ -79,20 +81,21 @@ def jsxText.formatter : Formatter :=
 def jsxText.parenthesizer : Parenthesizer :=
   Parenthesizer.visitToken
 
-scoped syntax "<" ident jsxAttr* "/>" : jsxElement
-scoped syntax "<" ident jsxAttr* ">" jsxChild* "</" ident ">" : jsxElement
+scoped syntax "<" ident proofWidgetsJsxAttr* "/>" : proofWidgetsJsxElement
+scoped syntax "<" ident proofWidgetsJsxAttr* ">" proofWidgetsJsxChild* "</" ident ">" :
+  proofWidgetsJsxElement
 
-scoped syntax jsxText      : jsxChild
+scoped syntax jsxText : proofWidgetsJsxChild
 /-- Interpolates an array of elements into a JSX literal -/
-scoped syntax "{..." term "}" : jsxChild
+scoped syntax "{..." term "}" : proofWidgetsJsxChild
 /-- Interpolates an expression into a JSX literal -/
-scoped syntax "{" term "}" : jsxChild
-scoped syntax jsxElement   : jsxChild
+scoped syntax "{" term "}" : proofWidgetsJsxChild
+scoped syntax proofWidgetsJsxElement : proofWidgetsJsxChild
 
-scoped syntax:max jsxElement : term
+scoped syntax:max proofWidgetsJsxElement : term
 
-def transformTag (tk : Syntax) (n m : Ident) (vs : Array (TSyntax `jsxAttr))
-    (cs : Array (TSyntax `jsxChild)) : MacroM Term := do
+def transformTag (tk : Syntax) (n m : Ident) (vs : Array (TSyntax `proofWidgetsJsxAttr))
+    (cs : Array (TSyntax `proofWidgetsJsxChild)) : MacroM Term := do
   let nId := n.getId.eraseMacroScopes
   let mId := m.getId.eraseMacroScopes
   if nId != mId then
@@ -105,22 +108,22 @@ def transformTag (tk : Syntax) (n m : Ident) (vs : Array (TSyntax `jsxAttr))
 
   -- Whitespace appearing before the current child.
   let mut wsBefore := trailingWs tk
-  -- This loop transforms (for example) `` `(jsxChild*| {a} text {...cs} {d})``
+  -- This loop transforms (for example) `` `(proofWidgetsJsxChild*| {a} text {...cs} {d})``
   -- into ``children ← `(term| #[a, Html.text " text "] ++ cs ++ #[d])``.
   let mut csArrs := #[]
   let mut csArr := #[]
   for c in cs do
     match c with
-    | `(jsxChild| $t:jsxText) =>
+    | `(proofWidgetsJsxChild| $t:jsxText) =>
       csArr ← csArr.push <$> `(Html.text $(quote <| wsBefore ++ getJsxText t))
       wsBefore := ""
-    | `(jsxChild| { $t }%$tk) =>
+    | `(proofWidgetsJsxChild| { $t }%$tk) =>
       csArr := csArr.push t
       wsBefore := trailingWs tk
-    | `(jsxChild| $e:jsxElement) =>
-      csArr ← csArr.push <$> `(term| $e:jsxElement)
+    | `(proofWidgetsJsxChild| $e:proofWidgetsJsxElement) =>
+      csArr ← csArr.push <$> `(term| $e:proofWidgetsJsxElement)
       wsBefore := trailingWs e
-    | `(jsxChild| {... $t }%$tk) =>
+    | `(proofWidgetsJsxChild| {... $t }%$tk) =>
       if !csArr.isEmpty then
         csArrs ← csArrs.push <$> `(term| #[$csArr,*])
       csArr := #[]
@@ -132,9 +135,9 @@ def transformTag (tk : Syntax) (n m : Ident) (vs : Array (TSyntax `jsxAttr))
   let children ← joinArrays csArrs
 
   let vs : Array ((Ident × Term) ⊕ Term) ← vs.mapM fun
-    | `(jsxAttr| $attr:ident = $s:str)      => Sum.inl <$> pure (attr, s)
-    | `(jsxAttr| $attr:ident = { $t:term }) => Sum.inl <$> pure (attr, t)
-    | `(jsxAttr| {... $t:term })            => Sum.inr <$> pure t
+    | `(proofWidgetsJsxAttr| $attr:ident = $s:str)      => Sum.inl <$> pure (attr, s)
+    | `(proofWidgetsJsxAttr| $attr:ident = { $t:term }) => Sum.inl <$> pure (attr, t)
+    | `(proofWidgetsJsxAttr| {... $t:term })            => Sum.inr <$> pure t
     | stx                                   => Macro.throwErrorAt stx "unknown syntax"
   let tag := toString nId
 
@@ -166,8 +169,8 @@ enabled using `open scoped ProofWidgets.Jsx`.
 Lowercase tags are interpreted as standard HTML
 whereas uppercase ones are expected to be `ProofWidgets.Component`s. -/
 macro_rules
-  | `(<$n:ident $[$attrs:jsxAttr]* />%$tk) => transformTag tk n n attrs #[]
-  | `(<$n:ident $[$attrs:jsxAttr]* >%$tk $cs*</$m>) => transformTag tk n m attrs cs
+  | `(<$n:ident $[$attrs:proofWidgetsJsxAttr]* />%$tk) => transformTag tk n n attrs #[]
+  | `(<$n:ident $[$attrs:proofWidgetsJsxAttr]* >%$tk $cs*</$m>) => transformTag tk n m attrs cs
 
 section delaborator
 
@@ -185,7 +188,7 @@ partial def delabHtmlText : DelabM (TSyntax ``jsxText) := do
 
 mutual
 
-partial def delabHtmlElement' : DelabM (TSyntax `jsxElement) := do
+partial def delabHtmlElement' : DelabM (TSyntax `proofWidgetsJsxElement) := do
   let_expr Html.element tag _attrs _children := ← getExpr | failure
 
   let .lit (.strVal s) := tag | failure
@@ -207,21 +210,21 @@ partial def delabHtmlElement' : DelabM (TSyntax `jsxElement) := do
           | .app (.const ``Json.str _) (.lit (.strVal v)) =>
             -- TODO: this annotation doesn't seem to work in infoview
             let val ← annotateTermLikeInfo <| Syntax.mkStrLit v
-            `(jsxAttr| $attr:ident=$val:str)
+            `(proofWidgetsJsxAttr| $attr:ident=$val:str)
           | _ =>
             let val ← delab
-            `(jsxAttr| $attr:ident={ $val })
+            `(proofWidgetsJsxAttr| $attr:ident={ $val })
     catch _ =>
       let vs ← delab
-      return #[← `(jsxAttr| {... $vs })]
+      return #[← `(proofWidgetsJsxAttr| {... $vs })]
 
   let children ← withAppArg delabJsxChildren
   if children.isEmpty then
-    `(jsxElement| < $tag $[$attrs]* />)
+    `(proofWidgetsJsxElement| < $tag $[$attrs]* />)
   else
-    `(jsxElement| < $tag $[$attrs]* > $[$children]* </ $tag >)
+    `(proofWidgetsJsxElement| < $tag $[$attrs]* > $[$children]* </ $tag >)
 
-partial def delabHtmlOfComponent' : DelabM (TSyntax `jsxElement) := do
+partial def delabHtmlOfComponent' : DelabM (TSyntax `proofWidgetsJsxElement) := do
   let_expr Html.ofComponent _Props _inst _c _props _children := ← getExpr | failure
   let c ← withNaryArg 2 delab
   unless c.raw.isIdent do failure
@@ -230,38 +233,38 @@ partial def delabHtmlOfComponent' : DelabM (TSyntax `jsxElement) := do
   -- TODO: handle `Props` that do not delaborate to `{ }`, such as `Prod`, by parsing the `Expr`
   -- instead.
   let attrDelab ← withNaryArg 3 delab
-  let attrs : Array (TSyntax `jsxAttr) ← do
+  let attrs : Array (TSyntax `proofWidgetsJsxAttr) ← do
     let `(term| { $[$ns:ident := $vs],* } ) := attrDelab |
-      pure #[← `(jsxAttr| {...$attrDelab})]
+      pure #[← `(proofWidgetsJsxAttr| {...$attrDelab})]
     ns.zip vs |>.mapM fun (n, v) => do
-      `(jsxAttr| $n:ident={ $v })
+      `(proofWidgetsJsxAttr| $n:ident={ $v })
   let children ← withNaryArg 4 delabJsxChildren
   if children.isEmpty then
-    `(jsxElement| < $tag $[$attrs]* />)
+    `(proofWidgetsJsxElement| < $tag $[$attrs]* />)
   else
-    `(jsxElement| < $tag $[$attrs]* > $[$children]* </ $tag >)
+    `(proofWidgetsJsxElement| < $tag $[$attrs]* > $[$children]* </ $tag >)
 
-partial def delabJsxChildren : DelabM (Array (TSyntax `jsxChild)) := do
+partial def delabJsxChildren : DelabM (Array (TSyntax `proofWidgetsJsxChild)) := do
   try
     delabArrayLiteral (withAnnotateTermLikeInfo do
       try
         match_expr ← getExpr with
         | Html.text _ =>
           let html ← delabHtmlText
-          return ← `(jsxChild| $html:jsxText)
+          return ← `(proofWidgetsJsxChild| $html:jsxText)
         | Html.element _ _ _ =>
           let html ← delabHtmlElement'
-          return ← `(jsxChild| $html:jsxElement)
+          return ← `(proofWidgetsJsxChild| $html:proofWidgetsJsxElement)
         | Html.ofComponent _ _ _ _ _ =>
           let comp ← delabHtmlOfComponent'
-          return ← `(jsxChild| $comp:jsxElement)
+          return ← `(proofWidgetsJsxChild| $comp:proofWidgetsJsxElement)
         | _ => failure
       catch _ =>
         let fallback ← delab
-        return ← `(jsxChild| { $fallback }))
+        return ← `(proofWidgetsJsxChild| { $fallback }))
   catch _ =>
     let vs ← delab
-    return #[← `(jsxChild| {... $vs })]
+    return #[← `(proofWidgetsJsxChild| {... $vs })]
 
 end
 
@@ -270,12 +273,12 @@ end
 @[delab app.ProofWidgets.Html.element]
 def delabHtmlElement : Delab := do
   let t ← delabHtmlElement'
-  `(term| $t:jsxElement)
+  `(term| $t:proofWidgetsJsxElement)
 
 @[delab app.ProofWidgets.Html.ofComponent]
 def delabHtmlOfComponent : Delab := do
   let t ← delabHtmlOfComponent'
-  `(term| $t:jsxElement)
+  `(term| $t:proofWidgetsJsxElement)
 
 end delaborator
 
