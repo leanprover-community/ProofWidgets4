@@ -40,11 +40,10 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - name: Update NPM (Windows)
-        shell: bash
-        if: matrix.os == 'windows-latest'
-        # See https://github.com/nodejs/node/issues/52682
-        run: cd widget/ && npm install npm
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
 
       - name: Build package
         run: lake build ProofWidgets
@@ -56,6 +55,9 @@ jobs:
 
       - name: Build demos
         run: lake build ProofWidgets.Demos
+
+      - name: Run tests
+        run: lake test
 
       - name: Create GitHub release for tag (Ubuntu)
         if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'

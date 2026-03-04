@@ -5,7 +5,6 @@ package proofwidgets where
   preferReleaseBuild := true
   buildArchive? := "ProofWidgets4.tar.gz"
   releaseRepo := "https://github.com/leanprover-community/ProofWidgets4"
-  leanOptions := #[⟨`experimental.module, true⟩]
 
 def widgetDir : FilePath := "widget"
 
@@ -101,3 +100,7 @@ lean_lib ProofWidgets where
 lean_lib ProofWidgets.Demos where
   needs := #[widgetJsAll]
   globs := #[.submodules `ProofWidgets.Demos]
+
+@[test_driver]
+lean_lib test where
+  globs := #[.submodules `test]
