@@ -13,12 +13,12 @@ interface RefreshComponentProps {
   state : RpcPtr<'RefreshRef'>
 }
 
-interface RequestProps {
+interface AwaitRefreshParams {
   state : RpcPtr<'RefreshRef'>
   oldIdx : number
 }
 
-interface ResultProps {
+interface VersionedHtml {
   /** The new HTML to display */
   html : Html
   idx : number
@@ -32,7 +32,7 @@ export default function RefreshComponent(props: RefreshComponentProps): JSX.Elem
   React.useEffect(() => {
     let cancelled = false
     async function loop(idx: number) {
-        const result = await rs.call<RequestProps, ResultProps | null>(
+        const result = await rs.call<AwaitRefreshParams, VersionedHtml | null>(
             "ProofWidgets.RefreshComponent.awaitRefresh", { oldIdx: idx, state: props.state })
         if (cancelled || !result) return
         setHtml(result.html)
@@ -40,7 +40,7 @@ export default function RefreshComponent(props: RefreshComponentProps): JSX.Elem
     }
     (async () => {
         // Set the HTML to the current value at the start of each re-render
-        const result = await rs.call<RpcPtr<'RefreshRef'>, ResultProps>(
+        const result = await rs.call<RpcPtr<'RefreshRef'>, VersionedHtml>(
             "ProofWidgets.RefreshComponent.getCurrState", props.state)
         if (cancelled) return
         setHtml(result.html)
