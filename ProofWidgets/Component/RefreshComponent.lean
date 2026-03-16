@@ -73,9 +73,9 @@ structure RefreshState where
   next : Task (Option VersionedHtml)
 
 /-- A reference to a `RefreshState`. This is used to keep track of the refresh state. -/
-abbrev RefreshRef := IO.Ref RefreshState
-
-instance : TypeName RefreshRef := unsafe .mk RefreshRef ``RefreshRef
+structure RefreshRef where
+  ref : IO.Ref RefreshState
+  deriving TypeName
 
 /-- The data used to call `awaitRefresh`, for updating the HTML display. -/
 structure AwaitRefreshParams where
@@ -89,7 +89,7 @@ structure AwaitRefreshParams where
 /-- `awaitRefresh` is called through RPC to obtain the next HTML to display. -/
 @[server_rpc_method]
 def awaitRefresh (props : AwaitRefreshParams) : RequestM (RequestTask (Option VersionedHtml)) := do
-  let { curr, next } ← props.state.val.get
+  let { curr, next } ← props.state.val.ref.get
   -- If `props.oldIdx < curr.idx`, that means that the state has updated in the meantime.
   -- So, returning `curr` will give a refresh.
   -- If `props.oldIdx = curr.idx`, then we need to await `next` to get a refresh
@@ -105,7 +105,7 @@ or because a different expression was selected in the goal.
 -/
 @[server_rpc_method]
 def getCurrState (ref : WithRpcRef RefreshRef) : RequestM (RequestTask VersionedHtml) := do
-  return .pure (← ref.val.get).curr
+  return .pure (← ref.val.ref.get).curr
 
 end RefreshComponent
 
@@ -140,7 +140,7 @@ structure RefreshToken where
 private def RefreshToken.new (initial : Html) : BaseIO RefreshToken := do
   let promise ← IO.Promise.new
   return {
-    refreshRef := ← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }
+    refreshRef := ⟨← IO.mkRef { curr := { html := initial, idx := 0 }, next := promise.result? }⟩
     promise := ← IO.mkRef promise }
 
 /-- Update the current HTML to be `html`.
@@ -149,11 +149,11 @@ That is, if multiple different threads call `RefreshToken.refresh` with the same
 a call will block other calls until it is finished. -/
 def RefreshToken.refresh (token : RefreshToken) (html : Html) : BaseIO Unit := unsafe do
   let { refreshRef, promise } := token
-  let idx := (← refreshRef.take).curr.idx + 1
+  let idx := (← refreshRef.ref.take).curr.idx + 1
   (← promise.get).resolve { html, idx }
   let newPromise ← IO.Promise.new
   promise.set newPromise
-  refreshRef.set { curr := { html, idx }, next := newPromise.result? }
+  refreshRef.ref.set { curr := { html, idx }, next := newPromise.result? }
 
 variable {m} [Monad m] [MonadDrop m (EIO Exception)] [MonadLiftT BaseIO m]
 
