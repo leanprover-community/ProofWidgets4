@@ -1,6 +1,6 @@
 import { RpcSessionAtPos } from '@leanprover/infoview'
 
-// This file is DEPRECATED since v0.0.87
+// This file is DEPRECATED since v0.0.93
 // TODO: Remove this file when removing `ProofWidgets.Cancellable`
 
 type RequestId = string
