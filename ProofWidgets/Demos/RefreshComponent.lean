@@ -134,5 +134,3 @@ partial def FiboWidget : CoreM Html := do
       token.refresh s.render
 
 -- #html FiboWidget
-
-elab "#test" : command := do

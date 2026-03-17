@@ -15,14 +15,6 @@ public import ProofWidgets.Util
 This file defines `RefreshComponent`, which allows you to have an HTML widget that updates
 incrementally as more results are computed by a Lean computation.
 
-For this interaction, we use an `IO.Ref` that the JavaScript reads from.
-It stores the HTML that should currently be on display, and a task returning the next HTML.
-To determine whether the widget is up to date, each computed HTML has an associated version number.
-(So, the `n`-th HTML will have index `n`)
-
-When the widget (re)loads, it first loads the current HTML from the ref, and then
-repeatedly awaits further HTML result.
-
 ## Known limitations
 
 Cancellation is a bit hard to get right, and there is one limitation.
@@ -163,12 +155,15 @@ def mkRefreshComponentM (initial : Html) (k : RefreshToken → m Unit) : m Html 
   let (html, token) ← mkRefreshComponent initial
   discard <| BaseIO.asTask (prio := .dedicated) <|
     (← dropM <| k token).catchExceptions fun ex => do
-      let msg :=
-        <span>
-          An error occurred while refreshing this component:
-          <InteractiveMessage msg={← WithRpcRef.mk ex.toMessageData}/>
-        </span>
-      token.refresh msg
+      -- TODO: This should never be shown once we fix cancellation in all situations.
+      if let .internal id _ := ex then
+        if id == interruptExceptionId then
+          token.refresh <| .text "This component was cancelled"
+      else
+        token.refresh <span>
+            An error occurred while refreshing this component:
+            <InteractiveMessage msg={← WithRpcRef.mk ex.toMessageData}/>
+          </span>
   return html
 
 end ProofWidgets
