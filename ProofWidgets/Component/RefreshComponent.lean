@@ -148,13 +148,13 @@ def mkRefreshComponent (initial : Html := .text "") : BaseIO (Html × RefreshTok
   return (<RefreshComponent state={← WithRpcRef.mk html}
       cancelTk={← WithRpcRef.mk token.cancelTk} />, token)
 
-variable {m} [Monad m] [MonadDrop m (EIO Exception)] [MonadLiftT BaseIO m]
+variable {m} [Monad m] [MonadSaveCtx m (EIO Exception)] [MonadLiftT BaseIO m]
 
 /-- Create a `RefreshComponent` together with a dedicated thread that drives it by running `k`. -/
 def mkRefreshComponentM (initial : Html) (k : RefreshToken → m Unit) : m Html := do
   let (html, token) ← mkRefreshComponent initial
   discard <| BaseIO.asTask (prio := .dedicated) <|
-    (← dropM <| k token).catchExceptions fun ex => do
+    (← saveCtxM <| k token).catchExceptions fun ex => do
       -- TODO: This should never be shown once we fix cancellation in all situations.
       if let .internal id _ := ex then
         if id == interruptExceptionId then

@@ -73,34 +73,41 @@ def withAnnotateTermLikeInfo (d : DelabM (TSyntax n)) : DelabM (TSyntax n) := do
 
 end Lean.PrettyPrinter.Delaborator
 
-section MonadDrop
+section MonadSaveCtx
 
 /--
-The class `MonadDrop m n` allows a computation in monad `m` to be run in monad `n`.
-For example, a `MetaM` computation can be ran in `EIO Exception`,
-which can then be ran as a task using `EIO.asTask`.
--/
-class MonadDrop (m : Type → Type) (n : outParam <| Type → Type) where
-  /-- Translates an action from monad `m` into monad `n`. -/
-  dropM {α} : m α → m (n α)
+Certain monad transformers such as `ReaderT` and `StateT`/`StateRefT`
+provide additional *context* (read-only) and *state* (mutable).
+`MonadSaveCtx m n` means that `m` is a stack of contexts/states on top of `n`.
+It provides a way to suspend an `m`-action by saving the "current" value of this stack.
 
-export MonadDrop (dropM)
+For example, `m = Lean.MetaM` is a stack of contexts and states on top of `n = EIO Lean.Exception`.
+Thus we have `saveCtxM : Lean.MetaM α → Lean.MetaM (EIO Lean.Exception α)`. -/
+class MonadSaveCtx (m : Type → Type) (n : outParam <| Type → Type) where
+  /-- Transform an action `x : m α` into an action `m (n α)` that
+  - saves the current context/state of `m`; and
+  - returns an action `y : n α` that would use the saved context/state if run.
+    Note that because `y` no longer has access to `m`'s state,
+    any `StateT` changes that it makes when you run it later will be discarded. -/
+  saveCtxM {α} : m α → m (n α)
 
-variable {m n : Type → Type} [Monad m] [MonadDrop m n]
+export MonadSaveCtx (saveCtxM)
 
-instance : MonadDrop m m where
-  dropM := pure
+variable {m n : Type → Type} [Monad m] [MonadSaveCtx m n]
 
-instance {ρ} : MonadDrop (ReaderT ρ m) n where
-  dropM act := fun ctx => dropM (act ctx)
+instance : MonadSaveCtx m m where
+  saveCtxM := pure
 
-instance {σ} : MonadDrop (StateT σ m) n where
-  dropM act := do liftM <| dropM <| act.run' (← get)
+instance {ρ} : MonadSaveCtx (ReaderT ρ m) n where
+  saveCtxM act := fun ctx => saveCtxM (act ctx)
 
-instance {ω σ} [MonadLiftT (ST ω) m] : MonadDrop (StateRefT' ω σ m) n where
-  dropM act := do liftM <| dropM <| act.run' (← get)
+instance {σ} : MonadSaveCtx (StateT σ m) n where
+  saveCtxM act := do liftM <| saveCtxM <| act.run' (← get)
 
-end MonadDrop
+instance {ω σ} [MonadLiftT (ST ω) m] : MonadSaveCtx (StateRefT' ω σ m) n where
+  saveCtxM act := do liftM <| saveCtxM <| act.run' (← get)
+
+end MonadSaveCtx
 
 instance : Lean.ToJson Unit where
   toJson _ := .null
