@@ -40,11 +40,12 @@ partial def countToTen : CoreM Html := do
 /-! Example 2: Print the selected expressions one by one in an infinite loop. -/
 
 @[server_rpc_method]
-partial def cycleSelections (props : CancelPanelWidgetProps) : RequestM (RequestTask Html) :=
+partial def cycleSelections (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
   RequestM.asTask do
     let some goal := props.goals[0]? | return .text "there are no goals"
     goal.ctx.val.runMetaM {} do
-    mkCancelRefreshComponent props.cancelTkRef.val (.text "loading...") fun token ↦ do
+    mkRefreshComponentM (.text "loading...") fun token ↦ do
+      withTheReader Core.Context (fun ctx => { ctx with cancelTk? := token.cancelTk }) do
       let args ← props.selectedLocations.mapM (·.saveExprWithCtx)
       if h : args.size ≠ 0 then
         have : NeZero args.size := ⟨h⟩
@@ -60,15 +61,14 @@ partial def cycleSelections (props : CancelPanelWidgetProps) : RequestM (Request
         token.refresh <| .text "please select some expression"
 
 @[widget_module]
-def cycleComponent : Component CancelPanelWidgetProps :=
+def CycleComponent : Component PanelWidgetProps :=
   mk_rpc_widget% cycleSelections
 
 elab stx:"cycleSelections" : tactic => do
-  let ref ← WithRpcRef.mk (← IO.mkRef (← IO.CancelToken.new))
-  Widget.savePanelWidgetInfo (hash cycleComponent.javascript)
-    (return json% { cancelTkRef : $(← rpcEncode ref)}) stx
+  Widget.savePanelWidgetInfo (hash CycleComponent.javascript) (return .null) stx
 
--- run_meta do addPanelWidgetLocal <| ← mkCancelPanelWidget cycleComponent
+-- run_meta do addPanelWidgetLocal <|
+--   ← WidgetInstance.ofHash CycleComponent.javascriptHash (return .null)
 
 example : 1 + 2 + 3 = 6 ^ 1 ∧ True := by
   constructor
@@ -134,3 +134,5 @@ partial def FiboWidget : CoreM Html := do
       token.refresh s.render
 
 -- #html FiboWidget
+
+elab "#test" : command := do
