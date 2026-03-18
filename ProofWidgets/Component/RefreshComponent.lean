@@ -92,7 +92,7 @@ structure AwaitRefreshParams where
 /-- If any updates are available (i.e., the server-side state is more recent than the client's),
 immediately return the most recent version of the HTML tree.
 Otherwise await the next update.
-This is `none` if the client's state is the last one that will be shown. -/
+Returns `none` if the client's state is the last one that should be shown. -/
 @[server_rpc_method]
 def awaitRefresh (ps : AwaitRefreshParams) : RequestM (RequestTask (Option VersionedHtml)) := do
   let { curr, idx, next } ← ps.state.val.ref.get
@@ -109,14 +109,6 @@ def awaitRefresh (ps : AwaitRefreshParams) : RequestM (RequestTask (Option Versi
         let html ← IO.forceThunk curr
         return some { html, idx }
       | none => return none
-
-/-- Compute the HTML tree stored in the current state. -/
-@[server_rpc_method]
-def getCurrHtml (state : WithRpcRef RefreshRef) : RequestM (RequestTask VersionedHtml) :=
-  RequestM.asTask do
-    let { curr, idx, .. } ← state.val.ref.get
-    let html ← IO.forceThunk curr
-    return { html, idx }
 
 deriving instance TypeName for IO.CancelToken
 
@@ -184,7 +176,8 @@ private def RefreshToken.new (initial : Thunk Html) : BaseIO RefreshToken := do
   let promise ← IO.Promise.new
   let state := {
     curr := initial
-    idx := 0
+    -- Client's initial version is `0`; this state is an update on that.
+    idx := 1
     next := promise.result?
   }
   return {

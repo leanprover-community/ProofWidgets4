@@ -24,7 +24,7 @@ interface RefreshComponentProps {
 
 export default function RefreshComponent(props: RefreshComponentProps): JSX.Element {
   const rs = useRpcSession()
-  const [html, setHtml] = React.useState<Html | null>(null)
+  const [html, setHtml] = React.useState<Html>({ text: '' })
 
   React.useEffect(() => {
     let cancelled = false
@@ -37,16 +37,9 @@ export default function RefreshComponent(props: RefreshComponentProps): JSX.Elem
     }
     const ac = new AbortController()
     rs.call<RefreshComponentProps, null>('ProofWidgets.RefreshComponent.monitor', props,
-      { autoCancel: true, abortSignal: ac.signal });
-    (async () => {
-      // Display the HTML tree provided in the initial props
-      const result = await rs.call<RpcPtr<'RefreshRef'>, VersionedHtml>(
-        'ProofWidgets.RefreshComponent.getCurrHtml', props.state)
-      if (cancelled) return
-      setHtml(result.html)
-      // Then repeatedly await updates to the display
-      return loop(result.idx)
-    })()
+      { autoCancel: true, abortSignal: ac.signal })
+    // Repeatedly await updates to the display
+    loop(0)
     return () => {
       cancelled = true
       ac.abort()
@@ -54,6 +47,5 @@ export default function RefreshComponent(props: RefreshComponentProps): JSX.Elem
   // Use the RPC reference ID as the only dep.
   // This gives Lean code control over when this component is reset.
   }, [RpcPtr.toKey(props.state)])
-  // For the short time that `html` doesn't have a value yet, we return the empty HTML.
-  return html ? <HtmlDisplay html={html}/> : <></>
+  return <HtmlDisplay html={html}/>
 }
