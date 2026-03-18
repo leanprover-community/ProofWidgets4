@@ -7,38 +7,45 @@ import React from 'react'
 import { useRpcSession, RpcPtr } from '@leanprover/infoview'
 import HtmlDisplay, { Html } from './htmlDisplay'
 
+interface VersionedHtml {
+  html : Html
+  idx : number
+}
+
+interface AwaitRefreshParams {
+  state : RpcPtr<'RefreshRef'>
+  oldIdx : number
+}
+
 interface RefreshComponentProps {
-  state : RpcPtr<'UpdatableHtml'>
+  state : RpcPtr<'RefreshRef'>
   cancelTk : RpcPtr<'IO.CancelToken'>
 }
 
 export default function RefreshComponent(props: RefreshComponentProps): JSX.Element {
   const rs = useRpcSession()
   const [html, setHtml] = React.useState<Html | null>(null)
-  const st = React.useRef<RpcPtr<'UpdatableHtml'>>(props.state)
 
   React.useEffect(() => {
     let cancelled = false
-    async function loop() {
-      const result = await rs.call<RpcPtr<'UpdatableHtml'>, [Html, RpcPtr<'UpdatableHtml'>] | null>(
-        'ProofWidgets.RefreshComponent.awaitNextHtml', st.current)
+    async function loop(idx: number) {
+      const result = await rs.call<AwaitRefreshParams, VersionedHtml | null>(
+        'ProofWidgets.RefreshComponent.awaitRefresh', { oldIdx: idx, state: props.state })
       if (cancelled || !result) return
-      st.current = result[1]
-      setHtml(result[0])
-      return loop()
+      setHtml(result.html)
+      return loop(result.idx)
     }
     const ac = new AbortController()
     rs.call<RefreshComponentProps, null>('ProofWidgets.RefreshComponent.monitor', props,
       { autoCancel: true, abortSignal: ac.signal });
     (async () => {
       // Display the HTML tree provided in the initial props
-      const result = await rs.call<RpcPtr<'UpdatableHtml'>, Html>(
+      const result = await rs.call<RpcPtr<'RefreshRef'>, VersionedHtml>(
         'ProofWidgets.RefreshComponent.getCurrHtml', props.state)
       if (cancelled) return
-      st.current = props.state
-      setHtml(result)
+      setHtml(result.html)
       // Then repeatedly await updates to the display
-      return loop()
+      return loop(result.idx)
     })()
     return () => {
       cancelled = true

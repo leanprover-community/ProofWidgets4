@@ -118,7 +118,6 @@ def generateFibo (n : Nat) : Html :=
 
 partial def FiboWidget : CoreM Html := do
   mkRefreshComponentM (.text "loading...") fun token ↦ do
-    IO.sleep 1 -- If we don't wait 1ms first, the infoview lags too much.
     let pending := (400000...=400040).toArray.map fun n => (n, Task.spawn fun _ => generateFibo n)
     let t0 ← IO.monoMsNow
     let mut s : FiboState := { pending }
@@ -131,6 +130,6 @@ partial def FiboWidget : CoreM Html := do
       if s.pending.isEmpty then
         token.refresh (s.render ((← IO.monoMsNow) - t0))
         break
-      token.refresh s.render
+      token.refreshLazy ⟨fun _ => s.render⟩
 
 -- #html FiboWidget

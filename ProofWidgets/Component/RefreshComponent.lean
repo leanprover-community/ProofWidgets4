@@ -35,43 +35,94 @@ the first command gets badly affected.
 
 public meta section
 
+/-- An effectful wrapper around `Thunk.get` analogous to `IO.wait`.
+Unlike `Thunk.get`, the compiler should never move this out of a `do` block. -/
+@[noinline]
+private opaque IO.forceThunk (t : Thunk α) : BaseIO α :=
+  return t.get
+
+local instance [Inhabited α] : Inhabited (Thunk α) :=
+  ⟨Thunk.mk fun _ => default⟩
+
 namespace ProofWidgets
 open Lean Server Widget Jsx
 namespace RefreshComponent
 
-/-- An HTML tree together with a task that may yield a new tree in the future.
-This is the server-side state of a `RefreshComponent` instance. -/
-structure UpdatableHtml where
-  /-- The HTML tree that the component should currently be displaying. -/
-  curr : Html
-  /-- A task that produces either the next HTML tree to display,
-  or `none` if the display will never be updated again.
+/-- A HTML tree together with a version number.
+We use this to check whether the tree currently on display is up to date. -/
+structure VersionedHtml where
+  html : Html
+  idx : Nat
+  deriving RpcEncodable
+
+/-- The server-side state of a `RefreshComponent`. -/
+structure RefreshState where
+  /-- The HTML tree to display, stored as a delayed computation.
+
+  We only force the thunk when the client requests it.
+  This means that if several updates arrive in quick succession,
+  only the ones that the client actually sees will be computed. -/
+  curr : Thunk Html
+  /-- Version of the current HTML tree.
+  It should increase by `1` with each state update. -/
+  idx : Nat
+  /-- A task that resolves when this state has become out-of-date.
+  It resolves with `some ()` if a new state is available,
+  and with `none` if the display will never be updated again.
+
   It is implemented using `RefreshToken.promise.result?`,
   but we don't store the `Promise` here
   in order to make sure it can reach a refcount of 0. -/
-  next : Task (Option UpdatableHtml)
-  deriving TypeName, Nonempty
+  next : Task (Option Unit)
+  deriving Inhabited
 
-/-- Wait for `state.next` and return the result.
-In case this result is `some nextState`, also return `nextState.curr`. -/
-@[server_rpc_method]
-def awaitNextHtml (state : WithRpcRef UpdatableHtml) :
-    RequestM (RequestTask (Option (Html × WithRpcRef UpdatableHtml))) :=
-  let { next, .. } := state.val
-  RequestM.mapTaskCheap ⟨next⟩ fun nextState? =>
-    nextState?.mapM fun nextState =>
-      return (nextState.curr, ← WithRpcRef.mk nextState)
+/-- A reference to a `RefreshState`.
+Only exists because `TypeName` is not derivable for compound types. -/
+structure RefreshRef where
+  ref : IO.Ref RefreshState
+  deriving TypeName
 
-/-- Return `state.curr`. -/
+/-- The data used to call `awaitRefresh`, for updating the HTML display. -/
+structure AwaitRefreshParams where
+  state : WithRpcRef RefreshRef
+  /-- The index of the HTML tree that is currently on display. -/
+  oldIdx : Nat
+  deriving RpcEncodable
+
+/-- If any updates are available (i.e., the server-side state is more recent than the client's),
+immediately return the most recent version of the HTML tree.
+Otherwise await the next update.
+This is `none` if the client's state is the last one that will be shown. -/
 @[server_rpc_method]
-def getCurrHtml (state : WithRpcRef UpdatableHtml) : RequestM (RequestTask Html) :=
-  return .pure state.val.curr
+def awaitRefresh (ps : AwaitRefreshParams) : RequestM (RequestTask (Option VersionedHtml)) := do
+  let { curr, idx, next } ← ps.state.val.ref.get
+  if ps.oldIdx < idx then
+    -- We have a more recent state than the client. Send the current state immediately.
+    RequestM.asTask do
+      let html ← IO.forceThunk curr
+      return some { html, idx }
+  else
+    -- We have the same state as the client. Wait for an update.
+    RequestM.mapTaskCostly ⟨next⟩ fun
+      | some () => do
+        let { curr, idx, .. } ← ps.state.val.ref.get
+        let html ← IO.forceThunk curr
+        return some { html, idx }
+      | none => return none
+
+/-- Compute the HTML tree stored in the current state. -/
+@[server_rpc_method]
+def getCurrHtml (state : WithRpcRef RefreshRef) : RequestM (RequestTask VersionedHtml) :=
+  RequestM.asTask do
+    let { curr, idx, .. } ← state.val.ref.get
+    let html ← IO.forceThunk curr
+    return { html, idx }
 
 deriving instance TypeName for IO.CancelToken
 
 structure Props where
   /-- Initial state of the component. -/
-  state : WithRpcRef UpdatableHtml
+  state : WithRpcRef RefreshRef
   /-- Will be cancelled whenever the widget is rendered with a new `state`, or unmounted,
   or when the whole infoview is closed. -/
   cancelTk : WithRpcRef IO.CancelToken
@@ -113,39 +164,62 @@ def RefreshComponent : Component Props where
 Use `RefreshToken.refresh` to update the HTML currently on display.
 Use `RefreshToken.cancelTk` to check if the instance has been discarded. -/
 structure RefreshToken where
-  /-- If this token is set, the `RefreshToken` is no longer displayed in the UI.
-  Subsequent `refresh` calls will have no effect.
-  We recommend passing this token to `Core.Context` if running `CoreM` computations. -/
-  cancelTk : IO.CancelToken
-  /-- The promise that `UpdatableHtml.next` waits for.
-  If we drop the `RefreshToken`, and hence this promise,
-  `UpdatableHtml.next` will resolve to `none`.
-  This ensures that no `awaitNextHtml` call is left hanging forever
-  when all threads holding onto this `RefreshToken` have exited. -/
-  private promise : IO.Ref (IO.Promise UpdatableHtml)
+  state : IO.Ref RefreshState
+  /-- If set, the `RefreshComponent` is no longer displayed in the UI.
+  The `RefreshToken` should be discarded, and any associated thread should exit.
 
-/-- Create a fresh `RefreshToken`. -/
-private def RefreshToken.new : BaseIO RefreshToken := do
+  For early cooperative cancellation of `CoreM` computations,
+  we recommend passing this to `Core.Context`. -/
+  cancelTk : IO.CancelToken
+  /-- The promise that `RefreshState.next` waits for.
+
+  If we drop the `RefreshToken`, and hence this promise,
+  `RefreshState.next` will resolve to `none`.
+  This ensures that no `awaitRefresh` call is left hanging forever
+  when all threads holding onto this `RefreshToken` have exited. -/
+  private promise : IO.Ref (IO.Promise Unit)
+
+/-- Create a `RefreshToken` with an initial HTML tree. -/
+private def RefreshToken.new (initial : Thunk Html) : BaseIO RefreshToken := do
   let promise ← IO.Promise.new
-  return { cancelTk := ← IO.CancelToken.new, promise := ← IO.mkRef promise }
+  let state := {
+    curr := initial
+    idx := 0
+    next := promise.result?
+  }
+  return {
+    state := ← IO.mkRef state
+    cancelTk := ← IO.CancelToken.new
+    promise := ← IO.mkRef promise
+  }
 
 /-- Update the current HTML tree to be `html`.
 
-This function makes use of `ST.Ref.take` in order to be thread safe.
-That is, if multiple threads call `refresh` with the same token,
-each thread will make its update atomically. -/
-def RefreshToken.refresh (token : RefreshToken) (html : Html) : BaseIO Unit := unsafe do
-  let { promise, .. } := token
+The `html` thunk is only forced when the client requests it;
+if another update is made before that, it will never be forced.
+
+This function is thread-safe: each update is made atomically. -/
+def RefreshToken.refreshLazy (token : RefreshToken) (html : Thunk Html) : BaseIO Unit := do
+  let { state, promise, .. } := token
   let newPromise ← IO.Promise.new
-  let oldPromise ← promise.take
-  oldPromise.resolve { curr := html, next := newPromise.result? }
-  promise.set newPromise
+  -- `state` is the ref that guards the critical region.
+  let st ← unsafe state.take
+  let oldPromise ← promise.swap newPromise
+  state.set {
+    curr := html
+    idx := st.idx + 1
+    next := newPromise.result?
+  }
+  oldPromise.resolve ()
+
+/-- Update the current HTML tree to be `html`. See also `refreshLazy`. -/
+def RefreshToken.refresh (token : RefreshToken) (html : Html) : BaseIO Unit :=
+  token.refreshLazy ⟨fun _ => html⟩
 
 /-- Create a `RefreshComponent` instance together with a token to manage it. -/
 def mkRefreshComponent (initial : Html := .text "") : BaseIO (Html × RefreshToken) := do
-  let token ← RefreshToken.new
-  let html := { curr := initial, next := (← token.promise.get).result? }
-  return (<RefreshComponent state={← WithRpcRef.mk html}
+  let token ← RefreshToken.new initial
+  return (<RefreshComponent state={← WithRpcRef.mk ⟨token.state⟩}
       cancelTk={← WithRpcRef.mk token.cancelTk} />, token)
 
 variable {m} [Monad m] [MonadSaveCtx m (EIO Exception)] [MonadLiftT BaseIO m]
