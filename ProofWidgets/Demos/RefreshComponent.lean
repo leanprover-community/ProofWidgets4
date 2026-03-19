@@ -22,9 +22,9 @@ partial def countToTen : CoreM Html := do
       dbg_trace "counted {n}"
       Core.checkSystem "count to ten"
       if n = 10 then
-        token.refresh <| .text s!"Wie niet weg is, is gezien, ik kom!!!"
+        token.update <| .text s!"Wie niet weg is, is gezien, ik kom!!!"
         break
-      token.refresh <| .text s!"{n + 1}!!!"
+      token.update <| .text s!"{n + 1}!!!"
       n := n + 1
 -- If you close and reopen the infoview, the counting continues as if it was open the whole time.
 #html countToTen
@@ -45,20 +45,19 @@ partial def cycleSelections (props : PanelWidgetProps) : RequestM (RequestTask H
     let some goal := props.goals[0]? | return .text "there are no goals"
     goal.ctx.val.runMetaM {} do
     mkRefreshComponentM (.text "loading...") fun token ↦ do
-      withTheReader Core.Context (fun ctx => { ctx with cancelTk? := token.cancelTk }) do
       let args ← props.selectedLocations.mapM (·.saveExprWithCtx)
       if h : args.size ≠ 0 then
         have : NeZero args.size := ⟨h⟩
         let mut i : Fin args.size := 0
         repeat do
-          token.refresh <InteractiveCode fmt={← args[i].runMetaM Widget.ppExprTagged}/>
+          token.update <InteractiveCode fmt={← args[i].runMetaM Widget.ppExprTagged}/>
           dbg_trace "cycled through expression {i}"
           IO.sleep 1000
           Core.checkSystem "cycleSelections"
           have : NeZero args.size := ⟨by cases i; grind⟩
           i := i + 1
       else
-        token.refresh <| .text "please select some expression"
+        token.update <| .text "please select some expression"
 
 @[widget_module]
 def CycleComponent : Component PanelWidgetProps :=
@@ -128,8 +127,8 @@ partial def FiboWidget : CoreM Html := do
         Core.checkSystem "FiboWidget"
       s ← s.update
       if s.pending.isEmpty then
-        token.refresh (s.render ((← IO.monoMsNow) - t0))
+        token.update (s.render ((← IO.monoMsNow) - t0))
         break
-      token.refreshLazy ⟨fun _ => s.render⟩
+      token.updateLazy ⟨fun _ => s.render⟩
 
 -- #html FiboWidget

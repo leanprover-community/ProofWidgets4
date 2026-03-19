@@ -41,6 +41,7 @@ Unlike `Thunk.get`, the compiler should never move this out of a `do` block. -/
 private opaque IO.forceThunk (t : Thunk α) : BaseIO α :=
   return t.get
 
+-- TODO: rm after merging https://github.com/leanprover/lean4/pull/12469
 local instance [Inhabited α] : Inhabited (Thunk α) :=
   ⟨Thunk.mk fun _ => default⟩
 
@@ -153,15 +154,12 @@ def RefreshComponent : Component Props where
 
 /-- A `RefreshToken` allows you to manage a `RefreshComponent` instance.
 
-Use `RefreshToken.refresh` to update the HTML currently on display.
+Use `RefreshToken.update` to update the HTML currently on display.
 Use `RefreshToken.cancelTk` to check if the instance has been discarded. -/
 structure RefreshToken where
   state : IO.Ref RefreshState
   /-- If set, the `RefreshComponent` is no longer displayed in the UI.
-  The `RefreshToken` should be discarded, and any associated thread should exit.
-
-  For early cooperative cancellation of `CoreM` computations,
-  we recommend passing this to `Core.Context`. -/
+  The `RefreshToken` should be discarded, and any associated thread should exit. -/
   cancelTk : IO.CancelToken
   /-- The promise that `RefreshState.next` waits for.
 
@@ -192,7 +190,7 @@ The `html` thunk is only forced when the client requests it;
 if another update is made before that, it will never be forced.
 
 This function is thread-safe: each update is made atomically. -/
-def RefreshToken.refreshLazy (token : RefreshToken) (html : Thunk Html) : BaseIO Unit := do
+def RefreshToken.updateLazy (token : RefreshToken) (html : Thunk Html) : BaseIO Unit := do
   let { state, promise, .. } := token
   let newPromise ← IO.Promise.new
   -- `state` is the ref that guards the critical region.
@@ -205,9 +203,9 @@ def RefreshToken.refreshLazy (token : RefreshToken) (html : Thunk Html) : BaseIO
   }
   oldPromise.resolve ()
 
-/-- Update the current HTML tree to be `html`. See also `refreshLazy`. -/
-def RefreshToken.refresh (token : RefreshToken) (html : Html) : BaseIO Unit :=
-  token.refreshLazy (.pure html)
+/-- Update the current HTML tree to be `html`. See also `updateLazy`. -/
+def RefreshToken.update (token : RefreshToken) (html : Html) : BaseIO Unit :=
+  token.updateLazy (.pure html)
 
 /-- Create a `RefreshComponent` instance together with a token to manage it. -/
 def mkRefreshComponent (initial : Html := .text "") : BaseIO (Html × RefreshToken) := do
@@ -215,20 +213,28 @@ def mkRefreshComponent (initial : Html := .text "") : BaseIO (Html × RefreshTok
   return (<RefreshComponent state={← WithRpcRef.mk ⟨token.state⟩}
       cancelTk={← WithRpcRef.mk token.cancelTk} />, token)
 
-variable {m} [Monad m] [MonadSaveCtx m (EIO Exception)] [MonadLiftT BaseIO m]
+variable {m} [Monad m] [MonadLiftT BaseIO m]
+  [MonadSaveCtx m (EIO Exception)] [MonadWithReaderOf Core.Context m]
 
-/-- Create a `RefreshComponent` together with a dedicated thread that drives it by running `k`. -/
+/-- Create a `RefreshComponent` together with a dedicated thread that drives it by running `k`.
+
+The typeclass assumptions essentially require `m` to extend `CoreM`.
+For early cooperative cancellation of `CoreM` computations,
+we automatically pass `RefreshToken.cancelTk` to `Core.Context`. -/
 def mkRefreshComponentM (initial : Html) (k : RefreshToken → m Unit) : m Html := do
   let (html, token) ← mkRefreshComponent initial
+  let mkAct : m (EIO Exception Unit) := saveCtxM do
+    withTheReader Core.Context ({· with cancelTk? := token.cancelTk}) <|
+      k token
   discard <| BaseIO.asTask (prio := .dedicated) <|
-    (← saveCtxM <| k token).catchExceptions fun ex => do
+    (← mkAct).catchExceptions fun ex => do
       if let .internal id _ := ex then
         -- TODO: This should never be shown once we fix cancellation in all situations.
         if id == interruptExceptionId then
-          token.refresh <| .text "This component was cancelled"
+          token.update <| .text "This component was cancelled"
       else
-        token.refresh <span>
-            An error occurred while refreshing this component:
+        token.update <span>
+            An error occurred in the mkRefreshComponentM thread:
             <InteractiveMessage msg={← WithRpcRef.mk ex.toMessageData}/>
           </span>
   return html
