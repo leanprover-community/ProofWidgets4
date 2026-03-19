@@ -132,7 +132,7 @@ partial def monitor (p : Props) : RequestM (RequestTask Unit) :=
       IO.sleep 1000
       if ← (← read).cancelTk.wasCancelledByCancelRequest then
         p.cancelTk.val.set
-        return ()
+        return
 
 end RefreshComponent
 
