@@ -222,8 +222,8 @@ def mkRefreshComponentM (initial : Html) (k : RefreshToken → m Unit) : m Html 
   let (html, token) ← mkRefreshComponent initial
   discard <| BaseIO.asTask (prio := .dedicated) <|
     (← saveCtxM <| k token).catchExceptions fun ex => do
-      -- TODO: This should never be shown once we fix cancellation in all situations.
       if let .internal id _ := ex then
+        -- TODO: This should never be shown once we fix cancellation in all situations.
         if id == interruptExceptionId then
           token.refresh <| .text "This component was cancelled"
       else
