@@ -10,20 +10,16 @@ open ProofWidgets in
 /-- Save the expression corresponding to a goals location. -/
 def Lean.SubExpr.GoalsLocation.saveExprWithCtx (loc : GoalsLocation) : MetaM ExprWithCtx :=
   let mvarId := loc.mvarId
-  match loc.loc with
-  | .hyp fv =>
-    mvarId.withContext <|
-      ExprWithCtx.save (mkFVar fv)
-  | .hypType fv pos => mvarId.withContext do
-    let tp ← Meta.inferType (mkFVar fv)
-    Meta.viewSubexpr (visit := fun _ => ExprWithCtx.save) pos tp
-  | .hypValue fv pos => mvarId.withContext do
-    let some val ← fv.getValue?
-      | throwError "fvar {mkFVar fv} is not a let-binding"
-    Meta.viewSubexpr (visit := fun _ => ExprWithCtx.save) pos val
-  | .target pos => mvarId.withContext do
-    let tp ← Meta.inferType (mkMVar mvarId)
-    Meta.viewSubexpr (visit := fun _ => ExprWithCtx.save) pos tp
+  mvarId.withContext do
+    match loc.loc with
+    | .hyp fvarId => ExprWithCtx.save (.fvar fvarId)
+    | .hypType fvarId pos =>
+      Meta.viewSubexpr (fun _ => ExprWithCtx.save) pos (← instantiateMVars (← fvarId.getType))
+    | .hypValue fvarId pos =>
+      let some val ← fvarId.getValue? | throwError "fvar {Expr.fvar fvarId} is not a let-binding"
+      Meta.viewSubexpr (fun _ => ExprWithCtx.save) pos (← instantiateMVars val)
+    | .target pos =>
+      Meta.viewSubexpr (fun _ => ExprWithCtx.save) pos (← instantiateMVars (← mvarId.getType))
 
 namespace ProofWidgets
 open Lean Server

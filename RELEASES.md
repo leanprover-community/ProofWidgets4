@@ -1,16 +1,63 @@
 # ProofWidgets4 releases
 
 This file contains work-in-progress notes for the upcoming release, as well as previous releases.
-Please check the [releases](https://github.com/leanprover-community/ProofWidgets4/releases) page for the build artifacts.
+Please check the [releases](https://github.com/leanprover-community/ProofWidgets4/releases) page
+for the build artifacts.
 
-v0.0.49 (WIP)
--------------
+v0.0.93
+-------
+
+* Added `RefreshComponent`.
+  It supports widget implementations that continue updating the UI
+  while new information is being computed in the background.
+
+* **Deprecated** `@[server_rpc_method_cancellable]`.
+  All `@[server_rpc_method]`s are now cancellable.
+  To migrate, replace `@[server_rpc_method_cancellable]` with `@[server_rpc_method]`,
+  and replace calls to [IO.checkCanceled](https://lean-lang.org/doc/api/Init/System/IO.html#IO.checkCanceled)
+  with [RequestM.checkCancelled](https://lean-lang.org/doc/api/Lean/Server/Requests.html#Lean.Server.RequestM.checkCancelled).
+
+  If the RPC method spawns [CoreM](https://lean-lang.org/doc/api/Lean/CoreM.html#Lean.Core.CoreM) computations,
+  it is also encouraged to pass `cancelTk.cancelledByCancelRequest` from [RequestContext](https://lean-lang.org/doc/api/Lean/Server/Requests.html#Lean.Server.RequestContext)
+  into [Core.Context](https://lean-lang.org/doc/api/Lean/CoreM.html#Lean.Core.Context)
+  (note that this needs [lean4#12948](https://github.com/leanprover/lean4/pull/12948)).
+
+v0.0.92
+-------
+
+* Renamed syntax categories for JSX to be unique to ProofWidgets4.
+  They used to clash with doc-gen4.
+
+v0.0.83
+-------
+
+* Added `#checkh` and `#checkh'` commands that are similar to `#check` but dim implicit arguments.
+
+v0.0.77
+-------
+
+* Ported to the new module system.
+
+v0.0.56
+-------
+
+* Added `path/ellipse/rect/text` primitives to `Data.Svg`.
+
+v0.0.52
+-------
+
+* Added the `errorOnBuild` Lake configuration option.
+
+v0.0.49
+-------
+
 * Published [@leanprover-community/proofwidgets4](https://www.npmjs.com/package/@leanprover-community/proofwidgets4) on NPM.
   This allows importing ProofWidgets4 JS components from widgets defined in other Lean packages.
   NPM support is experimental: see [discussion](https://leanprover.zulipchat.com/#narrow/channel/270676-lean4/topic/ProofWidgets.2EHtml.20to.20JSX.2EElement/near/488669256).
 
 v0.0.47
 -------
+
 * Generalized `GraphDisplay.Vertex.radius` to `GraphDisplay.Vertex.boundingShape`.
 * Added demo of metavariable graph display in tactic proofs.
 

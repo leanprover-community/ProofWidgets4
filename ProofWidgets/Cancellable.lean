@@ -4,6 +4,9 @@ public meta import Lean.Data.Json.FromToJson
 public meta import Lean.Server.Rpc.RequestHandling
 public meta import Std.Data.HashMap
 public meta import ProofWidgets.Compat
+public meta import ProofWidgets.Util
+
+/-! # This file is DEPRECATED since v0.0.93 -/
 
 public meta section
 
@@ -45,12 +48,11 @@ def mkCancellable [RpcEncodable β] (handler : α → RequestM (RequestTask β))
 /-- Cancel the request with ID `rid`.
 Does nothing if `rid` is invalid. -/
 @[server_rpc_method]
-def cancelRequest (rid : RequestId) : RequestM (RequestTask String) := do
+def cancelRequest (rid : RequestId) : RequestM (RequestTask Unit) := do
   RequestM.asTask do
     let t? ← runningRequests.modifyGet fun (id, m) => (m[rid]?, (id, m.erase rid))
     if let some t := t? then
       t.cancel
-    return "ok"
 
 /-- The status of a running cancellable request. -/
 inductive CheckRequestResponse
@@ -99,6 +101,14 @@ initialize
     see `callCancellable` in `cancellable.ts`."
     applicationTime := AttributeApplicationTime.afterCompilation
     add := fun decl _ _ => Prod.fst <$> MetaM.run do
+      logWarning "\
+        This attribute is deprecated since ProofWidgets v0.0.93.\n\n\
+        To migrate, replace `@[server_rpc_method_cancellable]` with `@[server_rpc_method]`,\n\
+        and replace calls to `IO.checkCanceled` with `RequestM.checkCancelled`.\n\n\
+        If the RPC method spawns `CoreM` computations,\n\
+        it is also encouraged to pass `RequestContext.cancelTk.cancelledByCancelRequest`
+        into `Core.Context`."
+
       let name := decl ++ cancellableSuffix
       let value ← mkAppM ``mkCancellable #[mkConst decl]
       addAndCompile $ .defnDecl {
