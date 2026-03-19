@@ -207,7 +207,7 @@ def RefreshToken.refreshLazy (token : RefreshToken) (html : Thunk Html) : BaseIO
 
 /-- Update the current HTML tree to be `html`. See also `refreshLazy`. -/
 def RefreshToken.refresh (token : RefreshToken) (html : Html) : BaseIO Unit :=
-  token.refreshLazy ⟨fun _ => html⟩
+  token.refreshLazy (.pure html)
 
 /-- Create a `RefreshComponent` instance together with a token to manage it. -/
 def mkRefreshComponent (initial : Html := .text "") : BaseIO (Html × RefreshToken) := do
