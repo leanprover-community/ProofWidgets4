@@ -12,7 +12,7 @@ export default _cliArgs => {
     const configForInput = fname => ({
     input: fname,
     output: {
-        dir: '../.lake/build/js',
+        dir: './js',
         format: 'es',
         // Hax: apparently setting `global` makes some CommonJS modules work ¯\_(ツ)_/¯
         intro: 'const global = window;',

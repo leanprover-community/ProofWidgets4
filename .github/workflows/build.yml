@@ -48,6 +48,9 @@ jobs:
       - name: Build package
         run: lake build ProofWidgets
 
+      - name: Check pre-built JS is up-to-date
+        run: git diff --exit-code widget/js/
+
       - name: Try publishing @leanprover-community/proofwidgets4
         if: ${{ startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-pre') && matrix.os == 'ubuntu-latest' }}
         continue-on-error: true
@@ -65,15 +68,5 @@ jobs:
         with:
           prerelease: ${{ contains(github.ref, '-pre') }}
 
-      - name: Upload release archive (Ubuntu)
-        if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'
-        run: lake upload $RELEASE_TAG
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE_TAG: ${{ github.ref_name }}
-
-      - name: Test release archive (Ubuntu)
-        if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'
-        run: lake clean && lake build :release && lake build --no-build
     env:
       NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

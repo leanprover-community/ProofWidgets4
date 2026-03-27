@@ -23,48 +23,48 @@ for the foreseeable future.
 
 ### Viewing the demos
 
-The easiest way to get started is to clone a **release tag** of ProofWidgets and run
-`lake build :release`, as follows:
+To get started, clone ProofWidgets and run `lake build`, as follows:
 
 ```bash
-# You should replace v0.0.3 with the latest version published under Releases
-git clone https://github.com/leanprover-community/ProofWidgets4 --branch v0.0.3
+git clone https://github.com/leanprover-community/ProofWidgets4 --depth 1
 cd ProofWidgets4/
-lake build :release
+lake build
 ```
 
-After doing this you will hopefully be able to view the demos in `ProofWidgets/Demos/`. Top tip: use
-the pushpin icon (![pin](https://raw.githubusercontent.com/microsoft/vscode-codicons/31b33da05aab662f1973ba5667dad672c8e20fbc/src/icons/pin.svg))
-to keep a widget in view. You can then live code your widgets.
+After doing this you will hopefully be able to view the demos in `ProofWidgets/Demos/`.
+Top tip: use the pushpin icon (![pin](https://raw.githubusercontent.com/microsoft/vscode-codicons/31b33da05aab662f1973ba5667dad672c8e20fbc/src/icons/pin.svg))
+to keep a widget in view. You can then live-code your widgets.
 
 ### Using ProofWidgets as a dependency
 
-Put this in your `lakefile.lean`, making sure to reference a **release tag**
-rather than the `main` branch:
+To ensure ProofWidgets works with your version of the Lean toolchain,
+reference a **release tag** rather than the `main` branch.
+Add the following to your `lakefile.lean`:
 
 ```lean
--- You should replace v0.0.3 with the latest version published under Releases
-require proofwidgets from git "https://github.com/leanprover-community/ProofWidgets4"@"v0.0.3"
+-- Replace v0.0.3 with a version published under Releases
+require "leanprover-community" / "proofwidgets" @ git "v0.0.3"
 ```
 
 [Developing ProofWidgets](#developing-proofwidgets) involves building TypeScript code with NPM.
 When depending on `ProofWidgets` but not writing any custom TypeScript yourself,
-you likely want to spare yourself and your users from having to install and run NPM.
-ProofWidgets is configured to use Lake's [cloud releases](https://github.com/leanprover/lake/#cloud-releases) feature
-which will automatically fetch pre-built JavaScript files *as long as* you require a release tag
-rather than the `main` branch.
-In this mode, you and your users should not need to have NPM installed.
-However, fetching cloud release may sometimes fail,
-in which case ProofWidgets may still revert to a full build.
-You can force ProofWidgets to fail with a custom error in this case by importing it like so:
+you may want to spare yourself and your users from having to install and run NPM.
+This repository contains pre-built JavaScript files (`widget/js/`)
+which will be reused as long as none of the sources have changed.
+Consequently, you and your users should not need to have NPM installed.
+
+However, in case there is a bug in the build process,
+ProofWidgets may still revert to a full build.
+You can force ProofWidgets to fail with a custom error instead by importing it like so:
 
 ```lean
--- You should replace v0.0.3 with the latest version published under Releases
-require proofwidgets with NameMap.empty.insert `errorOnBuild "<my message>" from git "https://github.com/leanprover-community/ProofWidgets4"@"v0.0.3"
+-- Replace v0.0.3 with a version published under Releases
+require "leanprover-community" / "proofwidgets" @ git "v0.0.3"
+  with NameMap.empty.insert `errorOnBuild "<my message>"
 ```
 
 ⚠️ [EXPERIMENTAL] To use ProofWidgets4 JS components in widgets defined in other Lean packages,
-you can import [@leanprover-community/proofwidgets4](https://www.npmjs.com/package/@leanprover-community/proofwidgets4) from NPM.
+import [@leanprover-community/proofwidgets4](https://www.npmjs.com/package/@leanprover-community/proofwidgets4) from NPM.
 
 ## Features
 
@@ -124,17 +124,14 @@ In order to build only the TypeScript, run `lake build widgetJsAll`.
 Widgets can also be built in development mode using `lake build widgetJsAllDev`.
 This makes them easier to inspect in developer tools.
 
-💡 The NPM part of the build process may sometimes fail with missing packages.
-If this happens, run `npm clean-install` in the `widget/` directory and then try `lake build` again.
-
 We use the `include_str` term elaborator
 to splice the minified JavaScript
 produced during the first part of the build (by `tsc` and Rollup)
 into ProofWidgets Lean modules.
-The minifed JS is stored in `.lake/build/js/`.
+The minifed JS is stored in `widget/js/`.
 Modifying any TypeScript source will trigger a rebuild,
 and should correctly propagate the new minified code
-to where it used in Lean.
+to where it is used in Lean.
 
 ⚠️ Note however that due to Lake issue [#86](https://github.com/leanprover/lake/issues/86),
 *all* the widget sources are rebuilt whenever any single one changes,

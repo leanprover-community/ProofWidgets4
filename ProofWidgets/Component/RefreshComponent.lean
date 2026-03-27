@@ -148,7 +148,7 @@ The component resets its state when rendered with a new `props.state`.
 Conversely, reusing `props.state` preserves the client-side state.  -/
 @[widget_module]
 def RefreshComponent : Component Props where
-  javascript := include_str ".." /  ".." / ".lake" / "build" / "js" / "RefreshComponent.js"
+  javascript := include_str ".." /  ".." / "widget" / "js" / "RefreshComponent.js"
 
 /-! ## API for creating a `RefreshComponent` -/
 
