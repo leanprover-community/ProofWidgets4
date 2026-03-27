@@ -24,6 +24,6 @@ but also has a filter button
 that allows you to switch between filtered and unfiltered states. -/
 @[widget_module]
 def FilterDetails : Component FilterDetailsProps where
-  javascript := include_str ".." /  ".." / ".lake" / "build" / "js" / "filterDetails.js"
+  javascript := include_str ".." /  ".." / "widget" / "js" / "filterDetails.js"
 
 end ProofWidgets

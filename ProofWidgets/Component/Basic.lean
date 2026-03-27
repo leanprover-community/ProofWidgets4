@@ -74,7 +74,7 @@ preferrable to use the eager `InteractiveCode` in order to avoid the extra clien
 needed for the pretty-printing RPC call. -/
 @[widget_module]
 def InteractiveExpr : Component InteractiveExprProps where
-  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "interactiveExpr.js"
+  javascript := include_str ".." / ".." / "widget" / "js" / "interactiveExpr.js"
 
 structure InteractiveMessageProps where
   msg : Server.WithRpcRef MessageData
