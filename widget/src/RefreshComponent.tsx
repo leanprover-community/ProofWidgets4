@@ -37,7 +37,7 @@ export default function RefreshComponent(props: RefreshComponentProps): JSX.Elem
     }
     const ac = new AbortController()
     rs.call<RefreshComponentProps, null>('ProofWidgets.RefreshComponent.monitor', props,
-      { autoCancel: true, abortSignal: ac.signal })
+      { abortSignal: ac.signal })
     // Repeatedly await updates to the display
     loop(0)
     return () => {

@@ -25,7 +25,7 @@ export default React.memo((props: Props) => {
     } else {
       const ac = new AbortController()
       const res = rs.call<Props, Html>(RPC_METHOD, props,
-        { autoCancel: true, abortSignal: ac.signal })
+        { abortSignal: ac.signal })
       cancelRef.current = { fn: () => ac.abort() }
       return res
     }
