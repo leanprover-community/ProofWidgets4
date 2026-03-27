@@ -2,9 +2,6 @@ import Lake
 open Lake DSL System
 
 package proofwidgets where
-  preferReleaseBuild := true
-  buildArchive? := "ProofWidgets4.tar.gz"
-  releaseRepo := "https://github.com/leanprover-community/ProofWidgets4"
 
 def widgetDir : FilePath := "widget"
 
@@ -59,17 +56,11 @@ def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (Job Unit) := do
   let rollupConfig ← widgetRollupConfig.fetch
   let tsconfig ← widgetTsconfig.fetch
   let widgetPackageLock ← widgetPackageLock.fetch
-  /- `widgetJsAll` is built via `needs`,
-  and Lake's default build order is `needs -> cloud release -> main build`.
-  We must instead ensure that the cloud release is fetched first
-  so that this target does not build from scratch unnecessarily.
-  `afterBuildCacheAsync` guarantees this. -/
-  pkg.afterBuildCacheAsync do
   srcs.bindM (sync := true) fun _ =>
   rollupConfig.bindM (sync := true) fun _ =>
   tsconfig.bindM (sync := true) fun _ =>
   widgetPackageLock.mapM fun _ => do
-    let traceFile := pkg.buildDir / "js" / "lake.trace"
+    let traceFile := pkg.widgetDir / "js" / "lake.trace"
     buildUnlessUpToDate traceFile (← getTrace) traceFile do
       if let some msg := get_config? errorOnBuild then
         error msg
@@ -78,7 +69,6 @@ def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (Job Unit) := do
        It would probably be better to have a proper target for `node_modules`
        that all the JS/TS modules depend on.
        BUT when we are being built as a dependency of another package
-       using the cloud releases feature,
        we wouldn't want that target to trigger
        since in that case NPM is not necessarily installed.
        Hence, we put this block inside the build process for JS/TS files

@@ -4,6 +4,12 @@ This file contains work-in-progress notes for the upcoming release, as well as p
 Please check the [releases](https://github.com/leanprover-community/ProofWidgets4/releases) page
 for the build artifacts.
 
+v0.0.95
+-------
+
+* Add pre-built JS files to the repository.
+  This removes our reliance on the Lake cloud release fetching these.
+
 v0.0.93
 -------
 

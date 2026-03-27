@@ -140,6 +140,6 @@ end GraphDisplay
 /-- Display a graph with an interactive force simulation. -/
 @[widget_module]
 def GraphDisplay : Component GraphDisplay.Props where
-  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "d3Graph.js"
+  javascript := include_str ".." / ".." / "widget" / "js" / "d3Graph.js"
 
 end ProofWidgets

@@ -44,7 +44,7 @@ and can be accessed as, for example, `theme.foreground` in the provided `sty` in
 the editor theme. -/
 @[widget_module]
 def Diagram : Component DiagramProps where
-  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "penroseDisplay.js"
+  javascript := include_str ".." / ".." / "widget" / "js" / "penroseDisplay.js"
 
 /-! # `DiagramBuilderM` -/
 

@@ -16,11 +16,11 @@ structure HtmlDisplayProps where
 
 @[widget_module]
 def HtmlDisplay : Component HtmlDisplayProps where
-  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "htmlDisplay.js"
+  javascript := include_str ".." / ".." / "widget" / "js" / "htmlDisplay.js"
 
 @[widget_module]
 def HtmlDisplayPanel : Component HtmlDisplayProps where
-  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "htmlDisplayPanel.js"
+  javascript := include_str ".." / ".." / "widget" / "js" / "htmlDisplayPanel.js"
 
 open Lean Server Elab Command
 
