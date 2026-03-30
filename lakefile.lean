@@ -60,8 +60,9 @@ def widgetJsAllTarget (pkg : Package) (isDev : Bool) : FetchM (Job Unit) := do
   rollupConfig.bindM (sync := true) fun _ =>
   tsconfig.bindM (sync := true) fun _ =>
   widgetPackageLock.mapM fun _ => do
+    let depTrace := mixTrace (← getTrace) (.ofHash (.ofHashable isDev) "isDev")
     let traceFile := pkg.widgetDir / "js" / "lake.trace"
-    buildUnlessUpToDate traceFile (← getTrace) traceFile do
+    buildUnlessUpToDate traceFile depTrace traceFile do
       if let some msg := get_config? errorOnBuild then
         error msg
       /- HACK: Ensure that NPM modules are installed before building TypeScript,
