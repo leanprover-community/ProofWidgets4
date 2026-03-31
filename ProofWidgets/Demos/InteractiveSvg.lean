@@ -48,7 +48,7 @@ def updateSvg (params : UpdateParams State) : RequestM (RequestTask (UpdateResul
 
 @[widget_module]
 def SvgWidget : Component (UpdateResult State) where
-  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "interactiveSvg.js"
+  javascript := include_str ".." / ".." / "widget" / "js" / "interactiveSvg.js"
 
 def init : UpdateResult State := {
   html := <div>Init!!!</div>,

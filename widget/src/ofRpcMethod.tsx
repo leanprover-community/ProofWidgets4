@@ -1,4 +1,5 @@
 import * as React from 'react'
+import isEqual from 'react-fast-compare'
 import { DocumentPosition, mapRpcError, useAsyncPersistent, useRpcSession } from '@leanprover/infoview'
 import { Html, default as HtmlDisplay } from './htmlDisplay'
 import { Fn, callCancellable } from './cancellable'
@@ -15,13 +16,19 @@ export default React.memo((props: Props) => {
   const rs = useRpcSession()
   const cancelRef = React.useRef<Fn>({ fn: () => {} })
   const st = useAsyncPersistent<Html>(async () => {
+    cancelRef.current.fn()
     if (RPC_CANCELLABLE === 'true') {
-      cancelRef.current.fn()
+      // TODO: Remove this branch when removing `ProofWidgets.Cancellable`
       const [res, cancel] = callCancellable<Props, Html>(rs, RPC_METHOD, props)
       cancelRef.current = cancel
       return res
-    } else
-      return rs.call<Props, Html>(RPC_METHOD, props)
+    } else {
+      const ac = new AbortController()
+      const res = rs.call<Props, Html>(RPC_METHOD, props,
+        { abortSignal: ac.signal })
+      cancelRef.current = { fn: () => ac.abort() }
+      return res
+    }
   }, [rs, props])
 
   // This effect runs once on startup, does nothing,
@@ -36,4 +43,22 @@ export default React.memo((props: Props) => {
       <>Loading..</>
     :
       <HtmlDisplay html={st.value} />
-})
+},
+/*
+ * HACK:
+ * The Lean-side API for writing components is quite impoverished:
+ * an RPC method used with `mk_rpc_widget%` cannot register React effects
+ * (or anything that behaves similarly; see issue #9).
+ *
+ * There is thus no way to react to changes in props
+ * without manually managing component state.
+ * Many components written by users thus directly launch effects
+ * in the body of the RPC method.
+ * This used to happen on every render,
+ * because the identity of the `props` object would change essentially every time.
+ * We try to mitigate this excessive re-running to some extent
+ * by deeply comparing the props here.
+ * Note that RPC refs are still compared shallowly,
+ * in the sense that their data (stored server-side) is not inspected.
+ */
+isEqual)

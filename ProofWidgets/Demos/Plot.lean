@@ -41,7 +41,7 @@ structure AnimatedHtmlProps where
 
 @[widget_module]
 def AnimatedHtml : Component AnimatedHtmlProps where
-  javascript := include_str ".." / ".." / ".lake" / "build" / "js" / "animatedHtml.js"
+  javascript := include_str ".." / ".." / "widget" / "js" / "animatedHtml.js"
 
 open scoped ProofWidgets.Jsx in
 -- put your cursor on the below line to see an animated widget

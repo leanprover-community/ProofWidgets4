@@ -1,8 +1,8 @@
 /-
- Copyright (c) 2024 Eric Wieser. All rights reserved.
- Released under Apache 2.0 license as described in the file LICENSE.
- Authors: Eric Wieser
- -/
+Copyright (c) 2024 Eric Wieser. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Eric Wieser, Jovan Gerbscheid
+-/
 module
 
 public meta import Lean.PrettyPrinter.Delaborator.Basic
@@ -72,3 +72,45 @@ def withAnnotateTermLikeInfo (d : DelabM (TSyntax n)) : DelabM (TSyntax n) := do
   annotateTermLikeInfo stx
 
 end Lean.PrettyPrinter.Delaborator
+
+section MonadSaveCtx
+
+/--
+Certain monad transformers such as `ReaderT` and `StateT`/`StateRefT`
+provide additional *context* (read-only) and *state* (mutable).
+`MonadSaveCtx m n` means that `m` is a stack of contexts/states on top of `n`.
+It provides a way to suspend an `m`-action by saving the "current" value of this stack.
+
+For example, `m = Lean.MetaM` is a stack of contexts and states on top of `n = EIO Lean.Exception`.
+Thus we have `saveCtxM : Lean.MetaM α → Lean.MetaM (EIO Lean.Exception α)`. -/
+class MonadSaveCtx (m : Type → Type) (n : outParam <| Type → Type) where
+  /-- Transform an action `x : m α` into an action `m (n α)` that
+  - saves the current context/state of `m`; and
+  - returns an action `y : n α` that would use the saved context/state if run.
+    Note that because `y` no longer has access to `m`'s state,
+    any `StateT` changes that it makes when you run it later will be discarded. -/
+  saveCtxM {α} : m α → m (n α)
+
+export MonadSaveCtx (saveCtxM)
+
+variable {m n : Type → Type} [Monad m] [MonadSaveCtx m n]
+
+instance : MonadSaveCtx m m where
+  saveCtxM := pure
+
+instance {ρ} : MonadSaveCtx (ReaderT ρ m) n where
+  saveCtxM act := fun ctx => saveCtxM (act ctx)
+
+instance {σ} : MonadSaveCtx (StateT σ m) n where
+  saveCtxM act := do liftM <| saveCtxM <| act.run' (← get)
+
+instance {ω σ} [MonadLiftT (ST ω) m] : MonadSaveCtx (StateRefT' ω σ m) n where
+  saveCtxM act := do liftM <| saveCtxM <| act.run' (← get)
+
+end MonadSaveCtx
+
+instance : Lean.ToJson Unit where
+  toJson _ := .null
+
+instance : Lean.FromJson Unit where
+  fromJson? _ := .ok ()
