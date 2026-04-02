@@ -63,7 +63,7 @@ def MyComponent.rpc (ps : MyProps) : RequestM (RequestTask Html) :=
 ```
 -/
 elab "mk_rpc_widget%" fn:term : term <= expectedType => do
-  let α ← mkFreshExprMVar (some (.sort levelOne)) (userName := `α)
+  let α ← mkFreshExprMVar (some (.sort .one)) (userName := `α)
   let compT ← mkAppM ``Component #[α]
   if !(← isDefEq expectedType compT) then
     throwError "expected type{indentD expectedType}\nis not of the form{indentD compT}"
