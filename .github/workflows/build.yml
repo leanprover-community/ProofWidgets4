@@ -46,7 +46,7 @@ jobs:
           node-version: '24'
 
       - name: Build package
-        run: lake build ProofWidgets
+        run: lake --wfail build ProofWidgets
 
       - name: Check pre-built JS is up-to-date
         run: git diff --exit-code widget/js/
@@ -57,10 +57,10 @@ jobs:
         run: cd widget/ && npm publish --access=public
 
       - name: Build demos
-        run: lake build ProofWidgets.Demos
+        run: lake --wfail build ProofWidgets.Demos
 
       - name: Run tests
-        run: lake test
+        run: lake --wfail test
 
       - name: Create GitHub release for tag (Ubuntu)
         if: github.ref_type == 'tag' && matrix.os == 'ubuntu-latest'
