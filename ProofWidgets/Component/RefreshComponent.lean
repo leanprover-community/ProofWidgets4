@@ -41,10 +41,6 @@ Unlike `Thunk.get`, the compiler should never move this out of a `do` block. -/
 private opaque IO.forceThunk (t : Thunk α) : BaseIO α :=
   return t.get
 
--- TODO: rm after merging https://github.com/leanprover/lean4/pull/12469
-local instance [Inhabited α] : Inhabited (Thunk α) :=
-  ⟨Thunk.mk fun _ => default⟩
-
 namespace ProofWidgets
 open Lean Server Widget Jsx
 namespace RefreshComponent
