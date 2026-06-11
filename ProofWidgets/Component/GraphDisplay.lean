@@ -1,7 +1,6 @@
 module
 
-public meta import ProofWidgets.Component.Basic
-public meta import ProofWidgets.Data.Html
+public import ProofWidgets.Data.Html
 
 public meta section
 

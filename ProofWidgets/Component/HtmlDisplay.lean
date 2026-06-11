@@ -1,9 +1,6 @@
 module
 
-public meta import Lean.Server.Rpc.Basic
-public meta import Lean.Elab.Command
-
-public meta import ProofWidgets.Data.Html
+public import ProofWidgets.Data.Html
 
 public meta section
 

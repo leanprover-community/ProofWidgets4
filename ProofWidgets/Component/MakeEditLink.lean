@@ -1,7 +1,6 @@
 module
 
-public meta import Lean.Server.Utils
-public meta import ProofWidgets.Component.Basic
+public import ProofWidgets.Component.Basic
 
 public meta section
 

@@ -1,8 +1,7 @@
 module
 
 public meta import Lean.Meta.ExprLens
-public meta import ProofWidgets.Component.Panel.Basic
-public meta import ProofWidgets.Presentation.Expr
+public import ProofWidgets.Component.Panel.Basic
 
 public meta section -- Needed for RPC calls in SelectionPanel
 
