@@ -1,7 +1,8 @@
 module
 
-public meta import ProofWidgets.Component.Panel.SelectionPanel
-public meta import ProofWidgets.Component.Panel.GoalTypePanel
+public import ProofWidgets.Component.Panel.SelectionPanel
+public import ProofWidgets.Component.Panel.GoalTypePanel
+public import ProofWidgets.Presentation.Expr
 
 public meta section
 
