@@ -1,9 +1,7 @@
 module
 
-public meta import Lean.Elab.ElabRules
-public meta import ProofWidgets.Component.Basic
-public meta import ProofWidgets.Data.Html
-public meta import ProofWidgets.Cancellable
+import ProofWidgets.Data.Html
+public import ProofWidgets.Cancellable
 
 public meta section
 

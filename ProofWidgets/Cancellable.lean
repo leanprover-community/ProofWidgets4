@@ -1,10 +1,8 @@
 module
 
-public meta import Lean.Data.Json.FromToJson
 public meta import Lean.Server.Rpc.RequestHandling
-public meta import Std.Data.HashMap
-public meta import ProofWidgets.Compat
-public meta import ProofWidgets.Util
+public import ProofWidgets.Compat
+public import ProofWidgets.Util
 
 /-! # This file is DEPRECATED since v0.0.93 -/
 

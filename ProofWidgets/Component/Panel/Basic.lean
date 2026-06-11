@@ -1,9 +1,8 @@
 module
 
-public meta import ProofWidgets.Compat
-public meta import ProofWidgets.Component.Basic
-public meta import Lean.Elab.Tactic
-public meta import Lean.Widget.Commands
+public import ProofWidgets.Component.Basic
+public meta import Lean.Elab.Tactic.BuiltinTactic
+public import Lean.Widget.Commands
 
 public meta section
 

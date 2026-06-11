@@ -1,8 +1,6 @@
 module
 
-public meta import Lean.Meta.Basic
-public meta import Lean.Elab.Command
-public meta import ProofWidgets.Component.HtmlDisplay
+public import ProofWidgets.Component.HtmlDisplay
 
 public meta section
 

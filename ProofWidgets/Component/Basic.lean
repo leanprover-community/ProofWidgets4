@@ -1,8 +1,7 @@
 module
 
-public meta import Lean.Widget.InteractiveCode
 public meta import Lean.Widget.UserWidget
-public meta import ProofWidgets.Compat
+public import ProofWidgets.Compat
 
 public meta section
 
