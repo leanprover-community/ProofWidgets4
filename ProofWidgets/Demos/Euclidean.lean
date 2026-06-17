@@ -25,9 +25,9 @@ open ProofWidgets Penrose
 Inspired by https://github.com/ah1112/synthetic_euclid_4. -/
 
 class IncidenceGeometry where
-  Point : Type u₁
-  Line : Type u₂
-  Circle : Type u₃
+  Point : Type u
+  Line : Type u
+  Circle : Type u
 
   between : Point → Point → Point → Prop -- implies colinearity
   onLine : Point → Line → Prop
