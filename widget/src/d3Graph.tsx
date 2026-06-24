@@ -24,7 +24,7 @@ interface Edge {
 }
 
 namespace Edge {
-export const calcId = (e: Edge): string => `${e.source} ${e.target}`
+export const calcId = (e: Edge): string => JSON.stringify([e.source, e.target])
 }
 
 /** The input to this component. */
@@ -214,6 +214,7 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
   React.useEffect(() => { return () => { state.current.sim.stop() } }, [])
   /** Restart the simulation using vertex/edge arrays from the current state. */
   const simRestart = () => {
+    state.current.sim.stop()
     const sim =
       d3.forceSimulation<SimVertex, SimEdge>(Array.from(state.current.g.vertices.values()))
         .on('tick', () => { onTick() })
@@ -334,7 +335,6 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
     // https://stackoverflow.com/a/479643
     return <g
       ref={ref}
-      key={v.id}
       onClick={() => { if (showDetails && v.details) setSelection({ type: 'vertex', id: v.id }) }}
     >
       <HtmlDisplay html={v.label} />
@@ -383,7 +383,6 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
       return () => { state.current.tickCallbacks.delete(cb) }
     }, [])
     return <g
-      key={Edge.calcId(e)}
       onClick={() => { if (showDetails && e.details) setSelection({ type: 'edge', id: eId }) }}
     >
       <line
@@ -423,8 +422,8 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
           </marker>
         </defs>
         <g ref={graphGRef}>
-          <g>{edges.map(e => <EmbedEdge e={e} />)}</g>
-          <g>{vertices.map(v => <EmbedVert v={v} />)}</g>
+          <g>{edges.map(e => <EmbedEdge key={Edge.calcId(e)} e={e} />)}</g>
+          <g>{vertices.map(v => <EmbedVert key={v.id} v={v} />)}</g>
         </g>
       </svg>
       {showDetails &&
