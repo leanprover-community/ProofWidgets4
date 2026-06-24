@@ -132,6 +132,9 @@ structure Props where
   forces : Array ForceParams := #[ .link {}, .manyBody {}, .x {}, .y {} ]
   /-- Whether to show a details box below the graph. -/
   showDetails : Bool := false
+  /-- The display is centered on the given vertex whenever this prop changes,
+  including on initial render. -/
+  centerOnVertex? : Option String := none
   deriving Inhabited, RpcEncodable
 
 end GraphDisplay

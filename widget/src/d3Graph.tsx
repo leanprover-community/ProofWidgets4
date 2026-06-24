@@ -174,9 +174,10 @@ interface Props {
   defaultEdgeAttrs: [string, any][]
   forces: ForceParams[]
   showDetails: boolean
+  centerOnVertex?: string
 }
 
-export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails}: Props) => {
+export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails, centerOnVertex}: Props) => {
   const graph = React.useMemo(() => SimGraph.ofGraph({vertices, edges}), [vertices, edges])
   const svgRef = React.useRef<SVGSVGElement>(null)
   const graphGRef = React.useRef<SVGGElement>(null)
@@ -268,20 +269,33 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
   }, [graph])
   
   /* Attach listener for zoom and pan. */
+  const zoomRef = React.useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null)
   React.useEffect(() => {
     const svg = svgRef.current
     const graphG = graphGRef.current
     if (!svg || !graphG) return
     
-    d3.select(svg).call(
-      d3.zoom<SVGSVGElement, unknown>()
-        .on('zoom', (ev: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
-          d3.select(graphG).attr('transform', ev.transform.toString())
-        })
-    )
+    zoomRef.current = d3.zoom<SVGSVGElement, unknown>()
+      .on('zoom', (ev: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+        d3.select(graphG).attr('transform', ev.transform.toString())
+      })
+    d3.select(svg).call(zoomRef.current)
 
     return () => { d3.select(svg).on('.zoom', null) }
   }, [])
+  /* Animate to the chosen vertex when it changes. */
+  React.useEffect(() => {
+    const zoom = zoomRef.current
+    const svg = svgRef.current
+    if (!zoom || !svg || !centerOnVertex) return
+    const v = state.current.g.vertices.get(centerOnVertex)
+    if (!v) return
+    const x = v.x ?? 0
+    const y = v.y ?? 0
+    d3.select<SVGSVGElement, unknown>(svg)
+      .transition().duration(100)
+      .call(zoom.translateTo, x, y, [0, 0])
+  }, [centerOnVertex])
 
   /** A selected element in the graph. */
   type Selection =
