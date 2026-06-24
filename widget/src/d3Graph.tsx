@@ -179,6 +179,7 @@ interface Props {
 export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails}: Props) => {
   const graph = React.useMemo(() => SimGraph.ofGraph({vertices, edges}), [vertices, edges])
   const svgRef = React.useRef<SVGSVGElement>(null)
+  const graphGRef = React.useRef<SVGGElement>(null)
   const { ref: setRef, width: width_, height: _height } = useResizeObserver<HTMLDivElement>({
     round: Math.floor,
   })
@@ -264,6 +265,22 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
     if (!changed) return
     simRestart()
   }, [graph])
+  
+  /* Attach listener for zoom and pan. */
+  React.useEffect(() => {
+    const svg = svgRef.current
+    const graphG = graphGRef.current
+    if (!svg || !graphG) return
+    
+    d3.select(svg).call(
+      d3.zoom<SVGSVGElement, unknown>()
+        .on('zoom', (ev: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+          d3.select(graphG).attr('transform', ev.transform.toString())
+        })
+    )
+
+    return () => { d3.select(svg).on('.zoom', null) }
+  }, [])
 
   /** A selected element in the graph. */
   type Selection =
@@ -405,8 +422,10 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
             </g>
           </marker>
         </defs>
-        <g>{edges.map(e => <EmbedEdge e={e} />)}</g>
-        <g>{vertices.map(v => <EmbedVert v={v} />)}</g>
+        <g ref={graphGRef}>
+          <g>{edges.map(e => <EmbedEdge e={e} />)}</g>
+          <g>{vertices.map(v => <EmbedVert v={v} />)}</g>
+        </g>
       </svg>
       {showDetails &&
         <div className="pa1 ba bw1">
