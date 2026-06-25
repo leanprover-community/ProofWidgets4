@@ -117,3 +117,13 @@ Click on vertices and edges to view their details. -/
     -- Set this to display details.
     showDetails={true}
   />
+
+/-! ### Center on vertes
+
+You can center the display on a chosen vertex. -/
+
+#html <GraphDisplay
+    vertices={#["a", "b", "c", "d", "e", "f"].map ({id := ·})}
+    edges={#[("b","c"), ("d","e"), ("e","f"), ("f","d")].map mkEdge}
+    centerOnVertex?={"a"} -- Change me.
+  />
