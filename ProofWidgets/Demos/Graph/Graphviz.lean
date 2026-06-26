@@ -22,4 +22,5 @@ open ProofWidgets Jsx
         a -> b
         a -> c
         b -> c
-      }"## />
+      }"##
+    centerOnVertex?="b" />

@@ -19,17 +19,12 @@ inductive GraphvizLayoutEngine where
   | circo | dot | fdp | sfdp | neato | osage | patchwork | twopi
   deriving Inhabited, FromJson, ToJson
 
-inductive D3GraphvizKeyMode where
-  | title | id | «tag-index» | index
-  deriving Inhabited, FromJson, ToJson
-
 /-- Options passed to the d3-graphviz renderer.
 See https://github.com/magjac/d3-graphviz#selection_graphviz. -/
 structure D3GraphvizOptions where
   useWorker? : Option Bool := none
   engine? : Option GraphvizLayoutEngine := none
   totalMemory? : Option Float := none
-  keyMode? : Option D3GraphvizKeyMode := none
   fade? : Option Bool := none
   tweenPaths? : Option Bool := none
   tweenShapes? : Option Bool := none
@@ -59,6 +54,9 @@ structure Props where
   className? : Option String := none
   /-- Additional styling to place on the SVG's parent `div`. -/
   style? : Option Json := none
+  /-- Center the display on the vertex with the given Graphviz node ID whenever this prop changes,
+  including on initial render. -/
+  centerOnVertex? : Option String := none
   deriving Inhabited, FromJson, ToJson
 
 end GraphvizDisplay
