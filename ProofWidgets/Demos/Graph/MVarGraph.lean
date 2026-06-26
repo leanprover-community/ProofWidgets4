@@ -1,6 +1,6 @@
 module
 
-public meta import ProofWidgets.Component.GraphDisplay
+public meta import ProofWidgets.Component.ForceGraphDisplay
 public meta import ProofWidgets.Component.Panel.Basic
 public meta import ProofWidgets.Component.OfRpcMethod
 
@@ -132,7 +132,7 @@ def drawMVarGraph (goals : List MVarId) : MetaM Html := do
           target := toString n.name
           attrs := #[("strokeDasharray", "5,5")]
         }
-  return <GraphDisplay
+  return <ForceGraphDisplay
       vertices={vertices}
       edges={edges}
       forces={#[
