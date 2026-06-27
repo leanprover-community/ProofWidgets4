@@ -5,6 +5,7 @@ Authors: Wojciech Nawrocki
 */
 
 import * as React from 'react'
+import * as d3 from 'd3'
 import { graphviz } from 'd3-graphviz'
 import type { GraphvizOptions } from 'd3-graphviz'
 import deepEqual from 'deep-equal'
@@ -16,6 +17,26 @@ export interface Props extends React.HTMLAttributes<HTMLDivElement> {
   options: GraphvizOptions
   renderDebounceMs: number
   centerOnVertex?: string
+
+  /** See https://github.com/magjac/d3-graphviz#customizing-graph-attributes.
+   * Only settable by JS callers - not from Lean.
+   * Important to memoize - each reference identity change causes a rerender. */
+  attributer?: d3.ValueFn<d3.BaseType, unknown, void>
+  /** Invoked whenever a node, edge, or cluster in the graph fires `click`.
+   * `d` is the d3 datum on the element.
+   * Only settable by JS callers - not from Lean.
+   * Important to memoize - each reference identity change causes a rerender. */
+  onClickNode?: (ev: PointerEvent, d: unknown) => void
+  /** Invoked whenever a node, edge, or cluster in the graph fires `onPointerEnter`.
+   * `d` is the d3 datum on the element.
+   * Only settable by JS callers - not from Lean.
+   * Important to memoize - each reference identity change causes a rerender. */
+  onPointerEnterNode?: (ev: PointerEvent, d: unknown) => void
+  /** Invoked whenever a node, edge, or cluster in the graph fires `onPointerLeave`.
+   * `d` is the d3 datum on the element.
+   * Only settable by JS callers - not from Lean.
+   * Important to memoize - each reference identity change causes a rerender. */
+  onPointerLeaveNode?: (ev: PointerEvent, d: unknown) => void
 }
 
 function useDeepEqualMemo<T>(value: T): T {
@@ -24,7 +45,8 @@ function useDeepEqualMemo<T>(value: T): T {
   return ref.current
 }
 
-export default function({ dot, options: options0, renderDebounceMs, centerOnVertex, style, ...props }: Props) {
+export default function({ dot, options: options0, renderDebounceMs, centerOnVertex,
+    attributer, onClickNode, onPointerEnterNode, onPointerLeaveNode, style, ...props }: Props) {
   const options = useDeepEqualMemo(options0)
 
   const divRef = React.useRef<HTMLDivElement>(null)
@@ -67,14 +89,14 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
     if (!div) return
 
     graphvizRef.current = graphviz(div, {
-      ...options,
-      width: svgWidth,
-      height: svgHeight,
-    })
-    graphvizRef.current.onerror(err => {
-      setError(err)
-      transitionState('init')
-    })
+        ...options,
+        width: svgWidth,
+        height: svgHeight,
+      })
+      .onerror(err => {
+        setError(err)
+        transitionState('init')
+      })
 
     return () => {
       graphvizRef.current?.destroy()
@@ -82,6 +104,12 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
       transitionState('init')
     }
   }, [options])
+
+  React.useEffect(() => {
+    if (stateRef.current.state === 'ready') transitionState('will-render')
+    graphvizRef.current?.attributer(attributer)
+    queueRender()
+  }, [attributer])
 
   React.useEffect(() => {
     if (stateRef.current.state === 'ready') transitionState('will-render')
@@ -95,6 +123,27 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
     queueRender()
   }, [svgHeight])
 
+  /** (Re)install event handlers. */
+  const queueInstallEventHandlers = () => {
+    void awaitState(s => s === 'ready').then(() => {
+      const div = divRef.current
+      if (!div) return
+      const svg = d3.select(div).selectChildren<SVGSVGElement, unknown>('svg')
+      if (!svg) return
+      const sel = svg.selectAll<SVGGElement, unknown>('g.node, g.edge, g.cluster')
+      if (onClickNode) sel.on('click.graphvizDisplay', onClickNode)
+      else sel.on('click.graphvizDisplay', null)
+      if (onPointerEnterNode) sel.on('pointerenter.graphvizDisplay', onPointerEnterNode)
+      else sel.on('pointerenter.graphvizDisplay', null)
+      if (onPointerLeaveNode) sel.on('pointerleave.graphvizDisplay', onPointerLeaveNode)
+      else sel.on('pointerleave.graphvizDisplay', null)
+    }).catch(() => {})
+  }
+
+  React.useEffect(() => {
+    queueInstallEventHandlers()
+  }, [onClickNode, onPointerEnterNode, onPointerLeaveNode])
+
   const renderTimeoutRef = React.useRef<number | null>(null)
   const queueRender = () => {
     if (renderTimeoutRef.current !== null) window.clearTimeout(renderTimeoutRef.current)
@@ -107,6 +156,7 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
           if (stateRef.current.dotId === currDotId) {
             setError(null)
             transitionState('ready')
+            queueInstallEventHandlers()
           }
         })
       }).catch(() => {})
@@ -132,10 +182,11 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
     void awaitState(s => s === 'ready').then(() => {
       const gv = graphvizRef.current
       const vertex = centerOnVertexRef.current
-      if (!gv || !vertex) return
+      const div = divRef.current
+      if (!gv || !vertex || !div) return
 
       const zoom = gv.zoomBehavior()
-      const svg = gv.zoomSelection()
+      const svg = d3.select(div).selectChildren<SVGSVGElement, unknown>('svg')
       if (!zoom || !svg) return
 
       const node: SVGGElement | null =
