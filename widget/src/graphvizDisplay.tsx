@@ -11,7 +11,7 @@ import deepEqual from 'deep-equal'
 import useResizeObserver from 'use-resize-observer'
 
 /** See the Lean API for documentation. */
-interface Props extends React.HTMLAttributes<HTMLDivElement> {
+export interface Props extends React.HTMLAttributes<HTMLDivElement> {
   dot: string
   options: GraphvizOptions
   renderDebounceMs: number
