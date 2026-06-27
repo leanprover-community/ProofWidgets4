@@ -29,6 +29,7 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
 
   const divRef = React.useRef<HTMLDivElement>(null)
   const graphvizRef = React.useRef<ReturnType<typeof graphviz> | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
 
   type State = 'init' | 'will-layout' | 'will-render' | 'ready' | 'will-unmount'
   interface StateRef {
@@ -70,6 +71,10 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
       width: svgWidth,
       height: svgHeight,
     })
+    graphvizRef.current.onerror(err => {
+      setError(err)
+      transitionState('init')
+    })
 
     return () => {
       graphvizRef.current?.destroy()
@@ -99,8 +104,10 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
       void awaitState(s => s === 'will-render').then(() => {
         if (stateRef.current.dotId !== currDotId) return
         graphvizRef.current?.render(() => {
-          if (stateRef.current.dotId === currDotId)
+          if (stateRef.current.dotId === currDotId) {
+            setError(null)
             transitionState('ready')
+          }
         })
       }).catch(() => {})
     }, renderDebounceMs)
@@ -161,13 +168,16 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
   }, [])
 
   const divHeight = options.height ?? 400
-  return <div
-    ref={divRef}
-    style={{
-      overflow: 'hidden',
-      resize: 'vertical',
-      height: divHeight,
-      ...style,
-    }}
-    {...props} />
+  return <>
+    <div
+      ref={divRef}
+      style={{
+        overflow: 'hidden',
+        resize: 'vertical',
+        height: divHeight,
+        ...style,
+      }}
+      {...props} />
+    {error && <div className="ba bw1 br1 pa1 ma1 red">{error}</div>}
+  </>
 }
