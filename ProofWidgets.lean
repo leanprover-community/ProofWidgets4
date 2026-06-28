@@ -3,6 +3,7 @@ module
 public import ProofWidgets.Compat
 public import ProofWidgets.Component.Basic
 public import ProofWidgets.Component.FilterDetails
+public import ProofWidgets.Component.GraphvizDisplay
 public import ProofWidgets.Component.GraphDisplay
 public import ProofWidgets.Component.HtmlDisplay
 public import ProofWidgets.Component.InteractiveSvg

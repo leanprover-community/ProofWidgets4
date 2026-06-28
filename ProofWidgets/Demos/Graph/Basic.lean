@@ -1,6 +1,6 @@
 module
 
-public meta import ProofWidgets.Component.GraphDisplay
+public meta import ProofWidgets.Component.ForceGraphDisplay
 public meta import ProofWidgets.Component.HtmlDisplay
 
 public meta section
@@ -11,10 +11,10 @@ open ProofWidgets Jsx
 
 /-! ### Basic usage -/
 
-def mkEdge (st : String × String) : GraphDisplay.Edge := {source := st.1, target := st.2}
+def mkEdge (st : String × String) : ForceGraphDisplay.Edge := {source := st.1, target := st.2}
 
 -- Place your cursor here.
-#html <GraphDisplay
+#html <ForceGraphDisplay
     vertices={#["a", "b", "c", "d", "e", "f"].map ({id := ·})}
     edges={#[("b","c"), ("d","e"), ("e","f"), ("f","d")].map mkEdge}
   />
@@ -24,7 +24,7 @@ def mkEdge (st : String × String) : GraphDisplay.Edge := {source := st.1, targe
 Forces acting on the vertices can be customized
 in order to control graph layout. -/
 
-def complete (n : Nat) : Array GraphDisplay.Vertex × Array GraphDisplay.Edge := Id.run do
+def complete (n : Nat) : Array ForceGraphDisplay.Vertex × Array ForceGraphDisplay.Edge := Id.run do
   let mut verts := #[]
   let mut edges := #[]
   for i in [:n] do
@@ -36,7 +36,7 @@ def complete (n : Nat) : Array GraphDisplay.Vertex × Array GraphDisplay.Edge :=
 
 def K₁₀ := complete 10
 
-#html <GraphDisplay
+#html <ForceGraphDisplay
     vertices={K₁₀.1}
     edges={K₁₀.2}
     -- Specify forces here.
@@ -49,7 +49,7 @@ def K₁₀ := complete 10
 
 Arbitrary SVG elements can be used as vertex labels. -/
 
-#html <GraphDisplay
+#html <ForceGraphDisplay
     vertices={#[
       { id := "a"
         -- Specify a label here.
@@ -70,13 +70,13 @@ Arbitrary SVG elements can be used as vertex labels. -/
 
 Arbitrary SVG elements can be used as edge labels. -/
 
-#html <GraphDisplay
+#html <ForceGraphDisplay
     vertices={#["a", "b", "c"].map ({ id := ·})}
     edges={#[
       { source := "a", target := "b"
         -- Specify a label here.
         label? := <g>
-          {GraphDisplay.mkCircle #[("r", "10")]}
+          {ForceGraphDisplay.mkCircle #[("r", "10")]}
           <text textAnchor="middle" dominantBaseline="middle">1</text>
         </g>
       },
@@ -98,13 +98,13 @@ Arbitrary SVG elements can be used as edge labels. -/
 A details box with extra information can be displayed below the graph.
 Click on vertices and edges to view their details. -/
 
-#html <GraphDisplay
+#html <ForceGraphDisplay
     vertices={#[
       { id := "a"
         -- Specify details here.
         details? := Html.text "Vertex a."
         -- Add class to indicate clickability.
-        label := GraphDisplay.mkCircle #[("className", "dim")]
+        label := ForceGraphDisplay.mkCircle #[("className", "dim")]
       },
       { id := "b" }
     ]}
@@ -122,7 +122,7 @@ Click on vertices and edges to view their details. -/
 
 You can center the display on a chosen vertex. -/
 
-#html <GraphDisplay
+#html <ForceGraphDisplay
     vertices={#["a", "b", "c", "d", "e", "f"].map ({id := ·})}
     edges={#[("b","c"), ("d","e"), ("e","f"), ("f","d")].map mkEdge}
     centerOnVertex?={"a"} -- Change me.
