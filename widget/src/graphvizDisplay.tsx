@@ -175,7 +175,7 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
     queueRender()
   }, [dot, options])
 
-  /* Animate to the chosen vertex when it changes. */
+  /* Animate to the chosen vertex when it or the graph changes. */
   const centerOnVertexRef = React.useRef<string | undefined>(centerOnVertex)
   React.useEffect(() => {
     centerOnVertexRef.current = centerOnVertex
@@ -208,7 +208,7 @@ export default function({ dot, options: options0, renderDebounceMs, centerOnVert
 
       centerOnVertexRef.current = undefined
     }).catch(() => {})
-  }, [centerOnVertex])
+  }, [centerOnVertex, dot, options])
 
   React.useEffect(() => {
     // Cleanup function run on unmount.
