@@ -5,12 +5,16 @@ public meta import ProofWidgets.Component.Basic
 
 public meta section
 
+/-- Returns the number of bytes required to encode this `Char` in UTF-16. -/
+private def ProofWidgets.Internal.utf16Size (c : Char) : UInt32 :=
+  if c.val ≤ 0xFFFF then 1 else 2
+
 /-- Assuming that `s` is the content of a file starting at position `p`,
 advance `p` to the end of `s`. -/
 def Lean.Lsp.Position.advance (p : Position) (s : Substring.Raw) : Position :=
   let (nLinesAfter, lastLineUtf16Sz) := s.foldl
     (init := (0, 0))
-    fun (n, l) c => if c == '\n' then (n + 1, 0) else (n, l + c.utf16Size.toNat)
+    fun (n, l) c => if c == '\n' then (n + 1, 0) else (n, l + (ProofWidgets.Internal.utf16Size c).toNat)
   {
     line := p.line + nLinesAfter
     character := (if nLinesAfter == 0 then p.character else 0) + lastLineUtf16Sz
