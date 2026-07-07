@@ -1,6 +1,6 @@
 module
 
-public meta import ProofWidgets.Data.Svg
+public import ProofWidgets.Data.Svg
 
 public meta section
 

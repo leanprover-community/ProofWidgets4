@@ -1,6 +1,6 @@
 module
 
-public meta import ProofWidgets.Component.GraphDisplay
+public meta import ProofWidgets.Component.ForceGraphDisplay
 public meta import ProofWidgets.Component.HtmlDisplay
 public meta import Lean.Util.FoldConsts
 
@@ -24,7 +24,7 @@ def elabExprGraphCmd : CommandElab := fun
       let some bb := env.find? b | continue
       if bb.getUsedConstantsAsSet.contains a then
         edges := edges.insert (toString a, toString b)
-    let mut nodesWithInfos : Array GraphDisplay.Vertex := #[]
+    let mut nodesWithInfos : Array ForceGraphDisplay.Vertex := #[]
     let mut maxRadius := 10
     for node in nodes.toArray do
       let some c := env.find? node | continue
@@ -35,7 +35,7 @@ def elabExprGraphCmd : CommandElab := fun
       let node := toString node
       let rx := node.length * 3
       maxRadius := Nat.max maxRadius rx
-      let newNode : GraphDisplay.Vertex := {
+      let newNode : ForceGraphDisplay.Vertex := {
         id := node
         label :=
           <g>
@@ -61,7 +61,7 @@ def elabExprGraphCmd : CommandElab := fun
             </span>
       }
       nodesWithInfos := nodesWithInfos.push newNode
-    let html : Html := <GraphDisplay
+    let html : Html := <ForceGraphDisplay
       vertices={nodesWithInfos}
       edges={edges.fold (init := #[]) fun acc (a,b) => acc.push {source := a, target := b}}
       forces={#[

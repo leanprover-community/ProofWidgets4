@@ -24,7 +24,7 @@ interface Edge {
 }
 
 namespace Edge {
-export const calcId = (e: Edge): string => `${e.source} ${e.target}`
+export const calcId = (e: Edge): string => JSON.stringify([e.source, e.target])
 }
 
 /** The input to this component. */
@@ -174,11 +174,13 @@ interface Props {
   defaultEdgeAttrs: [string, any][]
   forces: ForceParams[]
   showDetails: boolean
+  centerOnVertex?: string
 }
 
-export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails}: Props) => {
+export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails, centerOnVertex}: Props) => {
   const graph = React.useMemo(() => SimGraph.ofGraph({vertices, edges}), [vertices, edges])
   const svgRef = React.useRef<SVGSVGElement>(null)
+  const graphGRef = React.useRef<SVGGElement>(null)
   const { ref: setRef, width: width_, height: _height } = useResizeObserver<HTMLDivElement>({
     round: Math.floor,
   })
@@ -213,6 +215,7 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
   React.useEffect(() => { return () => { state.current.sim.stop() } }, [])
   /** Restart the simulation using vertex/edge arrays from the current state. */
   const simRestart = () => {
+    state.current.sim.stop()
     const sim =
       d3.forceSimulation<SimVertex, SimEdge>(Array.from(state.current.g.vertices.values()))
         .on('tick', () => { onTick() })
@@ -264,6 +267,35 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
     if (!changed) return
     simRestart()
   }, [graph])
+  
+  /* Attach listener for zoom and pan. */
+  const zoomRef = React.useRef<d3.ZoomBehavior<SVGSVGElement, unknown> | null>(null)
+  React.useEffect(() => {
+    const svg = svgRef.current
+    const graphG = graphGRef.current
+    if (!svg || !graphG) return
+    
+    zoomRef.current = d3.zoom<SVGSVGElement, unknown>()
+      .on('zoom', (ev: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
+        d3.select(graphG).attr('transform', ev.transform.toString())
+      })
+    d3.select(svg).call(zoomRef.current)
+
+    return () => { d3.select(svg).on('.zoom', null) }
+  }, [])
+  /* Animate to the chosen vertex when it changes. */
+  React.useEffect(() => {
+    const zoom = zoomRef.current
+    const svg = svgRef.current
+    if (!zoom || !svg || !centerOnVertex) return
+    const v = state.current.g.vertices.get(centerOnVertex)
+    if (!v) return
+    const x = v.x ?? 0
+    const y = v.y ?? 0
+    d3.select<SVGSVGElement, unknown>(svg)
+      .transition().duration(100)
+      .call(zoom.translateTo, x, y, [0, 0])
+  }, [centerOnVertex])
 
   /** A selected element in the graph. */
   type Selection =
@@ -317,7 +349,6 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
     // https://stackoverflow.com/a/479643
     return <g
       ref={ref}
-      key={v.id}
       onClick={() => { if (showDetails && v.details) setSelection({ type: 'vertex', id: v.id }) }}
     >
       <HtmlDisplay html={v.label} />
@@ -366,7 +397,6 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
       return () => { state.current.tickCallbacks.delete(cb) }
     }, [])
     return <g
-      key={Edge.calcId(e)}
       onClick={() => { if (showDetails && e.details) setSelection({ type: 'edge', id: eId }) }}
     >
       <line
@@ -405,8 +435,10 @@ export default ({vertices, edges, defaultEdgeAttrs, forces: forces0, showDetails
             </g>
           </marker>
         </defs>
-        <g>{edges.map(e => <EmbedEdge e={e} />)}</g>
-        <g>{vertices.map(v => <EmbedVert v={v} />)}</g>
+        <g ref={graphGRef}>
+          <g>{edges.map(e => <EmbedEdge key={Edge.calcId(e)} e={e} />)}</g>
+          <g>{vertices.map(v => <EmbedVert key={v.id} v={v} />)}</g>
+        </g>
       </svg>
       {showDetails &&
         <div className="pa1 ba bw1">

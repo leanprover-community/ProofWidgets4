@@ -1,8 +1,7 @@
 module
 
-public meta import Lean.Widget.InteractiveCode
 public meta import Lean.Widget.UserWidget
-public meta import ProofWidgets.Compat
+public import ProofWidgets.Compat
 
 public meta section
 
@@ -27,7 +26,7 @@ All [React contexts](https://react.dev/learn/passing-data-deeply-with-context) e
 [React props](https://react.dev/learn/passing-props-to-a-component)
 that the component expects.
 The export of the module specified in `«export»` should then have type
-`(props: JsProps & { pos: DocumentPosition }): React.ReactNode`
+`(props: JsProps & { pos: DocumentPosition, children: React.ReactNode }) => React.ReactNode`
 where `DocumentPosition` is defined in `@leanprover/infoview`.
 `Props` is expected to have a `Lean.Server.RpcEncodable` instance
 specifying how to encode props as JSON.

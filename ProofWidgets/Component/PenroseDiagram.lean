@@ -1,8 +1,6 @@
 module
 
-public meta import ProofWidgets.Component.Basic
-public meta import ProofWidgets.Data.Html
-public meta import Std.Data.HashMap
+public import ProofWidgets.Data.Html
 
 public meta section
 

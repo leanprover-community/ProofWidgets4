@@ -4,6 +4,19 @@ This file contains work-in-progress notes for the upcoming release, as well as p
 Please check the [releases](https://github.com/leanprover-community/ProofWidgets4/releases) page
 for the build artifacts.
 
+v0.0.104
+--------
+
+* Added a `GraphvizDisplay` component that renders a graph from a `.dot` source string.
+* Added a `Maximizable` component allowing widgets to expand to the entire infoview viewport.
+* **Renamed** `GraphDisplay` to `ForceGraphDisplay`.
+* Added support for panning/zooming, and centering on a given vertex, to `ForceGraphDisplay`.
+
+v0.0.102
+--------
+
+* Reduced imports with the help of `lake shake`.
+
 v0.0.95
 -------
 

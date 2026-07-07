@@ -5,13 +5,9 @@
  -/
 module
 
-public meta import Lean.Data.Json.FromToJson
-public meta import Lean.Parser
-public meta import Lean.PrettyPrinter.Delaborator.Basic
-public meta import Lean.Server.Rpc.Basic
 
-public meta import ProofWidgets.Component.Basic
-public meta import ProofWidgets.Util
+public import ProofWidgets.Component.Basic
+public import ProofWidgets.Util
 
 public meta section
 
