@@ -40,7 +40,7 @@ def foldInlsM {m} [Monad m] (arr : Array (α ⊕ β)) (f : Array α → m β) : 
 end ProofWidgets.Util
 
 namespace Lean.PrettyPrinter.Delaborator
-open SubExpr
+open Delaborator.SubExpr
 
 /-- Delaborate the elements of a list literal separately, calling `elem` on each. -/
 partial def delabListLiteral {α} (elem : DelabM α) : DelabM (Array α) :=
