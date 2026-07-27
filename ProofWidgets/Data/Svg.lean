@@ -13,12 +13,6 @@ private def _root_.Float.toInt (x : Float) : Int :=
   else
     -((-x).toUInt64.toNat)
 
-private def _root_.Int.toFloat (i : Int) : Float :=
-  if i >= 0 then
-    i.toNat.toFloat
-  else
-    -((-i).toNat.toFloat)
-
 namespace Svg
 
 structure Frame where
