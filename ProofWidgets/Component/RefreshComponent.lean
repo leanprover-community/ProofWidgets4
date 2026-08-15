@@ -76,7 +76,7 @@ structure RefreshState where
 /-- A reference to a `RefreshState`.
 Only exists because `TypeName` is not derivable for compound types. -/
 structure RefreshRef where
-  ref : IO.Ref RefreshState
+  ref : Std.Mutex RefreshState
   deriving TypeName
 
 /-- The data used to call `awaitRefresh`, for updating the HTML display. -/
@@ -92,7 +92,7 @@ Otherwise await the next update.
 Returns `none` if the client's state is the last one that should be shown. -/
 @[server_rpc_method]
 def awaitRefresh (ps : AwaitRefreshParams) : RequestM (RequestTask (Option VersionedHtml)) := do
-  let { curr, idx, next } ← ps.state.val.ref.get
+  let { curr, idx, next } ← ps.state.val.ref.atomically <| get
   if ps.oldIdx < idx then
     -- We have a more recent state than the client. Send the current state immediately.
     RequestM.asTask do
@@ -102,7 +102,7 @@ def awaitRefresh (ps : AwaitRefreshParams) : RequestM (RequestTask (Option Versi
     -- We have the same state as the client. Wait for an update.
     RequestM.mapTaskCostly ⟨next⟩ fun
       | some () => do
-        let { curr, idx, .. } ← ps.state.val.ref.get
+        let { curr, idx, .. } ← ps.state.val.ref.atomically <| get
         let html ← IO.forceThunk curr
         return some { html, idx }
       | none => return none
@@ -153,7 +153,7 @@ def RefreshComponent : Component Props where
 Use `RefreshToken.update` to update the HTML currently on display.
 Use `RefreshToken.cancelTk` to check if the instance has been discarded. -/
 structure RefreshToken where
-  state : IO.Ref RefreshState
+  state : Std.Mutex RefreshState
   /-- If set, the `RefreshComponent` is no longer displayed in the UI.
   The `RefreshToken` should be discarded, and any associated thread should exit. -/
   cancelTk : IO.CancelToken
@@ -175,7 +175,7 @@ private def RefreshToken.new (initial : Thunk Html) : BaseIO RefreshToken := do
     next := promise.result?
   }
   return {
-    state := ← IO.mkRef state
+    state := ← Std.Mutex.new state
     cancelTk := ← IO.CancelToken.new
     promise := ← IO.mkRef promise
   }
@@ -190,13 +190,16 @@ def RefreshToken.updateLazy (token : RefreshToken) (html : Thunk Html) : BaseIO 
   let { state, promise, .. } := token
   let newPromise ← IO.Promise.new
   -- `state` is the ref that guards the critical region.
-  let st ← unsafe state.take
-  let oldPromise ← promise.swap newPromise
-  state.set {
-    curr := html
-    idx := st.idx + 1
-    next := newPromise.result?
-  }
+  let oldPromise ← state.atomically do
+    let st ← get
+    let oldPromise ← promise.swap newPromise
+    set {
+      curr := html
+      idx := st.idx + 1
+      next := newPromise.result?
+      : RefreshState
+    }
+    pure oldPromise
   oldPromise.resolve ()
 
 /-- Update the current HTML tree to be `html`. See also `updateLazy`. -/
