@@ -87,6 +87,16 @@ target widgetJsAllDev pkg : Unit :=
 @[default_target]
 lean_lib ProofWidgets where
   needs := #[widgetJsAll]
+  -- `ProofWidgets.Component.RefreshComponent` is not reachable from the root
+  -- module, so with Lake's default globs it is not a member of this library
+  -- and never gets compiled into `libproofwidgets_ProofWidgets`. That is
+  -- invisible until a downstream package sets `precompileModules`: Mathlib
+  -- imports the module (`Mathlib/Tactic/ClickSuggestions/Util.lean`), so
+  -- Mathlib's objects reference symbols the shared library does not export,
+  -- and on macOS those bind lazily to null — Mathlib's generated module
+  -- initializer then jumps to address zero. Naming it here is the minimal
+  -- fix; it does not change what `import ProofWidgets` brings into scope.
+  globs := #[.one `ProofWidgets, .one `ProofWidgets.Component.RefreshComponent]
 
 lean_lib ProofWidgets.Demos where
   needs := #[widgetJsAll]
