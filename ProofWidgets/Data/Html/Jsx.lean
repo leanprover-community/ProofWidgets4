@@ -9,7 +9,7 @@ public meta import Lean.Parser
 public import ProofWidgets.Data.Html.Basic
 public import ProofWidgets.Util
 
-deprecated_module "use ProofWidgets.Data.Html.Syntax instead" (since := "2026-09-18")
+deprecated_module "use ProofWidgets.Data.Html.Elab instead" (since := "2026-09-18")
 
 public meta section
 

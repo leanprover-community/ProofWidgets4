@@ -8,3 +8,4 @@ module
 public import ProofWidgets.Data.Html.Basic
 /- Imported for now for backwards compatibility. -/
 public import ProofWidgets.Data.Html.Jsx
+public import ProofWidgets.Data.Html.Elab
