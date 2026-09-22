@@ -4,8 +4,7 @@ public meta import ProofWidgets.Component.HtmlDisplay
 
 public meta section
 
--- See the `Jsx.lean` demo for more about JSX.
-open scoped ProofWidgets.Jsx
+-- See the `Jsx.lean` demo for more about `jsx%{ ... }` syntax.
 
 /-! # Widgets in macros
 
@@ -29,7 +28,7 @@ def Lean.TSyntax.mkInfoCanonical : TSyntax k → TSyntax k :=
 
 macro "#browse " src:term : command =>
   Lean.TSyntax.mkInfoCanonical <$>
-    `(#html <iframe src={$src} width="100%" height="600px" />)
+    `(#html jsx%{<iframe src={$src} width="100%" height="600px" />})
 
 #browse "https://leanprover-community.github.io/"
 -- Do you like recursion?
