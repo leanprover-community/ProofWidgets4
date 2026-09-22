@@ -120,14 +120,15 @@ structure ConvSelectionPanelProps extends PanelWidgetProps where
   replaceRange : Lsp.Range
   deriving RpcEncodable
 
-open scoped Jsx in
 @[server_rpc_method]
 def ConvSelectionPanel.rpc (props : ConvSelectionPanelProps) : RequestM (RequestTask Html) :=
   RequestM.asTask do
     let doc ← RequestM.readDoc
     let inner : Html ← (do
       if props.selectedLocations.isEmpty then
-        return <span>Use shift-click to select one sub-expression in the goal that you want to zoom on.</span>
+        return jsx%{<span>
+          Use shift-click to select one sub-expression in the goal that you want to zoom on.
+        </span>}
       let some selectedLoc := props.selectedLocations[0]? | unreachable!
 
       let some g := findGoalForLocation props.goals selectedLoc
@@ -142,10 +143,10 @@ def ConvSelectionPanel.rpc (props : ConvSelectionPanelProps) : RequestM (Request
             MakeEditLink
             (.ofReplaceRange doc.meta props.replaceRange newCode)
             #[ .text newCode ])
-    return <details «open»={true}>
+    return jsx%{<details open={true}>
         <summary className="mv2 pointer">Conv 🔍</summary>
         <div className="ml1">{inner}</div>
-      </details>
+      </details>}
 
 @[widget_module]
 def ConvSelectionPanel : Component ConvSelectionPanelProps :=

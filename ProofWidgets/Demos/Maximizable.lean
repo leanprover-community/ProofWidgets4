@@ -9,9 +9,10 @@ module
 public import ProofWidgets.Component.Maximizable
 public import ProofWidgets.Component.HtmlDisplay
 
-open ProofWidgets Jsx
+open ProofWidgets
 
-#html
+#html jsx%{
   <Maximizable>
     <div style={json%{background: "yellow", width: "100%", height: "100px"}}>Maximize me!</div>
   </Maximizable>
+}

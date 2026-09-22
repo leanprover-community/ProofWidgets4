@@ -7,17 +7,17 @@ public meta section
 
 /-! ## Directed graphs with `GraphDisplay` -/
 
-open ProofWidgets Jsx
+open ProofWidgets
 
 /-! ### Basic usage -/
 
 def mkEdge (st : String × String) : ForceGraphDisplay.Edge := {source := st.1, target := st.2}
 
 -- Place your cursor here.
-#html <ForceGraphDisplay
+#html jsx%{<ForceGraphDisplay
     vertices={#["a", "b", "c", "d", "e", "f"].map ({id := ·})}
     edges={#[("b","c"), ("d","e"), ("e","f"), ("f","d")].map mkEdge}
-  />
+  />}
 
 /-! ### Custom layout
 
@@ -36,69 +36,69 @@ def complete (n : Nat) : Array ForceGraphDisplay.Vertex × Array ForceGraphDispl
 
 def K₁₀ := complete 10
 
-#html <ForceGraphDisplay
+#html jsx%{<ForceGraphDisplay
     vertices={K₁₀.1}
     edges={K₁₀.2}
     -- Specify forces here.
     forces={#[
       .link { distance? := some 150 }
     ]}
-  />
+  />}
 
 /-! ### Vertex labels
 
 Arbitrary SVG elements can be used as vertex labels. -/
 
-#html <ForceGraphDisplay
+#html jsx%{<ForceGraphDisplay
     vertices={#[
       { id := "a"
         -- Specify a label here.
-        label := <circle r={5} fill="#ff0000" />
+        label := jsx%{<circle r={5} fill="#ff0000" />}
       },
       { id := "b"
         -- Use `<foreignObject>` to draw non-SVG elements.
-        label := <foreignObject height={50} width={50}>
-          -- TODO: the extra `<p>` node messes up positioning
+        label := jsx%{<foreignObject height={50} width={50}>
+          <!-- TODO: the extra `<p>` node messes up positioning -->
           <MarkdownDisplay contents="$xyz$" />
-        </foreignObject>
+        </foreignObject>}
       }
     ]}
     edges={#[{ source := "a", target := "b" }]}
-  />
+  />}
 
 /-! ### Edge labels
 
 Arbitrary SVG elements can be used as edge labels. -/
 
-#html <ForceGraphDisplay
+#html jsx%{<ForceGraphDisplay
     vertices={#["a", "b", "c"].map ({ id := ·})}
     edges={#[
       { source := "a", target := "b"
         -- Specify a label here.
-        label? := <g>
+        label? := jsx%{<g>
           {ForceGraphDisplay.mkCircle #[("r", "10")]}
           <text textAnchor="middle" dominantBaseline="middle">1</text>
-        </g>
+        </g>}
       },
       { source := "b", target := "c"
         -- Use `<foreignObject>` to draw non-SVG elements.
-        label? := <foreignObject height={50} width={50}>
-          -- TODO: the extra `<p>` node messes up positioning
+        label? := jsx%{<foreignObject height={50} width={50}>
+          <!-- TODO: the extra `<p>` node messes up positioning -->
           <MarkdownDisplay contents="$e_2$" />
-        </foreignObject>
+        </foreignObject>}
       }
     ]}
     forces={#[
       .link { distance? := some 100 }
     ]}
-  />
+  />}
 
 /-! ### Extra details
 
 A details box with extra information can be displayed below the graph.
 Click on vertices and edges to view their details. -/
 
-#html <ForceGraphDisplay
+#html jsx%{<ForceGraphDisplay
     vertices={#[
       { id := "a"
         -- Specify details here.
@@ -116,14 +116,14 @@ Click on vertices and edges to view their details. -/
     ]}
     -- Set this to display details.
     showDetails={true}
-  />
+  />}
 
 /-! ### Center on vertes
 
 You can center the display on a chosen vertex. -/
 
-#html <ForceGraphDisplay
+#html jsx%{<ForceGraphDisplay
     vertices={#["a", "b", "c", "d", "e", "f"].map ({id := ·})}
     edges={#[("b","c"), ("d","e"), ("e","f"), ("f","d")].map mkEdge}
     centerOnVertex?={"a"} -- Change me.
-  />
+  />}

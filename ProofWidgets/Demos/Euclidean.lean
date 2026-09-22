@@ -134,14 +134,13 @@ def EuclideanDisplay.dsl :=
 def EuclideanDisplay.sty :=
   include_str ".."/".."/"widget"/"penrose"/"euclidean.sty"
 
-open scoped Jsx in
 @[server_rpc_method]
 def EuclideanDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
   RequestM.asTask do
     let inner : Html ← (do
       -- Are there any goals unsolved? If so, pick the first one.
       if props.goals.isEmpty then
-        return <span>No goals.</span>
+        return jsx%{<span>No goals.</span>}
       let some g := props.goals[0]? | unreachable!
 
       -- Execute the next part using the metavariable context and local context of the goal.
@@ -169,12 +168,12 @@ def EuclideanDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html
             addHypotheses locs
             match ← DiagramBuilderM.buildDiagram dsl sty with
             | some html => return html
-            | none => return <span>No Euclidean goal.</span>)
+            | none => return jsx%{<span>No Euclidean goal.</span>})
 
-    return <details «open»={true}>
+    return jsx%{<details open={true}>
         <summary className="mv2 pointer">Euclidean diagram</summary>
         <div className="ml1">{inner}</div>
-      </details>
+      </details>}
 
 @[widget_module]
 def EuclideanDisplay : Component PanelWidgetProps :=
@@ -195,7 +194,7 @@ example {a b c : Point} {L M : Line} (Babc : between a b c)
 
 /-! # Euclidean constructions -/
 
-open DiagramBuilderM Jsx in
+open DiagramBuilderM in
 /-- Add every possible line between any two points in `hyps`
 to the diagram.
 Lines are labelled with links to insert them into the proof script. -/
@@ -213,14 +212,14 @@ def constructLines (hyps : Array LocalDecl) (docMeta : Server.DocumentMeta) (cur
 
   -- Add a plausible construction, labelled with a link that makes the text edit.
   let addConstruction (nm tp ctr : String) : DiagramBuilderM Unit := do
-    addEmbed nm tp (
+    addEmbed nm tp jsx%{
       <span>
         <b>{.text nm}</b> ({
           .ofComponent MakeEditLink
             (MakeEditLinkProps.ofReplaceRange docMeta ⟨cursorPos, cursorPos⟩ ctr)
             #[.text "insert"]
         })
-      </span>)
+      </span>}
     addInstruction s!"Emphasize({nm})"
 
   -- Construct every possible line and circle.
@@ -256,13 +255,12 @@ def constructLines (hyps : Array LocalDecl) (docMeta : Server.DocumentMeta) (cur
     let nm := s!"{sC}{sD}"
     let nm' := s!"{sD}{sC}"
     addConstruction nm "Point" s!"let ⟨{nm}, {nm'}, _, _, _, _, _⟩ := pts_of_circlesInter {h.userName}"
-    addEmbed nm' "Point" <b>{.text nm'}</b>
+    addEmbed nm' "Point" jsx%{<b>{.text nm'}</b>}
     addInstruction s!"OnCircle({nm'}, {sC})"
     addInstruction s!"OnCircle({nm}, {sD})"
     addInstruction s!"OnCircle({nm}, {sC})"
     addInstruction s!"OnCircle({nm'}, {sD})"
 
-open scoped Jsx in
 @[server_rpc_method]
 def EuclideanConstructions.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
   RequestM.asTask do
@@ -270,7 +268,7 @@ def EuclideanConstructions.rpc (props : PanelWidgetProps) : RequestM (RequestTas
     let inner : Html ← (do
       -- Are there any goals unsolved? If so, pick the first one.
       if props.goals.isEmpty then
-        return <span>No goals.</span>
+        return jsx%{<span>No goals.</span>}
       let some g := props.goals[0]? | unreachable!
 
       -- Execute the next part using the metavariable context and local context of the goal.
@@ -295,13 +293,13 @@ def EuclideanConstructions.rpc (props : PanelWidgetProps) : RequestM (RequestTas
             constructLines selectedHyps doc.meta props.pos
             match ← DiagramBuilderM.buildDiagram EuclideanDisplay.dsl EuclideanDisplay.sty 1500 with
             | some html => return html
-            | none => return <span>No Euclidean goal.</span>)
+            | none => return jsx%{<span>No Euclidean goal.</span>})
 
     -- Return a collapsible `<details>` block around our widget.
-    return <details «open»={true}>
+    return jsx%{<details open={true}>
         <summary className="mv2 pointer">Euclidean constructions</summary>
         <div className="ml1">{inner}</div>
-      </details>
+      </details>}
 
 @[widget_module]
 def EuclideanConstructions : Component PanelWidgetProps :=

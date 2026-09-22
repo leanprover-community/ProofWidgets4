@@ -49,15 +49,14 @@ def isSubsetPred? (e : Expr) : Option (Expr × Expr) := do
 /-- Expressions to display as labels in a diagram. -/
 abbrev ExprEmbeds := Array (String × Expr)
 
-open scoped Jsx in
 def mkSetDiag (sub : String) (embeds : ExprEmbeds) : MetaM Html := do
   let embeds ← embeds.mapM fun (s, h) =>
-      return (s, <InteractiveCode fmt={← Widget.ppExprTagged h} />)
-  return <PenroseDiagram
+      return (s, jsx%{<InteractiveCode fmt={← Widget.ppExprTagged h} />})
+  return jsx%{<PenroseDiagram
       embeds={embeds}
       dsl={include_str ".."/".."/"widget"/"penrose"/"setTheory.dsl"}
       sty={include_str ".."/".."/"widget"/"penrose"/"venn.sty"}
-      sub={sub} />
+      sub={sub} />}
 
 def isSetGoal? (hyps : Array LocalDecl) : MetaM (Option Html) := do
   let mut sub := "AutoLabel All\n"
@@ -84,13 +83,12 @@ def findGoalForLocation (goals : Array Widget.InteractiveGoal) (loc : SubExpr.Go
     Option Widget.InteractiveGoal :=
   goals.find? (·.mvarId == loc.mvarId)
 
-open scoped Jsx in
 @[server_rpc_method]
 def VennDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
   RequestM.asTask do
     let inner : Html ← (do
       if props.selectedLocations.isEmpty then
-        return <span>Use shift-click to select hypotheses to include in the diagram.</span>
+        return jsx%{<span>Use shift-click to select hypotheses to include in the diagram.</span>}
       let some selectedLoc := props.selectedLocations[0]? | unreachable!
 
       let some g := findGoalForLocation props.goals selectedLoc
@@ -106,11 +104,11 @@ def VennDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
             | _ => return none
           match ← isSetGoal? locs with
           | some html => return html
-          | none => return <span>No set goal.</span>)
-    return <details «open»={true}>
+          | none => return jsx%{<span>No set goal.</span>})
+    return jsx%{<details open={true}>
         <summary className="mv2 pointer">Venn diagram</summary>
         <div className="ml1">{inner}</div>
-      </details>
+      </details>}
 
 @[widget_module]
 def VennDisplay : Component PanelWidgetProps :=

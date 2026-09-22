@@ -4,7 +4,7 @@ public import ProofWidgets.Component.HtmlDisplay
 
 public meta section
 
-open Lean ProofWidgets Jsx in
+open Lean ProofWidgets in
 /--
 Print the signature of `name` as a widget message in the infoview
 with dimmed implicit arguments (opacity 50%).
@@ -22,9 +22,7 @@ def ProofWidgets.CheckHighlight (name : Lean.Name) (showAlt : Bool) : MetaM Unit
       let univStr : String := ",".intercalate (constVal.levelParams.map toString)
       let univStr := ".{" ++ univStr ++ "}"
       let alt := if showAlt then univStr else ""
-      msg := msg ++ (←MessageData.ofHtml <span «class»="o-50">{
-        .text <| univStr
-      }</span> alt)
+      msg := msg ++ (←MessageData.ofHtml jsx%{<span class="o-50">{.text univStr}</span>} alt)
     let decls ← args.mapM Meta.getFVarLocalDecl
     let groups := decls.toList.splitBy
       (fun d1 d2 => declCore d1 == declCore d2)
@@ -57,7 +55,7 @@ def ProofWidgets.CheckHighlight (name : Lean.Name) (showAlt : Bool) : MetaM Unit
           | .inl s => pure (.text s)
           | .inr e => do
             let widget ← Lean.Widget.ppExprTagged e
-            pure <InteractiveCode fmt={widget} />
+            pure jsx%{<InteractiveCode fmt={widget} />}
           )
           let mut alt := ""
           if showAlt then
