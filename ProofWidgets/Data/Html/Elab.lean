@@ -7,12 +7,13 @@ module
 
 public meta import Lean.Elab.Term
 public meta import Lean.Data.Html.Syntax
+public meta import Lean.Data.Html.Elab
 public import ProofWidgets.Util
 import ProofWidgets.Data.Html.Basic
 
 set_option doc.verso true
 
-public meta section
+meta section
 
 /-! Elaborators for writing {name}`ProofWidgets.Html` trees
 using the HTML-like syntax defined in {lit}`Lean.Data.Html.Syntax`. -/
@@ -76,7 +77,7 @@ partial def elabHtmlElement (stx : Element) : TermElabM Term := withRef stx do
   let children ← match v.children? with
     | some cs => elabHtmlContent cs
     | none => pure #[]
-  let children ← `(#[$children,*])
+  let children ← joinArrays <| ← foldInlsM children fun hs => `(#[$hs,*])
 
   -- Uppercase tags are parsed as ProofWidgets components.
   if String.Pos.Raw.get! tagName 0 |>.isUpper then
@@ -99,20 +100,26 @@ partial def elabHtmlElement (stx : Element) : TermElabM Term := withRef stx do
     let attrs ← joinArrays <| ← foldInlsM attrs fun pairs => `(#[$pairs,*])
     `(Html.element $(quote tagName) $attrs $children)
 
-/-- Elaborates HTML content into {name}`Term`s of type {name}`Html`, one per content node. -/
-partial def elabHtmlContent (stx : Content) : TermElabM (Array Term) := do
+/-- Elaborates a sequence of HTML content items.
+- Many-item interpolations {lit}`{... $hs }` become {lit}`.inr hs`,
+  with expected type {lit}`hs : Array Html`.
+- Other items become {lit}`.inl h`, with expected type {lit}`h : Html`. -/
+partial def elabHtmlContent (stx : Content) : TermElabM (Array (Term ⊕ Term)) := do
   let mut out := #[]
   for item in ← stx.view do
     match item with
     | .element stx =>
-      out := out.push (← elabHtmlElement stx)
+      out := out.push (.inl (← elabHtmlElement stx))
     | .textComments tcs => withRef tcs.getSyntax do←
       let s ← tcs.getText
       unless s.isEmpty do
-        out := out.push (← ``(Html.text $(quote s)))
-    | .interp stx =>
+        out := out.push (.inl (← ``(Html.text $(quote s))))
+    | .interp false stx =>
       let i ← stx.view
-      out := out.push i.term
+      out := out.push (.inl i.term)
+    | .interp true stx => withRef stx do←
+      let i ← stx.view
+      out := out.push (.inr (← `(($(i.term) : Array Html))))
   return out
 
 end
@@ -133,18 +140,20 @@ The following behavior is specific to ProofWidgets:
   and whole structures {lit}`<Widget {... { name := val }}/>`.
   Interpolation of single attributes with {lit}`<Widget {("name", val)}/>`
   is not supported on components.
-- At most one node is allowed between the braces,
-  so e.g. `jsx%{<br/><br/>}` is forbidden.
+- At most one node is allowed between the braces, and this must be known statically,
+  so e.g. `jsx%{<br/><br/>}` and `jsx%{{... hs}}` are forbidden.
 -/
 @[term_parser]
-meta def «jsx%» : Parser :=
+public meta def «jsx%» : Parser :=
   leading_parser "jsx%" >> rawSymbol "{" >> Lean.Html.Syntax.content >> "}"
 
 elab_rules : term
   | `(term| jsx%{$c:content}) => do
     match ← elabHtmlContent c with
     | #[] => elabTermEnsuringType (← ``(Html.text "")) (some (.const ``Html []))
-    | #[h] => elabTermEnsuringType h (some (.const ``Html []))
+    | #[.inl h] => elabTermEnsuringType h (some (.const ``Html []))
+    | #[.inr _] =>
+      throwErrorAt c "expected at most one HTML element, found a `\{... }` interpolation"
     | out => throwErrorAt c m!"expected at most one HTML element, found {out.size}"
 
 -- TODO: delaborators
