@@ -42,7 +42,7 @@ private opaque IO.forceThunk (t : Thunk α) : BaseIO α :=
   return t.get
 
 namespace ProofWidgets
-open Lean Server Widget Jsx
+open Lean Server Widget
 namespace RefreshComponent
 
 /-- A HTML tree together with a version number.
@@ -209,8 +209,8 @@ def RefreshToken.update (token : RefreshToken) (html : Html) : BaseIO Unit :=
 /-- Create a `RefreshComponent` instance together with a token to manage it. -/
 def mkRefreshComponent (initial : Html := .text "") : BaseIO (Html × RefreshToken) := do
   let token ← RefreshToken.new initial
-  return (<RefreshComponent state={← WithRpcRef.mk ⟨token.state⟩}
-      cancelTk={← WithRpcRef.mk token.cancelTk} />, token)
+  return (jsx%{<RefreshComponent state={← WithRpcRef.mk ⟨token.state⟩}
+      cancelTk={← WithRpcRef.mk token.cancelTk} />}, token)
 
 variable {m} [Monad m] [MonadLiftT BaseIO m]
   [MonadSaveCtx m (EIO Exception)] [MonadWithReaderOf Core.Context m]
@@ -232,10 +232,10 @@ def mkRefreshComponentM (initial : Html) (k : RefreshToken → m Unit) : m Html 
         if id == interruptExceptionId then
           token.update <| .text "This component was cancelled"
       else
-        token.update <span>
-            An error occurred in the mkRefreshComponentM thread:
+        token.update jsx%{<span>
+            An error occurred in the mkRefreshComponentM thread:{.text " "}
             <InteractiveMessage msg={← WithRpcRef.mk ex.toMessageData}/>
-          </span>
+          </span>}
   return html
 
 end ProofWidgets

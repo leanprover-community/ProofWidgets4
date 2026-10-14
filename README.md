@@ -74,10 +74,9 @@ import [@leanprover-community/proofwidgets4](https://www.npmjs.com/package/@lean
 
 ```lean
 import ProofWidgets.Component.HtmlDisplay
-open scoped ProofWidgets.Jsx
 
 -- click on the line below to see it in your infoview!
-#html <b>You can use HTML in Lean {.text s!"{1 + 3}"}!</b>
+#html jsx%{<b>You can use HTML in Lean {.text s!"{1 + 3}"}!</b>}
 ```
 
 See the `Jsx.lean` and `ExprPresentation.lean` demos.

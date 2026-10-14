@@ -59,7 +59,6 @@ abbrev DiagramBuilderM := StateT DiagramState MetaM
 
 namespace DiagramBuilderM
 
-open scoped Jsx in
 /-- Assemble the diagram using the provided domain and style programs.
 
 `none` is returned iff nothing was added to the diagram. -/
@@ -74,24 +73,23 @@ def buildDiagram (dsl sty : String) (maxOptSteps : Nat := 500) : DiagramBuilderM
     embedHtmls := embedHtmls.push (n, h)
   -- Note: order matters here, embed variables are declared first.
   sub := sub ++ st.sub
-  return <Diagram
+  return jsx%{<Diagram
     embeds={embedHtmls}
     dsl={dsl} sty={sty} sub={sub}
-    maxOptSteps={maxOptSteps} />
+    maxOptSteps={maxOptSteps} />}
 
 /-- Add an object `nm` of Penrose type `tp`,
 labelled by `h`, to the substance program. -/
 def addEmbed (nm : String) (tp : String) (h : Html) : DiagramBuilderM Unit := do
   modify fun st => { st with embeds := st.embeds.insert nm (tp, h) }
 
-open scoped Jsx in
 /-- Add an object of Penrose type `tp`,
 corresponding to (and labelled by) the expression `e`,
 to the substance program.
 Return its Penrose name. -/
 def addExpr (tp : String) (e : Expr) : DiagramBuilderM String := do
   let nm ← toString <$> Lean.Meta.ppExpr e
-  let h := <InteractiveCode fmt={← Widget.ppExprTagged e} />
+  let h := jsx%{<InteractiveCode fmt={← Widget.ppExprTagged e} />}
   addEmbed nm tp h
   return nm
 

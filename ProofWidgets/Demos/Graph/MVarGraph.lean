@@ -56,7 +56,7 @@ def buildMVarGraph : MetaM (Graph MVarId Bool) := do
       g := g.alter n ((m, false) :: ·.getD [])
   return g
 
-open ProofWidgets Jsx in
+open ProofWidgets in
 def mkLabel (e : MVarId)
     (stroke := "var(--vscode-editor-foreground)")
     (fill := "var(--vscode-editor-background)") :
@@ -69,7 +69,7 @@ def mkLabel (e : MVarId)
   let h := max 20 (20 * (1 + len / 15))
   let x : Int := -w/2
   let y : Int := -h/2
-  return (w, h, <g>
+  return (w, h, jsx%{<g>
       <rect
         fill={fill}
         stroke={stroke}
@@ -80,10 +80,9 @@ def mkLabel (e : MVarId)
       <foreignObject width={w} height={h} x={.num (x + 5 : Int)} y={y}>
         <span className="font-code">{.text fmt} : {.text fmtTp}</span>
       </foreignObject>
-    </g>
-  )
+    </g>})
 
-open ProofWidgets Jsx in
+open ProofWidgets in
 def drawMVarGraph (goals : List MVarId) : MetaM Html := do
   let mvars ← buildMVarGraph
   let mg := goals.head!
@@ -105,15 +104,14 @@ def drawMVarGraph (goals : List MVarId) : MetaM Html := do
         else "var(--vscode-editor-background)")
     maxLabelRadius := max maxLabelRadius (Float.sqrt <| (w.toFloat/2)^2 + (h.toFloat/2)^2)
     let val? ← (← getMCtx).eAssignment.find? m |>.mapM fun v =>
-      return <span className="font-code">
-        {.text s!"?{← m.getName}"} :=
+      return jsx%{<span className="font-code">
+        {.text s!"?{← m.getName} := "}
         <InteractiveCode fmt={← m.withContext <| Widget.ppExprTagged v} />
-      </span>
+      </span>}
     let delayedVal? ← (← getMCtx).dAssignment.find? m |>.mapM fun n =>
-      return <span className="font-code">
-        {.text s!"?{← m.getName}"} [delayed] :=
-        {.text s!"?{← n.mvarIdPending.getName}"}
-      </span>
+      return jsx%{<span className="font-code">
+        {.text s!"?{← m.getName} [delayed] := ?{← n.mvarIdPending.getName}"}
+      </span>}
     vertices := vertices.push {
       id := toString m.name
       label
@@ -132,7 +130,7 @@ def drawMVarGraph (goals : List MVarId) : MetaM Html := do
           target := toString n.name
           attrs := #[("strokeDasharray", "5,5")]
         }
-  return <ForceGraphDisplay
+  return jsx%{<ForceGraphDisplay
       vertices={vertices}
       edges={edges}
       forces={#[
@@ -142,9 +140,9 @@ def drawMVarGraph (goals : List MVarId) : MetaM Html := do
         .y { strength? := some 0.01 }
       ]}
       showDetails={true}
-    />
+    />}
 
-open Server ProofWidgets Jsx
+open Server ProofWidgets
 
 @[server_rpc_method]
 def MVarGraph.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
@@ -152,7 +150,7 @@ def MVarGraph.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
     let inner : Html ← (do
       -- Are there any goals unsolved? If so, the first one is the current main goal.
       if props.goals.isEmpty then
-        return <span>No goals.</span>
+        return jsx%{<span>No goals.</span>}
       let some g := props.goals[0]? | unreachable!
 
       -- Execute the next part using the metavariable context and local context of the main goal.
@@ -162,10 +160,10 @@ def MVarGraph.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
         Meta.withLCtx lctx md.localInstances do
           drawMVarGraph <| props.goals.toList.map (·.mvarId))
 
-    return <details «open»={true}>
+    return jsx%{<details open={true}>
         <summary className="mv2 pointer">Metavariable graph</summary>
         <div className="ml1">{inner}</div>
-      </details>
+      </details>}
 
 @[widget_module]
 def MVarGraph : Component ProofWidgets.PanelWidgetProps :=
