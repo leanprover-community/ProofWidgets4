@@ -16,7 +16,6 @@ def List.product : List α → List β → List (α × β)
 namespace Matrix
 
 open ProofWidgets
-open scoped Jsx
 
 variable {n : Nat} (A : Matrix (Fin n) (Fin n) Int)
 
@@ -37,12 +36,12 @@ def get_node_cx (n i : Nat) : Int := 20 + (get_node_pos n i).1 * 40
 def get_node_cy (n i : Nat) : Int := 20 + (get_node_pos n i).2 * 40
 
 def get_node_html (n i : Nat) : Html :=
-  <circle
+  jsx%{<circle
     cx={toString <| get_node_cx n i}
     cy={toString <| get_node_cy n i}
     r="10"
     fill="white"
-    stroke="black" />
+    stroke="black" />}
 
 /-- TODO
  * Error if `j ≤ i`
@@ -51,13 +50,13 @@ def get_node_html (n i : Nat) : Html :=
  * Render arrow on double or triple edge with direction decided by `A i j < A j i` -/
 def get_edge_html : Nat × Nat → List Html
   | (i, j) => if A.nat_index i j = 0 then [] else
-  [<line
+  [jsx%{<line
      x1={toString <| get_node_cx n i}
      y1={toString <| get_node_cy n i}
      x2={toString <| get_node_cx n j}
      y2={toString <| get_node_cy n j}
      fill="black"
-     stroke="black" />]
+     stroke="black" />}]
 
 def get_nodes_html (n : Nat) : List Html :=
   (List.range n).map (get_node_html n)
@@ -70,9 +69,9 @@ def get_edges_html : List Html := Id.run do
   return out
 
 def toHtml (M : Matrix (Fin n) (Fin n) Int) : Html :=
-  <div style={json% { height: "100px", width: "300px", background: "grey" }}>
+  jsx%{<div style={json% { height: "100px", width: "300px", background: "grey" }}>
     {Html.element "svg" #[] (M.get_edges_html ++ Matrix.get_nodes_html n).toArray}
-  </div>
+  </div>}
 
 end Matrix
 

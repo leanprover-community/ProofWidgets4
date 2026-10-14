@@ -6,7 +6,7 @@ public meta import ProofWidgets.Component.HtmlDisplay
 public meta section
 
 open Lean
-open ProofWidgets Svg Jsx
+open ProofWidgets Svg
 
 abbrev State := Array (Float × Float)
 
@@ -51,7 +51,7 @@ def SvgWidget : Component (UpdateResult State) where
   javascript := include_str ".." / ".." / "widget" / "js" / "interactiveSvg.js"
 
 def init : UpdateResult State := {
-  html := <div>Init!!!</div>,
+  html := jsx%{<div>Init!!!</div>},
   state := { state := isvg.init
              time := 0
              selected := none
@@ -59,4 +59,4 @@ def init : UpdateResult State := {
              idToData := isvg.render 0 none none isvg.init |>.idToDataList}
 }
 
-#html <SvgWidget html={init.html} state={init.state}/>
+#html jsx%{<SvgWidget html={init.html} state={init.state}/>}

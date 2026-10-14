@@ -6,16 +6,16 @@ public import ProofWidgets.Presentation.Expr
 
 public meta section
 
-open ProofWidgets Jsx
+open ProofWidgets
 
 @[expr_presenter]
 def presenter : ExprPresenter where
   userName := "With octopodes"
   layoutKind := .inline
   present e :=
-    return <span>
-        {.text "🐙 "}<InteractiveCode fmt={← Lean.Widget.ppExprTagged e} />{.text " 🐙"}
-      </span>
+    return jsx%{<span>
+        🐙 <InteractiveCode fmt={← Lean.Widget.ppExprTagged e} /> 🐙
+      </span>}
 
 example : 2 + 2 = 4 ∧ 3 + 3 = 6 := by
   with_panel_widgets [GoalTypePanel]
