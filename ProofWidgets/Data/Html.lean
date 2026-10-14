@@ -7,5 +7,5 @@ module
 
 public import ProofWidgets.Data.Html.Basic
 /- Imported for now for backwards compatibility. -/
-public import ProofWidgets.Data.Html.Jsx
+public import ProofWidgets.Data.Html.Jsx -- deprecated_module: ignore
 public import ProofWidgets.Data.Html.Elab
