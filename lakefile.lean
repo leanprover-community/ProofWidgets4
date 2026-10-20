@@ -94,4 +94,6 @@ lean_lib ProofWidgets.Demos where
 
 @[test_driver]
 lean_lib test where
+  -- Ensure that demos build when `lake test` is invoked.
+  needs := #[ProofWidgets.Demos]
   globs := #[.submodules `test]
