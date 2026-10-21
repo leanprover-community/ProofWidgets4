@@ -125,7 +125,11 @@ function generatorToRotation(generator: string, cubelet: string, time = 1.0): TH
   if (generator == "B" && cubelet[2] == "0") {
     return new THREE.Matrix4().makeRotationZ(θ)
   }
-  console.warn(`Invalid generator ${generator}. Skipping.`)
+  // Idle cubelets on a valid face move are identity, not an invalid generator
+  const known = ["U", "D", "L", "R", "F", "B"]
+  if (!known.includes(generator)) {
+    console.warn(`Invalid generator ${generator}. Skipping.`)
+  }
   return new THREE.Matrix4()
 }
 
