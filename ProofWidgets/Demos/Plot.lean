@@ -10,7 +10,7 @@ open Lean ProofWidgets Recharts
 def fn (t : Float) (x : Float): Float :=
    50 * (x - 0.25) * (x - 0.5) * (x - 0.7) + 0.1 * (x * 40 - t * 2 * 3.141).sin
 
-def Plot (fn : Float → Float) (steps := 100) : Html :=
+def Plot (fn : Float → Float) (steps := 100) : ProofWidgets.Html :=
   let jsonData : Array Json :=
     Array.range (steps + 1)
     |> Array.map (fun (x : Nat) => let x : Float := x.toFloat / steps.toFloat;  (x, fn x))
@@ -30,11 +30,11 @@ def Plot (fn : Float → Float) (steps := 100) : Html :=
 # Bonus demo: animated plots!
 -/
 
-def mkFrames (fn : Float → Float → Float) (steps := 100) : Array Html:=
+def mkFrames (fn : Float → Float → Float) (steps := 100) : Array ProofWidgets.Html:=
   List.range (steps + 1) |>.toArray |>.map (fun t => Plot (fn (t.toFloat / steps.toFloat)))
 
 structure AnimatedHtmlProps where
-  frames : Array Html
+  frames : Array ProofWidgets.Html
   framesPerSecond? : Option Nat := none
   deriving Server.RpcEncodable
 

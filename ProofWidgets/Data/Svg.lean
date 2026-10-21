@@ -146,7 +146,7 @@ def Element.setId {f} (elem : Element f) (id : String) :=
 def Element.setData {α : Type} {f} (elem : Element f) (a : α) [ToJson α] :=
   { elem with data := some (toJson a) }
 
-def Element.toHtml {f : Frame} (e : Element f) : Html := Id.run do
+def Element.toHtml {f : Frame} (e : Element f) : ProofWidgets.Html := Id.run do
   let mut (tag, args) := e.shape.toHtmlData
   let mut children := #[]
 
@@ -200,7 +200,7 @@ structure Svg (f : Svg.Frame) where
 
 namespace Svg
 
-def toHtml {f : Frame} (svg : Svg f) : Html :=
+def toHtml {f : Frame} (svg : Svg f) : ProofWidgets.Html :=
   jsx%{<svg xmlns="http://www.w3.org/2000/svg" version="1.1"
        width={f.width} height={f.height}>
     {... svg.elements.map (·.toHtml)}

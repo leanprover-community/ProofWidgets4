@@ -8,7 +8,7 @@ namespace ProofWidgets
 open Lean Server
 
 structure HtmlDisplayProps where
-  html : Html
+  html : ProofWidgets.Html
   deriving RpcEncodable
 
 @[widget_module]
@@ -26,39 +26,39 @@ can be evaluated in a `#html t` command.
 
 This is analogous to how `Lean.MetaEval` supports `#eval`. -/
 class HtmlEval (α : Type u) where
-  eval : α → CommandElabM Html
+  eval : α → CommandElabM ProofWidgets.Html
 
-instance : HtmlEval Html where
+instance : HtmlEval ProofWidgets.Html where
   eval ht := pure ht
 
-instance [MonadLiftT m CommandElabM] : HtmlEval (m Html) where
+instance [MonadLiftT m CommandElabM] : HtmlEval (m ProofWidgets.Html) where
   eval := monadLift
 
-instance : HtmlEval (CoreM Html) where
+instance : HtmlEval (CoreM ProofWidgets.Html) where
   eval := liftCoreM
 
-instance : HtmlEval (MetaM Html) where
+instance : HtmlEval (MetaM ProofWidgets.Html) where
   eval x := liftTermElabM x
 
-instance : HtmlEval (TermElabM Html) where
+instance : HtmlEval (TermElabM ProofWidgets.Html) where
   eval := liftTermElabM
 
 namespace HtmlCommand
 
 open Elab Command
 
-unsafe def evalCommandMHtmlUnsafe (stx : Term) : TermElabM (CommandElabM Html) := do
-  let tp := mkApp (mkConst ``CommandElabM) (mkConst ``Html)
+unsafe def evalCommandMHtmlUnsafe (stx : Term) : TermElabM (CommandElabM ProofWidgets.Html) := do
+  let tp := mkApp (mkConst ``CommandElabM) (mkConst ``ProofWidgets.Html)
   Term.evalTerm _ tp stx
 
 @[implemented_by evalCommandMHtmlUnsafe]
-opaque evalCommandMHtml : Term → TermElabM (CommandElabM Html)
+opaque evalCommandMHtml : Term → TermElabM (CommandElabM ProofWidgets.Html)
 
 /-- Display a value of type `Html` in the infoview.
 
 The input can be a pure value
 or a computation in any Lean metaprogramming monad
-(e.g. `CommandElabM Html`). -/
+(e.g. `CommandElabM ProofWidgets.Html`). -/
 syntax (name := htmlCmd) "#html " term : command
 
 @[command_elab htmlCmd]

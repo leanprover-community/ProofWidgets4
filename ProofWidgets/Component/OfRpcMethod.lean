@@ -11,7 +11,7 @@ open Lean Server Meta Elab Term
 def ofRpcMethodTemplate := include_str ".." / ".." / "widget" / "js" / "ofRpcMethod.js"
 
 /-- The elaborator `mk_rpc_widget%` allows writing certain widgets in Lean instead of JavaScript.
-Specifically, it translates an RPC method of type `MyProps → RequestM (RequestTask Html)`
+Specifically, it translates an RPC method of type `MyProps → RequestM (RequestTask ProofWidgets.Html)`
 into a widget component of type `Component MyProps`.
 
 Even more specifically, we can write:
@@ -23,7 +23,7 @@ structure MyProps where
   deriving RpcEncodable
 
 @[server_rpc_method]
-def MyComponent.rpc (ps : MyProps) : RequestM (RequestTask Html) :=
+def MyComponent.rpc (ps : MyProps) : RequestM (RequestTask ProofWidgets.Html) :=
   ...
 
 @[widget_module]
@@ -55,7 +55,7 @@ Given `MyComponent : Component MyProps`, we can write:
 open Lean Server
 
 @[server_rpc_method]
-def MyComponent.rpc (ps : MyProps) : RequestM (RequestTask Html) :=
+def MyComponent.rpc (ps : MyProps) : RequestM (RequestTask ProofWidgets.Html) :=
   RequestM.asTask do
     return Html.ofComponent MyComponent ps #[]
 ```
@@ -65,7 +65,7 @@ elab "mk_rpc_widget%" fn:term : term <= expectedType => do
   let compT ← mkAppM ``Component #[α]
   if !(← isDefEq expectedType compT) then
     throwError "expected type{indentD expectedType}\nis not of the form{indentD compT}"
-  let arr ← mkArrow α (← mkAppM ``RequestM #[← mkAppM ``RequestTask #[.const ``Html []]])
+  let arr ← mkArrow α (← mkAppM ``RequestM #[← mkAppM ``RequestTask #[.const ``ProofWidgets.Html []]])
   let fn ← Term.elabTermEnsuringType fn arr
   let fn ← instantiateMVars fn
   if let .const nm .. := fn then

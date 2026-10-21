@@ -104,7 +104,7 @@ open ProofWidgets
 def RBDisplay : Component RBDisplayProps where
   javascript := include_str ".." / ".." / "widget" / "js" / "rbTree.js"
 
-partial def drawTree? (e : Expr) : MetaM (Option Html) := do
+partial def drawTree? (e : Expr) : MetaM (Option ProofWidgets.Html) := do
   if let some _ := node? e then
     return some jsx%{<RBDisplay tree={← go e}/>}
   else if empty? e then

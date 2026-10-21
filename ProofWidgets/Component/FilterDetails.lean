@@ -10,11 +10,11 @@ open Lean
 /-- Props for the `FilterDetails` component. -/
 structure FilterDetailsProps where
   /-- Contents of the `<summary>`. -/
-  summary : Html
+  summary : ProofWidgets.Html
   /-- What is shown in the filtered state. -/
-  filtered : Html
+  filtered : ProofWidgets.Html
   /-- What is shown in the non-filtered state. -/
-  all : Html
+  all : ProofWidgets.Html
   /-- Whether to start in the filtered state. -/
   initiallyFiltered : Bool := true
   deriving Server.RpcEncodable

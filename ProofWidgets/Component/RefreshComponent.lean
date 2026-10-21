@@ -48,7 +48,7 @@ namespace RefreshComponent
 /-- A HTML tree together with a version number.
 We use this to check whether the tree currently on display is up to date. -/
 structure VersionedHtml where
-  html : Html
+  html : ProofWidgets.Html
   idx : Nat
   deriving RpcEncodable
 
@@ -59,7 +59,7 @@ structure RefreshState where
   We only force the thunk when the client requests it.
   This means that if several updates arrive in quick succession,
   only the ones that the client actually sees will be computed. -/
-  curr : Thunk Html
+  curr : Thunk ProofWidgets.Html
   /-- Version of the current HTML tree.
   It should increase by `1` with each state update. -/
   idx : Nat
@@ -166,7 +166,7 @@ structure RefreshToken where
   private promise : IO.Ref (IO.Promise Unit)
 
 /-- Create a `RefreshToken` with an initial HTML tree. -/
-private def RefreshToken.new (initial : Thunk Html) : BaseIO RefreshToken := do
+private def RefreshToken.new (initial : Thunk ProofWidgets.Html) : BaseIO RefreshToken := do
   let promise ← IO.Promise.new
   let state := {
     curr := initial
@@ -186,7 +186,7 @@ The `html` thunk is only forced when the client requests it;
 if another update is made before that, it will never be forced.
 
 This function is thread-safe: each update is made atomically. -/
-def RefreshToken.updateLazy (token : RefreshToken) (html : Thunk Html) : BaseIO Unit := do
+def RefreshToken.updateLazy (token : RefreshToken) (html : Thunk ProofWidgets.Html) : BaseIO Unit := do
   let { state, promise, .. } := token
   let newPromise ← IO.Promise.new
   -- `state` is the ref that guards the critical region.
@@ -203,11 +203,11 @@ def RefreshToken.updateLazy (token : RefreshToken) (html : Thunk Html) : BaseIO 
   oldPromise.resolve ()
 
 /-- Update the current HTML tree to be `html`. See also `updateLazy`. -/
-def RefreshToken.update (token : RefreshToken) (html : Html) : BaseIO Unit :=
+def RefreshToken.update (token : RefreshToken) (html : ProofWidgets.Html) : BaseIO Unit :=
   token.updateLazy (.pure html)
 
 /-- Create a `RefreshComponent` instance together with a token to manage it. -/
-def mkRefreshComponent (initial : Html := .text "") : BaseIO (Html × RefreshToken) := do
+def mkRefreshComponent (initial : ProofWidgets.Html := .text "") : BaseIO (ProofWidgets.Html × RefreshToken) := do
   let token ← RefreshToken.new initial
   return (jsx%{<RefreshComponent state={← WithRpcRef.mk ⟨token.state⟩}
       cancelTk={← WithRpcRef.mk token.cancelTk} />}, token)
@@ -220,7 +220,7 @@ variable {m} [Monad m] [MonadLiftT BaseIO m]
 The typeclass assumptions essentially require `m` to extend `CoreM`.
 For early cooperative cancellation of `CoreM` computations,
 we automatically pass `RefreshToken.cancelTk` to `Core.Context`. -/
-def mkRefreshComponentM (initial : Html) (k : RefreshToken → m Unit) : m Html := do
+def mkRefreshComponentM (initial : ProofWidgets.Html) (k : RefreshToken → m Unit) : m ProofWidgets.Html := do
   let (html, token) ← mkRefreshComponent initial
   let mkAct : m (EIO Exception Unit) := saveCtxM do
     withTheReader Core.Context ({· with cancelTk? := token.cancelTk}) <|

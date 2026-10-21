@@ -15,19 +15,20 @@ namespace ProofWidgets
 open Lean Server
 
 /-- A HTML tree which may contain widget components. -/
-inductive Html where
+protected inductive Html where
   /-- An `element "tag" attrs children` represents `<tag {...attrs}>{...children}</tag>`. -/
-  | element : String → Array (String × Json) → Array Html → Html
+  | element : String → Array (String × Json) → Array ProofWidgets.Html → ProofWidgets.Html
   /-- Raw HTML text. -/
-  | text : String → Html
+  | text : String → ProofWidgets.Html
   /-- A `component h e props children` represents `<Foo {...props}>{...children}</Foo>`,
   where `Foo : Component Props` is some component such that `h = hash Foo.javascript`,
   `e = Foo.«export»`, and `props` will produce a JSON-encoded value of type `Props`. -/
-  | component : UInt64 → String → LazyEncodable Json → Array Html → Html
+  | component : UInt64 → String → LazyEncodable Json → Array ProofWidgets.Html → ProofWidgets.Html
   deriving Inhabited, RpcEncodable
 
 def Html.ofComponent [RpcEncodable Props]
-    (c : Component Props) (props : Props) (children : Array Html) : Html :=
+    (c : Component Props) (props : Props) (children : Array ProofWidgets.Html) :
+    ProofWidgets.Html :=
   .component (hash c.javascript) c.export (rpcEncode props) children
 
 /-- See [MDN docs](https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_Flow_Layout/Block_and_Inline_Layout_in_Normal_Flow). -/
