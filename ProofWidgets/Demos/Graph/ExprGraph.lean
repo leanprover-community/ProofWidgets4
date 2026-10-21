@@ -61,7 +61,7 @@ def elabExprGraphCmd : CommandElab := fun
             </span>}
       }
       nodesWithInfos := nodesWithInfos.push newNode
-    let html : Html := jsx%{<ForceGraphDisplay
+    let html : ProofWidgets.Html := jsx%{<ForceGraphDisplay
       vertices={nodesWithInfos}
       edges={edges.fold (init := #[]) fun acc (a,b) => acc.push {source := a, target := b}}
       forces={#[

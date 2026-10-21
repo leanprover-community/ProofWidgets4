@@ -16,7 +16,7 @@ structure ExprPresenter where
   /-- Whether the output HTML has inline (think something which fits in the space normally occupied
   by an `Expr`, e.g. LaTeX) or block (think large diagram which needs dedicated space) layout. -/
   layoutKind : LayoutKind := .block
-  present : Expr → MetaM Html
+  present : Expr → MetaM ProofWidgets.Html
 
 /-- Register an Expr presenter. It must have the type `ProofWidgets.ExprPresenter`. -/
 initialize exprPresenters : TagAttribute ←
@@ -43,7 +43,7 @@ structure GetExprPresentationsParams where
 structure ExprPresentationData where
   name : Name
   userName : String
-  html : Html
+  html : ProofWidgets.Html
   deriving RpcEncodable
 
 structure ExprPresentations where

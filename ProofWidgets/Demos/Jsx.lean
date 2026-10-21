@@ -39,4 +39,4 @@ open ProofWidgets Lean Server Elab in
   Term.synthesizeSyntheticMVarsNoPostponing
   let e ← instantiateMVars e
   return jsx%{<InteractiveExpr expr={← WithRpcRef.mk (← ExprWithCtx.save e)} />}
-    : Term.TermElabM Html)
+    : Term.TermElabM ProofWidgets.Html)

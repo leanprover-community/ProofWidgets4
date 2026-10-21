@@ -8,7 +8,7 @@ namespace ProofWidgets.ForceGraphDisplay
 open Lean Server
 
 /-- A themed `<circle>` SVG element, with optional extra attributes. -/
-def mkCircle (attrs : Array (String × Json) := #[]) : Html :=
+def mkCircle (attrs : Array (String × Json) := #[]) : ProofWidgets.Html :=
   jsx%{<circle
     r={5}
     fill="var(--vscode-editor-background)"
@@ -34,12 +34,12 @@ structure Vertex where
   /-- The label is drawn at the vertex position.
   This must be an SVG element.
   Use `<foreignObject>` to draw non-SVG elements. -/
-  label : Html := mkCircle
+  label : ProofWidgets.Html := mkCircle
   boundingShape : BoundingShape := .circle 5
   /-- Details are shown below the graph display
   after the vertex label has been clicked.
   See also `Props.showDetails`. -/
-  details? : Option Html := none
+  details? : Option ProofWidgets.Html := none
   deriving Inhabited, RpcEncodable
 
 structure Edge where
@@ -53,11 +53,11 @@ structure Edge where
   /-- If present, the label is shown over the edge midpoint.
   This must be an SVG element.
   Use `<foreignObject>` to draw non-SVG elements. -/
-  label? : Option Html := none
+  label? : Option ProofWidgets.Html := none
   /-- Details are shown below the graph display
   after the edge has been clicked.
   See also `Props.showDetails`. -/
-  details? : Option Html := none
+  details? : Option ProofWidgets.Html := none
   deriving Inhabited, RpcEncodable
 
 structure ForceCenterParams where

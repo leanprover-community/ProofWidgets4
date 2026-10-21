@@ -9,14 +9,13 @@ This file showcases the `RefreshComponent` using some basic examples.
 We use `dbg_trace` to help see which Lean processes are active at any time.
 -/
 
--- ProofWidgets defines its own Html type.
-open Lean hiding Html
+open Lean
 open Lean.Server
 open ProofWidgets RefreshComponent
 
 /-! Example 1: Count from 1 to 10, taking one second for each count. -/
 
-partial def countToTen : CoreM Html := do
+partial def countToTen : CoreM ProofWidgets.Html := do
   mkRefreshComponentM (.text "Let's count to ten!!!") fun token ↦ do
     let mut n := 0
     repeat do
@@ -42,7 +41,7 @@ partial def countToTen : CoreM Html := do
 /-! Example 2: Print the selected expressions one by one in an infinite loop. -/
 
 @[server_rpc_method]
-partial def cycleSelections (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
+partial def cycleSelections (props : PanelWidgetProps) : RequestM (RequestTask ProofWidgets.Html) :=
   RequestM.asTask do
     let some goal := props.goals[0]? | return .text "there are no goals"
     goal.ctx.val.runMetaM {} do
@@ -89,8 +88,8 @@ def fibo (n : Nat) : Nat := Id.run do
   return a
 
 structure FiboState where
-  pending : Array (Nat × Task Html)
-  results : Array (Nat × Html) := #[]
+  pending : Array (Nat × Task ProofWidgets.Html)
+  results : Array (Nat × ProofWidgets.Html) := #[]
 
 def FiboState.update (s : FiboState) : BaseIO FiboState := do
   let mut results := s.results
@@ -103,7 +102,7 @@ def FiboState.update (s : FiboState) : BaseIO FiboState := do
   results := results.insertionSort  (·.1 < ·.1)
   return { results, pending }
 
-def FiboState.render (s : FiboState) (t : Option Nat := none) : Html :=
+def FiboState.render (s : FiboState) (t : Option Nat := none) : ProofWidgets.Html :=
   let header := match t with
     | some t => s!"Finished in {t}ms"
     | none => "Computing Fibonacci numbers ⏳";
@@ -114,10 +113,10 @@ def FiboState.render (s : FiboState) (t : Option Nat := none) : Html :=
     {Html.element "ul" #[("style", json% { "padding-left" : "30px"})] (s.results.map (·.2))}
   </details>}
 
-def generateFibo (n : Nat) : Html :=
+def generateFibo (n : Nat) : ProofWidgets.Html :=
   jsx%{<li>{.text s!"the {n}-th Fibonacci number has {(fibo n).log2} binary digits."}</li>}
 
-partial def FiboWidget : CoreM Html := do
+partial def FiboWidget : CoreM ProofWidgets.Html := do
   mkRefreshComponentM (.text "loading...") fun token ↦ do
     let pending := (400000...=400040).toArray.map fun n => (n, Task.spawn fun _ => generateFibo n)
     let t0 ← IO.monoMsNow
