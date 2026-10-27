@@ -121,10 +121,10 @@ structure ConvSelectionPanelProps extends PanelWidgetProps where
   deriving RpcEncodable
 
 @[server_rpc_method]
-def ConvSelectionPanel.rpc (props : ConvSelectionPanelProps) : RequestM (RequestTask Html) :=
+def ConvSelectionPanel.rpc (props : ConvSelectionPanelProps) : RequestM (RequestTask ProofWidgets.Html) :=
   RequestM.asTask do
     let doc ← RequestM.readDoc
-    let inner : Html ← (do
+    let inner : ProofWidgets.Html ← (do
       if props.selectedLocations.isEmpty then
         return jsx%{<span>
           Use shift-click to select one sub-expression in the goal that you want to zoom on.

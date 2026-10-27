@@ -69,7 +69,7 @@ def elabComponentAttr (stx : Attr) : TermElabM ((Ident × Term) ⊕ Term) := wit
 
 mutual
 
-/-- Elaborates an HTML element into a {name}`Term` of type {name}`Html`. -/
+/-- Elaborates an HTML element into a {name}`Term` of type {name}`ProofWidgets.Html`. -/
 partial def elabHtmlElement (stx : Element) : TermElabM Term := withRef stx do
   stx.checkNamesMatch
   let v ← stx.view
@@ -102,8 +102,8 @@ partial def elabHtmlElement (stx : Element) : TermElabM Term := withRef stx do
 
 /-- Elaborates a sequence of HTML content items.
 - Many-item interpolations {lit}`{... $hs }` become {lit}`.inr hs`,
-  with expected type {lit}`hs : Array Html`.
-- Other items become {lit}`.inl h`, with expected type {lit}`h : Html`. -/
+  with expected type {lit}`hs : Array ProofWidgets.Html`.
+- Other items become {lit}`.inl h`, with expected type {lit}`h : ProofWidgets.Html`. -/
 partial def elabHtmlContent (stx : Content) : TermElabM (Array (Term ⊕ Term)) := do
   let mut out := #[]
   for item in ← stx.view do
@@ -119,7 +119,7 @@ partial def elabHtmlContent (stx : Content) : TermElabM (Array (Term ⊕ Term)) 
       out := out.push (.inl i.term)
     | .interp true stx => withRef stx do←
       let i ← stx.view
-      out := out.push (.inr (← `(($(i.term) : Array Html))))
+      out := out.push (.inr (← `(($(i.term) : Array ProofWidgets.Html))))
   return out
 
 end
@@ -150,8 +150,8 @@ public meta def «jsx%» : Parser :=
 elab_rules : term
   | `(term| jsx%{$c:content}) => do
     match ← elabHtmlContent c with
-    | #[] => elabTermEnsuringType (← ``(Html.text "")) (some (.const ``Html []))
-    | #[.inl h] => elabTermEnsuringType h (some (.const ``Html []))
+    | #[] => elabTermEnsuringType (← ``(Html.text "")) (some (.const ``ProofWidgets.Html []))
+    | #[.inl h] => elabTermEnsuringType h (some (.const ``ProofWidgets.Html []))
     | #[.inr _] =>
       throwErrorAt c "expected at most one HTML element, found a `\{... }` interpolation"
     | out => throwErrorAt c m!"expected at most one HTML element, found {out.size}"

@@ -4,6 +4,17 @@ This file contains work-in-progress notes for the upcoming release, as well as p
 Please check the [releases](https://github.com/leanprover-community/ProofWidgets4/releases) page
 for the build artifacts.
 
+v0.0.118
+--------
+
+* **Breaking.** `ProofWidgets.Html` is now `protected`,
+  so it no longer clashes with `Lean.Html` when both `Lean` and `ProofWidgets` are open.
+
+v0.0.117
+--------
+
+* The `jsx%{}` syntax now uses parsers defined in Lean core.
+
 v0.0.104
 --------
 

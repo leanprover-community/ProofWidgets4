@@ -47,7 +47,7 @@ structure UpdateParams (State : Type) where
   deriving ToJson, FromJson
 
 structure UpdateResult (State : Type) where
-  html : Html
+  html : ProofWidgets.Html
   state : SvgState State
   /-- Approximate number of milliseconds to wait before calling again. -/
   callbackTime : Option Float := some 33

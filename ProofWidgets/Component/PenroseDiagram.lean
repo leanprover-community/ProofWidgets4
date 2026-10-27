@@ -8,7 +8,7 @@ namespace ProofWidgets.Penrose
 open Lean Server Std
 
 structure DiagramProps where
-  embeds      : Array (String × Html)
+  embeds      : Array (String × ProofWidgets.Html)
   dsl         : String
   sty         : String
   sub         : String
@@ -52,7 +52,7 @@ structure DiagramState where
   sub : String := ""
   /-- Components to display as labels in the diagram,
   stored in the map as name ↦ (type, html). -/
-  embeds : Std.HashMap String (String × Html) := ∅
+  embeds : Std.HashMap String (String × ProofWidgets.Html) := ∅
 
 /-- A monad to easily build Penrose diagrams in. -/
 abbrev DiagramBuilderM := StateT DiagramState MetaM
@@ -62,7 +62,7 @@ namespace DiagramBuilderM
 /-- Assemble the diagram using the provided domain and style programs.
 
 `none` is returned iff nothing was added to the diagram. -/
-def buildDiagram (dsl sty : String) (maxOptSteps : Nat := 500) : DiagramBuilderM (Option Html) := do
+def buildDiagram (dsl sty : String) (maxOptSteps : Nat := 500) : DiagramBuilderM (Option ProofWidgets.Html) := do
   let st ← get
   if st.sub == "" && st.embeds.isEmpty then
     return none
@@ -80,7 +80,7 @@ def buildDiagram (dsl sty : String) (maxOptSteps : Nat := 500) : DiagramBuilderM
 
 /-- Add an object `nm` of Penrose type `tp`,
 labelled by `h`, to the substance program. -/
-def addEmbed (nm : String) (tp : String) (h : Html) : DiagramBuilderM Unit := do
+def addEmbed (nm : String) (tp : String) (h : ProofWidgets.Html) : DiagramBuilderM Unit := do
   modify fun st => { st with embeds := st.embeds.insert nm (tp, h) }
 
 /-- Add an object of Penrose type `tp`,

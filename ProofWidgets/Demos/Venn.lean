@@ -49,7 +49,7 @@ def isSubsetPred? (e : Expr) : Option (Expr × Expr) := do
 /-- Expressions to display as labels in a diagram. -/
 abbrev ExprEmbeds := Array (String × Expr)
 
-def mkSetDiag (sub : String) (embeds : ExprEmbeds) : MetaM Html := do
+def mkSetDiag (sub : String) (embeds : ExprEmbeds) : MetaM ProofWidgets.Html := do
   let embeds ← embeds.mapM fun (s, h) =>
       return (s, jsx%{<InteractiveCode fmt={← Widget.ppExprTagged h} />})
   return jsx%{<PenroseDiagram
@@ -58,7 +58,7 @@ def mkSetDiag (sub : String) (embeds : ExprEmbeds) : MetaM Html := do
       sty={include_str ".."/".."/"widget"/"penrose"/"venn.sty"}
       sub={sub} />}
 
-def isSetGoal? (hyps : Array LocalDecl) : MetaM (Option Html) := do
+def isSetGoal? (hyps : Array LocalDecl) : MetaM (Option ProofWidgets.Html) := do
   let mut sub := "AutoLabel All\n"
   let mut sets : Std.HashMap String Expr := ∅
   for assm in hyps do
@@ -84,9 +84,9 @@ def findGoalForLocation (goals : Array Widget.InteractiveGoal) (loc : SubExpr.Go
   goals.find? (·.mvarId == loc.mvarId)
 
 @[server_rpc_method]
-def VennDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
+def VennDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask ProofWidgets.Html) :=
   RequestM.asTask do
-    let inner : Html ← (do
+    let inner : ProofWidgets.Html ← (do
       if props.selectedLocations.isEmpty then
         return jsx%{<span>Use shift-click to select hypotheses to include in the diagram.</span>}
       let some selectedLoc := props.selectedLocations[0]? | unreachable!

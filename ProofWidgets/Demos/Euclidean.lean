@@ -135,9 +135,9 @@ def EuclideanDisplay.sty :=
   include_str ".."/".."/"widget"/"penrose"/"euclidean.sty"
 
 @[server_rpc_method]
-def EuclideanDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
+def EuclideanDisplay.rpc (props : PanelWidgetProps) : RequestM (RequestTask ProofWidgets.Html) :=
   RequestM.asTask do
-    let inner : Html ← (do
+    let inner : ProofWidgets.Html ← (do
       -- Are there any goals unsolved? If so, pick the first one.
       if props.goals.isEmpty then
         return jsx%{<span>No goals.</span>}
@@ -262,10 +262,10 @@ def constructLines (hyps : Array LocalDecl) (docMeta : Server.DocumentMeta) (cur
     addInstruction s!"OnCircle({nm'}, {sD})"
 
 @[server_rpc_method]
-def EuclideanConstructions.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
+def EuclideanConstructions.rpc (props : PanelWidgetProps) : RequestM (RequestTask ProofWidgets.Html) :=
   RequestM.asTask do
     let doc ← RequestM.readDoc
-    let inner : Html ← (do
+    let inner : ProofWidgets.Html ← (do
       -- Are there any goals unsolved? If so, pick the first one.
       if props.goals.isEmpty then
         return jsx%{<span>No goals.</span>}

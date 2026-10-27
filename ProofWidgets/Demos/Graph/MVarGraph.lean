@@ -60,7 +60,7 @@ open ProofWidgets in
 def mkLabel (e : MVarId)
     (stroke := "var(--vscode-editor-foreground)")
     (fill := "var(--vscode-editor-background)") :
-    MetaM (Nat × Nat × Html) := do
+    MetaM (Nat × Nat × ProofWidgets.Html) := do
   let fmt := s!"?{← e.getName}"
   let fmtTp ← withOptions (·.set `pp.deepTerms.threshold (2 : Nat))
     (toString <$> ppExpr (← e.getType'))
@@ -83,7 +83,7 @@ def mkLabel (e : MVarId)
     </g>})
 
 open ProofWidgets in
-def drawMVarGraph (goals : List MVarId) : MetaM Html := do
+def drawMVarGraph (goals : List MVarId) : MetaM ProofWidgets.Html := do
   let mvars ← buildMVarGraph
   let mg := goals.head!
   let g := mvars.filterReachable goals
@@ -145,9 +145,9 @@ def drawMVarGraph (goals : List MVarId) : MetaM Html := do
 open Server ProofWidgets
 
 @[server_rpc_method]
-def MVarGraph.rpc (props : PanelWidgetProps) : RequestM (RequestTask Html) :=
+def MVarGraph.rpc (props : PanelWidgetProps) : RequestM (RequestTask ProofWidgets.Html) :=
   RequestM.asTask do
-    let inner : Html ← (do
+    let inner : ProofWidgets.Html ← (do
       -- Are there any goals unsolved? If so, the first one is the current main goal.
       if props.goals.isEmpty then
         return jsx%{<span>No goals.</span>}
